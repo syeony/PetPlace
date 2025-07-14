@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lagn="ko" xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="headerFragment">
+    <section class="header_wrap">
+        <header class="header " role="navigation">
+            <a href="/main.do" class="logo">
+                <span class="logo-mini"><img src="/static/images/logo_splash.png" /></span>
+            </a>
+            <ul class="header_link">
+                <li class="user user-menu">
+                    <span>
+						<img src="/static/images/admin_icon.png" alt="계정 정보 변경">
+					</span>
+                </li>
+                <li>
+                    <a href="#" onclick="fnLogOut();">
+                        <form name="logout" id="logout" action="/logout.do" method="post">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        </form>
+					<span>
+						<img src="/static/images/logout_icon.png" alt="로그아웃">
+					</span>
+                        <span>로그아웃</span>
+                    </a>
+                </li>
+            </ul>
+        </header>
+    </section>
+</th:block>
+</html>

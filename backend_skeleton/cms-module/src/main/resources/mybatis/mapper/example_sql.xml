@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="Mapper 경로 입력">
+
+    <select id="Mapper 메서드 명과 동일하게 sql 아이디 입력" parameterType="파라미터타입" resultType="반환타입">
+        /* Mapper 메서드 명 입력 */
+        /*쿼리문 작성란*/
+    </select>
+</mapper>

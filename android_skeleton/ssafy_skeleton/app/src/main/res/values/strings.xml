@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">skeleton</string>
+    <!--인트로-->
+    <string name="intro_logo">비대면 학습 플랫폼</string>
+    <string name="intro_bottom">ⓒ 2021. Samsung SW Academy For Youth</string>
+
+    <!--로그인-->
+    <string name="login_id">아이디</string>
+    <string name="login_id_hint">아이디를 입력하세요.</string>
+    <string name="login_passwd">비밀번호</string>
+    <string name="login_passwd_hint">비밀번호를 입력하세요.</string>
+    <string name="login_autologin">자동 로그인</string>
+    <string name="login_login">로그인</string>
+    <string name="login_signup"><u>회원가입</u></string>
+    <string name="invalid_login">아이디 혹은 비밀번호를 확인해주세요.</string>
+</resources>

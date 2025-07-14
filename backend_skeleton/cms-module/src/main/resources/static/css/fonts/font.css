@@ -1,0 +1,61 @@
+
+/*노토산스*/
+@font-face{
+    font-family:'NotoSansKR';
+    src:url('NotoSansKR-Black-Hestia.eot');
+    src:url('NotoSansKR-Black-Hestia.woff') format('woff'),
+        url('NotoSansKR-Black-Hestia.otf') format('opentype');
+    font-weight:700;
+    font-style:normal;
+}
+@font-face{
+    font-family:'NotoSansKR';
+    src:url('NotoSansKR-Bold-Hestia.eot');
+    src:url('NotoSansKR-Bold-Hestia.woff') format('woff'),
+        url('NotoSansKR-Bold-Hestia.otf') format('opentype');
+    font-weight:600;
+    font-style:normal;
+}
+@font-face{
+    font-family:'NotoSansKR';
+    src:url('NotoSansKR-Medium-Hestia.eot');
+    src:url('NotoSansKR-Medium-Hestia.woff') format('woff'),
+        url('NotoSansKR-Medium-Hestia.otf') format('opentype');
+    font-weight:500;
+    font-style:normal;
+}
+@font-face{
+    font-family:'NotoSansKR';
+    src:url('NotoSansKR-Regular-Hestia.eot');
+    src:url('NotoSansKR-Regular-Hestia.woff') format('woff'),
+        url('NotoSansKR-Regular-Hestia.otf') format('opentype');
+    font-weight:400;
+    font-style:normal;
+}
+@font-face{
+    font-family:'NotoSansKR';
+    src:url('NotoSansKR-DemiLight-Hestia.eot');
+    src:url('NotoSansKR-DemiLight-Hestia.woff') format('woff'),
+        url('NotoSansKR-DemiLight-Hestia.otf') format('opentype');
+    font-weight:300;
+    font-style:normal;
+}
+@font-face{
+    font-family:'NotoSansKR';
+    src:url('NotoSansKR-Light-Hestia.eot');
+    src:url('NotoSansKR-Light-Hestia.woff') format('woff'),
+        url('NotoSansKR-Light-Hestia.otf') format('opentype');
+    font-weight:200;
+    font-style:normal;
+}
+@font-face{
+    font-family:'NotoSansKR';
+    src:url('NotoSansKR-Thin-Hestia.eot');
+    src:url('NotoSansKR-Thin-Hestia.woff') format('woff'),
+        url('NotoSansKR-Thin-Hestia.otf') format('opentype');
+    font-weight:100;
+    font-style:normal;
+}
+
+
+
