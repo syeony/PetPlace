@@ -7,6 +7,7 @@ import androidx.appcompat.widget.AppCompatTextView;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -30,6 +31,8 @@ public class SignInActivity extends AppCompatActivity {
         private AppCompatEditText edit_passwd; //패스워드
         private AppCompatImageView img_autologin; //자동로그인
         private AppCompatTextView txt_login; //로그인버튼
+
+        private AppCompatTextView txt_join;
         private static Integer CHECK = 0; //자동 로그인 체크여부
         private long back= 0; // 뒤로가기시 사용
         private String fcmToken = ""; //fcm토큰
@@ -53,6 +56,7 @@ public class SignInActivity extends AppCompatActivity {
             edit_passwd = findViewById(R.id.edit_passwd);
             img_autologin = findViewById(R.id.img_autologin);
             txt_login = findViewById(R.id.txt_login);
+            txt_join = findViewById(R.id.txt_join);
         }
 
         @SuppressLint("CheckResult")
@@ -74,6 +78,16 @@ public class SignInActivity extends AppCompatActivity {
             RxView.clicks(txt_login)
                     .throttleFirst(Constant.CLICK_DURATION, TimeUnit.SECONDS) //중복 터치를 방지하기 위해 사용
                     .subscribe(unit -> login());
+            RxView.clicks(txt_join)
+                    .throttleFirst(1, TimeUnit.SECONDS)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(unit -> {
+                        Intent intent = new Intent(SignInActivity.this, SignUpActivity.class);
+                        startActivity(intent);
+                    });
+
+
+
 
         }
 

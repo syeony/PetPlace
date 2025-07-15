@@ -27,8 +27,13 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/s_sbj_1_db?serverTimezone=UTC&characterEncoding=UTF-8
     driver-class-name: com.mysql.cj.jdbc.Driver # 에러가 뜨면 dependency 확인!
+<<<<<<< HEAD
     username: root
     password: whrudgh142!
+=======
+    username: ssafy
+    password: ssafy
+>>>>>>> 2fcd6425717315dfdf05c0829428aa2a1644468d
 
   # 메일 전송 시 사용할 설정값
   mail:
