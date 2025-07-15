@@ -13,6 +13,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
 import com.jakewharton.rxbinding3.view.RxView;
 
 import java.util.UUID;
@@ -23,6 +24,8 @@ import io.reactivex.schedulers.Schedulers;
 import kr.co.skeleton.R;
 import kr.co.skeleton.common.Constant;
 import kr.co.skeleton.common.PrefManager;
+import kr.co.skeleton.model.SignInRequest;
+import kr.co.skeleton.model.SignInResponse;
 import kr.co.skeleton.network.RetrofitManager;
 
 public class SignInActivity extends AppCompatActivity {
@@ -98,24 +101,37 @@ public class SignInActivity extends AppCompatActivity {
             String id = edit_id.getText().toString();
             String passwd = edit_passwd.getText().toString();
 
-            RetrofitManager.getService().login(deviceUUID,passwd,fcmToken,"none",id)
+            // 로그: 로그인 요청 파라미터 확인
+            Log.d("LOGIN", "로그인 요청 시작");
+            Log.d("LOGIN", "입력한 ID: " + id);
+            Log.d("LOGIN", "입력한 PW: " + passwd);
+            Log.d("LOGIN", "디바이스 UUID: " + deviceUUID);
+            Log.d("LOGIN", "FCM Token: " + fcmToken);
+
+            SignInRequest request = new SignInRequest();
+            request.setUid(id);
+            request.setPassword(passwd);
+            request.setToken(fcmToken);
+            request.setType("none");
+            request.setDeviceUid(deviceUUID);
+
+            RetrofitManager.getService().login(request)
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(result -> {
-                        if (result.getOutput() == Constant.RESPONSE_OK) {
-                            Constant.AUTH_TOKEN = result.getData().getToken();
-                            PrefManager.setUUID(mContext,deviceUUID);
-                            PrefManager.setFbToken(mContext,fcmToken);
-                            PrefManager.setToken(mContext,result.getData().getToken());
-                            PrefManager.setUserKey(mContext,result.getData().getId());
-                            Toast.makeText(this,"로그인 성공", Toast.LENGTH_SHORT).show();
-                           // startTargetActivity(MainActivity.class);
-                        } else {
-                            Toast.makeText(this, getString(R.string.invalid_login), Toast.LENGTH_SHORT).show();
-                        }
+                        Constant.AUTH_TOKEN = result.getToken();
+                        PrefManager.setUUID(mContext, deviceUUID);
+                        PrefManager.setFbToken(mContext, fcmToken);
+                        PrefManager.setToken(mContext, result.getToken());
+                        PrefManager.setUserKey(mContext, result.getId());
+                        Toast.makeText(this, "로그인 성공", Toast.LENGTH_SHORT).show();
                     }, throwable -> {
-                        throwable.getMessage();
-                        Toast.makeText(this, throwable.getMessage(), Toast.LENGTH_SHORT).show();
+                        Log.e("로그인실패", "로그인 중 예외 발생", throwable);
+                        Toast.makeText(this, "서버 오류: " + throwable.getMessage(), Toast.LENGTH_SHORT).show();
                     });
+
         }
+
+
+
 }
