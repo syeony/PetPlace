@@ -9,7 +9,7 @@ public class Constant {
     public static String AUTO_LOGIN = "autologin";
     public static String UUID = "uuid";
     public static String USER_KEY = "user_key";
-    public static final String HOST_ADDRESS = "https://jayutest.best:40005/";
+    public static final String HOST_ADDRESS = "http://10.0.2.2:8080/";
     public static final String SHARED_PREFERENCES = "shared_preferences";
     public static final int CLICK_DURATION = 1;
     public static Integer SIGN_ID = 0;

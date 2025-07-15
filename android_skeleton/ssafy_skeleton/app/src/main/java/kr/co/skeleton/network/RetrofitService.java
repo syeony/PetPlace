@@ -3,8 +3,10 @@ package kr.co.skeleton.network;
 import io.reactivex.Flowable;
 
 import kr.co.skeleton.model.CommonRes;
+import kr.co.skeleton.model.SignInRequest;
 import kr.co.skeleton.model.SignInResponse;
 import okhttp3.MultipartBody;
+import retrofit2.http.Body;
 import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.Multipart;
@@ -15,14 +17,21 @@ import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 public interface RetrofitService {
-
     //로그인
-    @GET("api/sign/login")
-    Flowable<CommonRes<SignInResponse>> login(
-            @Query("deviceUid") String deviceUid,
-            @Query("password") String password,
-            @Query("token") String token,
-            @Query("type") String type,
-            @Query("uid") String uid
-    );
+//    @GET("api/sign/login")
+//    Flowable<CommonRes<SignInResponse>> login(
+//            @Query("deviceUid") String deviceUid,
+//            @Query("password") String password,
+//            @Query("token") String token,
+//            @Query("type") String type,
+//            @Query("uid") String uid
+//    );
+    @POST("api/sign/login")
+    Flowable<SignInResponse> login(
+//            @Query("uid") String uid,
+//            @Query("type") String type,
+//            @Query("password") String password
+
+            @Body SignInRequest req
+            );
 }
