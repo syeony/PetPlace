@@ -13,6 +13,7 @@ import com.ssafy.core.exception.FileUploadException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,6 +28,7 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @Component
+@ConditionalOnProperty(name = "s3.enabled", havingValue = "true")
 public class S3UploaderImpl implements Uploader {
 
 	private final static String TEMP_FILE_PATH = "src/main/resources/";

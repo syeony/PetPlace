@@ -2,7 +2,7 @@ package com.ssafy.core.converter;
 
 import com.ssafy.core.code.BaseEnumCode;
 
-import javax.persistence.AttributeConverter;
+import jakarta.persistence.AttributeConverter;
 import java.util.Arrays;
 
 
