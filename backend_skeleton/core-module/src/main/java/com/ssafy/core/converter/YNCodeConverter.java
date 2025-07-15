@@ -3,7 +3,7 @@ package com.ssafy.core.converter;
 
 import com.ssafy.core.code.YNCode;
 
-import javax.persistence.Converter;
+import jakarta.persistence.Converter;
 
 
 @Converter(autoApply = true)
