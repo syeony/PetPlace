@@ -8,8 +8,8 @@ import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.stereotype.Repository;
 
-import javax.persistence.EntityManager;
-import javax.transaction.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 
 @Repository
 @Transactional
@@ -28,7 +28,7 @@ public class UserRepoCommonImpl implements UserRepoCommon{
         User result = queryFactory
                 .select(QUser.user)
                 .from(QUser.user)
-                .where(QUser.user.uid.eq(uid), QUser.user.joinType.eq(type), QUser.user.isBind.eq(YNCode.Y))
+//                .where(QUser.user.uid.eq(uid), QUser.user.joinType.eq(type), QUser.user.isBind.eq(YNCode.Y))
                 .fetchFirst();
 
         return result;
@@ -40,7 +40,7 @@ public class UserRepoCommonImpl implements UserRepoCommon{
         User result = queryFactory
                 .select(QUser.user)
                 .from(QUser.user)
-                .where(QUser.user.uid.eq(uid), checkUserIsBind(isBind))
+//                .where(QUser.user.uid.eq(uid), checkUserIsBind(isBind))
                 .fetchOne();
 
         return result;
@@ -49,12 +49,12 @@ public class UserRepoCommonImpl implements UserRepoCommon{
 
 
     // isBind 조건만 체크
-    public BooleanExpression checkUserIsBind(YNCode isBind){
-        if(isBind == null)
-            return null;
-
-        return QUser.user.isBind.eq(isBind);
-    }
+//    public BooleanExpression checkUserIsBind(YNCode isBind){
+//        if(isBind == null)
+//            return null;
+//
+//        return QUser.user.isBind.eq(isBind);
+//    }
 }
 
 

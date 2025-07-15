@@ -1,10 +1,7 @@
 plugins {
     id "org.asciidoctor.convert" version "1.5.3"
     id "java"
-}
-
-repositories {
-    mavenCentral()
+    id "io.freefair.lombok" version "8.6" // lombok 전용 플러그인 추가
 }
 
 dependencies {
@@ -13,8 +10,11 @@ dependencies {
     testImplementation 'org.springframework.restdocs:spring-restdocs-webtestclient'
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly   'mysql:mysql-connector-java:8.0.33' // (추가한 부분1) runtimeOnly 애플리케이션 구동 시 드라이버 로드 -> 추가하고 gradle tab refresh => application.yml 빨간 에러 해결
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0' // 테스트용 의존성 추가
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
     implementation 'com.h2database:h2'
-    runtimeOnly 'com.mysql:mysql-connector-j'
 
 //JUnit4 추가
     testImplementation("org.junit.vintage:junit-vintage-engine") {

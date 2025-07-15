@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <!-- 타이틀 -->
+    <TextView
+        android:id="@+id/title_signup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="회원가입"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <ImageButton
+        android:id="@+id/btn_back"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@null"
+        android:src="@drawable/baseline_arrow_back_24"
+        android:contentDescription="뒤로가기"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- 필수정보 텍스트 -->
+    <TextView
+        android:id="@+id/required_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="* 필수정보 입력"
+        android:textSize="12sp"
+        app:layout_constraintTop_toBottomOf="@id/title_signup"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <!-- 아이디 -->
+    <TextView
+        android:id="@+id/label_id"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintHorizontal_weight="1"
+        android:text="* 아이디"
+        android:textSize="14sp"
+        android:gravity="end"
+        android:textAlignment="viewEnd"
+        app:layout_constraintTop_toBottomOf="@id/required_info"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/edit_id"
+        android:layout_marginTop="16dp"/>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/edit_id"
+        android:gravity="center"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:hint="영문 및 숫자 포함 15자 이내"
+        android:padding="10dp"
+        android:textSize="14sp"
+        android:background="#E0E0E0"
+        app:layout_constraintBottom_toBottomOf="@id/label_id"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_weight="3"
+        app:layout_constraintStart_toEndOf="@id/label_id"
+        app:layout_constraintTop_toTopOf="@id/label_id"
+        app:layout_constraintVertical_bias="0.421" />
+
+    <View
+        android:id="@+id/divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="#DDDDDD"
+        app:layout_constraintTop_toBottomOf="@id/title_signup"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <!-- 비밀번호 -->
+    <TextView
+        android:id="@+id/label_pw"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintHorizontal_weight="1"
+        android:text="* 비밀번호"
+        android:textSize="14sp"
+        android:gravity="end"
+        android:textAlignment="viewEnd"
+        app:layout_constraintTop_toBottomOf="@id/edit_id"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/edit_pw"
+        android:layout_marginTop="12dp"/>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/edit_pw"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintHorizontal_weight="3"
+        android:background="#E0E0E0"
+        android:hint="비밀번호 입력(6~16자)"
+        android:padding="10dp"
+        android:inputType="textPassword"
+        android:textSize="14sp"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="@id/label_pw"
+        app:layout_constraintBottom_toBottomOf="@id/label_pw"
+        app:layout_constraintStart_toEndOf="@id/label_pw"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="8dp"/>
+
+    <!-- 비밀번호 확인 -->
+    <TextView
+        android:id="@+id/label_pw_check"
+        android:layout_width="0dp"
+        app:layout_constraintHorizontal_weight="1"
+        android:layout_height="wrap_content"
+        android:text="비밀번호 확인"
+        android:textSize="14sp"
+        android:gravity="end"
+        android:textAlignment="viewEnd"
+        app:layout_constraintTop_toBottomOf="@id/edit_pw"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/edit_pw_check"
+        android:layout_marginTop="12dp"/>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/edit_pw_check"
+        android:layout_width="0dp"
+        app:layout_constraintHorizontal_weight="3"
+        android:layout_height="wrap_content"
+        android:hint="비밀번호 재입력"
+        android:padding="10dp"
+        android:inputType="textPassword"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:background="#E0E0E0"
+        app:layout_constraintTop_toTopOf="@id/label_pw_check"
+        app:layout_constraintBottom_toBottomOf="@id/label_pw_check"
+        app:layout_constraintStart_toEndOf="@id/label_pw_check"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="8dp"/>
+
+    <!-- 이름 -->
+    <TextView
+        android:id="@+id/label_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintHorizontal_weight="1"
+        android:text="* 이름"
+        android:textSize="14sp"
+        android:gravity="end"
+        android:textAlignment="viewEnd"
+        app:layout_constraintTop_toBottomOf="@id/edit_pw_check"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/edit_name"
+        android:layout_marginTop="12dp"/>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/edit_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="#E0E0E0"
+        app:layout_constraintHorizontal_weight="3"
+        android:hint="Ex) 홍길동"
+        android:padding="10dp"
+        android:textSize="14sp"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="@id/label_name"
+        app:layout_constraintBottom_toBottomOf="@id/label_name"
+        app:layout_constraintStart_toEndOf="@id/label_name"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="8dp"/>
+
+    <!-- 이메일 -->
+    <TextView
+        android:id="@+id/label_email"
+        app:layout_constraintHorizontal_weight="1"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="* 이메일"
+        android:textSize="14sp"
+        android:gravity="end"
+        android:textAlignment="viewEnd"
+        app:layout_constraintTop_toBottomOf="@id/edit_name"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/email_input_group"
+        android:layout_marginTop="12dp"/>
+
+    <LinearLayout
+        android:id="@+id/email_input_group"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintHorizontal_weight="3"
+        app:layout_constraintTop_toTopOf="@id/label_email"
+        app:layout_constraintBottom_toBottomOf="@id/label_email"
+        app:layout_constraintStart_toEndOf="@id/label_email"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="8dp">
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/edit_email_id"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="이메일"
+            android:gravity="center"
+            android:background="#E0E0E0"
+            android:padding="8dp"
+            android:textSize="14sp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@"
+            android:gravity="center"
+            android:padding="8dp"
+            android:textSize="14sp"/>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/email_dropdown_layout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            app:endIconMode="dropdown_menu"
+            app:boxBackgroundColor="#E0E0E0"
+            app:boxBackgroundMode="outline">
+
+            <AutoCompleteTextView
+                android:id="@+id/spinner_email_domain"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="직접입력"
+                android:inputType="text"
+                android:padding="8dp"
+                android:textSize="14sp"
+                android:ellipsize="none"
+                android:maxLines="1"
+                android:scrollHorizontally="true"
+                android:singleLine="true"
+                android:background="@android:color/transparent"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
+
+
+    <Button
+        android:id="@+id/btn_send_code"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="인증코드 발송"
+        app:layout_constraintTop_toBottomOf="@id/email_input_group"
+        app:layout_constraintStart_toStartOf="@id/email_input_group"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <!-- 인증코드 입력 및 확인 -->
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/edit_verify_code"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="인증코드"
+        app:layout_constraintTop_toBottomOf="@id/btn_send_code"
+        app:layout_constraintStart_toStartOf="@id/email_input_group"
+        app:layout_constraintEnd_toStartOf="@+id/btn_verify"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="#E0E0E0"
+        android:padding="10dp"
+        android:textSize="14sp"
+        android:gravity="center"/>
+
+    <Button
+        android:id="@+id/btn_verify"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="인증확인"
+        app:layout_constraintTop_toTopOf="@id/edit_verify_code"
+        app:layout_constraintBottom_toBottomOf="@id/edit_verify_code"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- 휴대폰번호 -->
+    <TextView
+        android:id="@+id/label_phone"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="* 휴대폰번호"
+        android:textSize="14sp"
+        app:layout_constraintHorizontal_weight="1"
+        android:gravity="end"
+        android:textAlignment="viewEnd"
+        app:layout_constraintTop_toBottomOf="@id/edit_verify_code"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/edit_phone"
+        android:layout_marginTop="12dp"/>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/edit_phone"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:hint="- 없이 입력"
+        app:layout_constraintHorizontal_weight="3"
+        android:padding="10dp"
+        android:textSize="14sp"
+        android:background="#E0E0E0"
+        app:layout_constraintTop_toTopOf="@id/label_phone"
+        app:layout_constraintBottom_toBottomOf="@id/label_phone"
+        app:layout_constraintStart_toEndOf="@id/label_phone"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="8dp"/>
+
+    <!-- 주소 -->
+    <TextView
+        android:id="@+id/label_address"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintHorizontal_weight="1"
+        android:text="주소"
+        android:textSize="14sp"
+        android:gravity="end"
+        android:textAlignment="viewEnd"
+        app:layout_constraintTop_toBottomOf="@id/edit_phone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/edit_address"
+        android:layout_marginTop="12dp"/>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/edit_address"
+        android:layout_width="0dp"
+        app:layout_constraintHorizontal_weight="3"
+        android:layout_height="wrap_content"
+        android:hint="Ex)서울특별시 중구 만록동"
+        android:padding="10dp"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:background="#E0E0E0"
+        app:layout_constraintTop_toTopOf="@id/label_address"
+        app:layout_constraintBottom_toBottomOf="@id/label_address"
+        app:layout_constraintStart_toEndOf="@id/label_address"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="8dp"/>
+
+    <!-- 상세주소 -->
+    <TextView
+        android:id="@+id/label_address_detail"
+        android:layout_width="0dp"
+        app:layout_constraintHorizontal_weight="1"
+        android:layout_height="wrap_content"
+        android:text="상세주소"
+        android:textSize="14sp"
+        android:gravity="end"
+        android:textAlignment="viewEnd"
+        app:layout_constraintTop_toBottomOf="@id/edit_address"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/edit_address_detail"
+        android:layout_marginTop="12dp"/>
+
+    <androidx.appcompat.widget.AppCompatEditText
+        android:id="@+id/edit_address_detail"
+        android:layout_width="0dp"
+        app:layout_constraintHorizontal_weight="3"
+        android:layout_height="wrap_content"
+        android:hint="샘터마을 2차 3동 306호"
+        android:padding="10dp"
+        android:textSize="14sp"
+        android:background="#E0E0E0"
+        android:gravity="center"
+        app:layout_constraintTop_toTopOf="@id/label_address_detail"
+        app:layout_constraintBottom_toBottomOf="@id/label_address_detail"
+        app:layout_constraintStart_toEndOf="@id/label_address_detail"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginStart="8dp"/>
+
+    <!-- 회원가입 신청 버튼 -->
+    <Button
+        android:id="@+id/btn_submit"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="회원가입 신청"
+        app:layout_constraintTop_toBottomOf="@id/edit_address_detail"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -12,6 +12,10 @@ public enum JoinCode implements BaseEnumCode<String> {
     sns("sns"),
     NULL("");
 
+    public static JoinCode fromValue(String v) {
+        // 대소문자 구분 없이 받고 싶다면 toLowerCase() 등 추가
+        return JoinCode.valueOf(v);
+    }
     private final String value;
 }
 

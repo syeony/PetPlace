@@ -1,59 +1,32 @@
-/**
- * Created by DominikH on 24.04.2017.
- */
 package com.ssafy.api.config;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.service.Contact;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
-
-import java.util.ArrayList;
-
 
 @Configuration
-@EnableSwagger2
 public class SwaggerConfig {
 
-    private String version;
-    private String title;
-
-    @Value("${swagger.host}")
+    @Value("${swagger.host:localhost:8080}")
     private String host;
 
     @Bean
-    public Docket apiV1() {
-        version = "V1";
-        title = "SSAFY API " + version;
-
-        return new Docket(DocumentationType.SWAGGER_2)
-                .host(host)
-                .useDefaultResponseMessages(false)
-                .groupName(version)
-                .select()
-                .apis(RequestHandlerSelectors.basePackage("com.ssafy.api.controller"))
-                .paths(PathSelectors.ant("/api/**"))
-                .build()
-                .apiInfo(apiInfo(title, version));
-
-    }
-
-
-    private ApiInfo apiInfo(String title, String version) {
-        return new ApiInfo(
-                title,
-                "SSAFY API",
-                version,
-                "www.example.com",
-                new Contact("Contact Me", "www.example.com", "test@example.com"),
-                "Licenses",
-                "www.example.com",
-                new ArrayList<>());
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .addServersItem(new Server().url("http://" + host))
+                .info(new Info()
+                        .title("SSAFY API V1")
+                        .version("v1")
+                        .description("SSAFY API 문서")
+                        .contact(new Contact()
+                                .name("Contact Me")
+                                .url("https://www.example.com")
+                                .email("test@example.com")
+                        )
+                );
     }
 }
