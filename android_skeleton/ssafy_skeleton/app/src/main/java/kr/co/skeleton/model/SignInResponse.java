@@ -6,7 +6,9 @@ import lombok.Data;
 
 @Data
 public class SignInResponse {
-    @SerializedName("id")
     private Integer id;
     private String token;
+    private String nickname;
+    private int output;
+    private String msg;
 }
