@@ -11,7 +11,5 @@ public class SignInRequest {
     private String type;
     private String deviceUid;
 
-    public SignInRequest() {}  // ← 이거 추가
-
-    // getter/setter 생략
+    public SignInRequest() {}
 }
