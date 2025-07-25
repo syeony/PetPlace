@@ -1,0 +1,50 @@
+CREATE DATABASE s_sbj_1_db default CHARACTER SET UTF8;
+SHOW DATABASES;
+
+USE s_sbj_1_db;
+CREATE TABLE users (
+  id               BIGINT       AUTO_INCREMENT PRIMARY KEY,
+  email            VARCHAR(255) NOT NULL UNIQUE,
+  password         VARCHAR(255) NOT NULL,
+  name             VARCHAR(100),
+  phone            VARCHAR(20),
+  address          VARCHAR(255),
+  address_detail   VARCHAR(255),
+  type             VARCHAR(10)  NOT NULL,  -- none 또는 sns
+  uid              VARCHAR(255) NOT NULL,  -- 일반회원 아이디 또는 SNS uid
+  created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE email_auth (
+  id           BIGINT      AUTO_INCREMENT PRIMARY KEY,
+  email        VARCHAR(255) NOT NULL,
+  auth_num     VARCHAR(10)  NOT NULL,
+  expires_at   DATETIME     NOT NULL,
+  used         BOOLEAN      NOT NULL DEFAULT FALSE,
+  created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (email)
+);
+
+USE s_sbj_1_db;
+CREATE TABLE users (
+  id               BIGINT       AUTO_INCREMENT PRIMARY KEY,
+  email            VARCHAR(255) NOT NULL UNIQUE,
+  password         VARCHAR(255) NOT NULL,
+  name             VARCHAR(100),
+  phone            VARCHAR(20),
+  address          VARCHAR(255),
+  address_detail   VARCHAR(255),
+  type             VARCHAR(10)  NOT NULL,  -- none 또는 sns
+  uid              VARCHAR(255) NOT NULL,  -- 일반회원 아이디 또는 SNS uid
+  created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE email_auth (
+  id           BIGINT      AUTO_INCREMENT PRIMARY KEY,
+  email        VARCHAR(255) NOT NULL,
+  auth_num     VARCHAR(10)  NOT NULL,
+  expires_at   DATETIME     NOT NULL,
+  used         BOOLEAN      NOT NULL DEFAULT FALSE,
+  created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (email)
+);
