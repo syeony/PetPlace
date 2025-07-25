@@ -1,4 +1,0 @@
-# application yml active 설정
-spring:
-  profiles:
-    active: local
