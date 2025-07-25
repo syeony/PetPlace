@@ -94,13 +94,16 @@ public class SignInActivity extends AppCompatActivity {
 
         }
 
+    private static final String TAG = "SignInActivity";
         //일반 로그인
         @SuppressLint("CheckResult")
         private void login() {
+            Log.d(TAG, "login: 로그인 진입");
             String deviceUUID = UUID.randomUUID().toString();
             String id = edit_id.getText().toString();
             String passwd = edit_passwd.getText().toString();
 
+<<<<<<< HEAD
             // 로그: 로그인 요청 파라미터 확인
             Log.d("LOGIN", "로그인 요청 시작");
             Log.d("LOGIN", "입력한 ID: " + id);
@@ -128,6 +131,27 @@ public class SignInActivity extends AppCompatActivity {
                     }, throwable -> {
                         Log.e("로그인실패", "로그인 중 예외 발생", throwable);
                         Toast.makeText(this, "서버 오류: " + throwable.getMessage(), Toast.LENGTH_SHORT).show();
+=======
+            RetrofitManager.getService().login(new SignInRequest(id, passwd))
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(result -> {
+//                        if (result.getOutput() == Constant.RESPONSE_OK) {
+                            Constant.AUTH_TOKEN = result.getToken();
+                            PrefManager.setUUID(mContext,deviceUUID);
+                            PrefManager.setFbToken(mContext,fcmToken);
+                            PrefManager.setToken(mContext,result.getToken());
+                            PrefManager.setUserKey(mContext,result.getId());
+                            Toast.makeText(this,"로그인 성공", Toast.LENGTH_SHORT).show();
+                           // startTargetActivity(MainActivity.class);
+//                        } else {
+//                            Toast.makeText(this, getString(R.string.invalid_login), Toast.LENGTH_SHORT).show();
+//                        }
+                    }, throwable -> {
+                        throwable.getMessage();
+                        Log.d(TAG, "login: "+throwable.getMessage());
+                        Toast.makeText(this, throwable.getMessage(), Toast.LENGTH_SHORT).show();
+>>>>>>> origin/sjh
                     });
 
         }

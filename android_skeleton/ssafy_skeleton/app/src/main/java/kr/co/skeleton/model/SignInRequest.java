@@ -14,4 +14,10 @@ public class SignInRequest {
     public SignInRequest() {}  // ← 이거 추가
 
     // getter/setter 생략
+=======
+    public SignInRequest(String uid, String password){
+        this.uid = uid;
+        this.password = password;
+    }
+>>>>>>> origin/sjh
 }
