@@ -1,0 +1,59 @@
+# application yml active 설정
+jwt:
+  secret: DvqcGn8mnFjqSL4a
+  expiration: 2592000000
+spring:
+  profiles:
+    active: local
+  jwt:
+    secret: DvqcGn8mnFjqSL4a
+    expiration: 2592000000   # 예: 1000L*60*60*24*30
+
+  messages:
+    basename: messages         # 메시지 리소스 기본 이름 (messages.properties)
+    encoding: UTF-8            # optional: 한글 깨짐 방지
+  # JPA 기본 설정
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties.hibernate:
+      # 재시작 시 JPA Entity(DB 테이블 데이터)를 새로 생성할지 여부 (create:기존데이터 삭제 후 신규 생성, udpate:신규 데이터만 업데이트, none:아무 실행도 하지 않음)
+      hbm2ddl.auto: none   # !!!!!!!!!!!!!!!!!!!
+      format_sql: true
+      show_sql: true
+      use_sql_comments: true
+    generate-ddl: true
+    open-in-view: false # view 단에서 지연로딩 허유 여부
+  # 데이터 베이스 연결 설정
+  datasource:
+    url: jdbc:mysql://localhost:3306/s_sbj_1_db?serverTimezone=UTC&characterEncoding=UTF-8
+    driver-class-name: com.mysql.cj.jdbc.Driver # 에러가 뜨면 dependency 확인!
+    username: root
+    password: whrudgh142!
+
+  # 메일 전송 시 사용할 설정값
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: kyoungho0616@gmail.com
+    password: euzn cdin lilx xqmp
+    to-name: ghwh323232@naver.com
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  servlet:
+    multipart:
+      location: ./uploads      # 업로드된 파일을 임시 저장할 디렉터리 경로
+      max-file-size: 10MB      # 선택 사항
+      max-request-size: 10MB   # 선택 사항
+
+nurigo:
+  api:
+    key: NCSI4NEIM6ZOFFCA           # 발급받은 API 키
+    secretKey: BQYPVQZA8UIWAUOI3OZHG16XTMJJDOXQ     # 발급받은 API 시크릿
+    sender: 01012345678
+s3:
+  enabled: false
