@@ -129,6 +129,7 @@ public class SignInActivity extends AppCompatActivity {
                         PrefManager.setUserKey(mContext, result.getId());
                         Toast.makeText(this, "로그인 성공", Toast.LENGTH_SHORT).show();
 <<<<<<< HEAD
+<<<<<<< HEAD
                     }, throwable -> {
                         Log.e("로그인실패", "로그인 중 예외 발생", throwable);
                         Toast.makeText(this, "서버 오류: " + throwable.getMessage(), Toast.LENGTH_SHORT).show();
@@ -158,6 +159,11 @@ public class SignInActivity extends AppCompatActivity {
                         Log.e("로그인실패", "로그인 중 예외 발생", throwable);
                         Toast.makeText(this, "서버 오류: " + throwable.getMessage(), Toast.LENGTH_SHORT).show();
 >>>>>>> origin/osy
+=======
+                    }, throwable -> {
+                        Log.e("로그인실패", "로그인 중 예외 발생", throwable);
+                        Toast.makeText(this, "서버 오류: " + throwable.getMessage(), Toast.LENGTH_SHORT).show();
+>>>>>>> origin/ldh
                     });
 
         }

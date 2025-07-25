@@ -20,4 +20,7 @@ public class SignInRequest {
         this.password = password;
     }
 >>>>>>> origin/sjh
+=======
+    public SignInRequest() {}
+>>>>>>> origin/ldh
 }
