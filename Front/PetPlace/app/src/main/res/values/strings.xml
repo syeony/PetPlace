@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">PetPlace</string>
+    <string name="home">홈</string>
+    <string name="chat">채팅</string>
+    <string name="board">게시판</string>
+    <string name="mypage">마이페이지</string>
+    <string name="map">지도</string>
+</resources>
