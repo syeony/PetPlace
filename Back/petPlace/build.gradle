@@ -1,0 +1,55 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.4'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.petplace'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // --- Spring Boot 기본 ---
+    implementation 'org.springframework.boot:spring-boot-starter-web'           // 웹, REST API
+    implementation 'org.springframework.boot:spring-boot-starter-security'      // 인증/인가(JWT, OAuth2 등)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'      // JPA, ORM, DB 연동
+    implementation 'org.springframework.boot:spring-boot-starter-validation'    // 입력값 검증(@Valid 등)
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'     // 실시간 채팅(WebSocket)
+    implementation 'org.springframework.boot:spring-boot-starter-mail'          // 이메일 전송(JavaMailSender)
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client' // 소셜 로그인(OAuth2 Client)
+
+    // --- 데이터베이스 ---
+    runtimeOnly 'com.mysql:mysql-connector-j'                                   // MySQL JDBC 드라이버
+
+    // --- 개발 편의 ---
+    compileOnly 'org.projectlombok:lombok'                                      // 롬복(코드 자동화: getter/setter 등)
+    annotationProcessor 'org.projectlombok:lombok'                              // 롬복(Annotation 처리)
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'             // 개발용 자동 재시작, 핫스왑 등
+
+    // --- API 문서화(Swagger/OpenAPI) ---
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'    // Swagger 문서 자동 생성
+
+    // --- 테스트 ---
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'       // 스프링 테스트 기본
+    testImplementation 'org.springframework.security:spring-security-test'        // 시큐리티 테스트 지원
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'                 // JUnit5 테스트 런처
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
