@@ -88,6 +88,9 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.0")
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
+    //이미지로딩
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
 
     // 테스트
     testImplementation(libs.junit)
