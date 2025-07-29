@@ -1,4 +1,4 @@
-package com.petplace;
+package com.minjeok4go.petplace;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

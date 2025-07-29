@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/공통pjt.iml" filepath="$PROJECT_DIR$/.idea/공통pjt.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/petPlace.iml" filepath="$PROJECT_DIR$/.idea/modules/petPlace.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/petPlace.main.iml" filepath="$PROJECT_DIR$/.idea/modules/petPlace.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/petPlace.test.iml" filepath="$PROJECT_DIR$/.idea/modules/petPlace.test.iml" />
     </modules>
   </component>
 </project>
