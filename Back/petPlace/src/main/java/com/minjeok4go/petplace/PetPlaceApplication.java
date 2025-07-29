@@ -1,4 +1,4 @@
-package com.petplace;
+package com.minjeok4go.petplace;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
