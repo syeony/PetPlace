@@ -59,6 +59,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.0")
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
+    implementation(libs.play.services.maps)
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
     implementation("com.google.android.material:material:1.11.0")
 
@@ -71,7 +72,8 @@ dependencies {
     // Retrofit + Gson
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-
+    // 카카오 맵
+    implementation ("com.kakao.maps.open:android:2.12.8")
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
     kapt("com.google.dagger:hilt-android-compiler:2.48")
@@ -88,8 +90,12 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.0")
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
-    //이미지로딩
+    //이미지로딩 Compose라 glide대신 사용
     implementation("io.coil-kt:coil-compose:2.5.0")
+    //이미지 자르기
+    implementation("com.github.CanHub:Android-Image-Cropper:4.3.2")
+    //권한
+    implementation ("com.google.accompanist:accompanist-permissions:0.36.0")
 
 
     // 테스트
