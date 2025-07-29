@@ -53,6 +53,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'       // 스프링 테스트 기본
     testImplementation 'org.springframework.security:spring-security-test'        // 시큐리티 테스트 지원
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'                 // JUnit5 테스트 런처
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
