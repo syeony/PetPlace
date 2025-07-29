@@ -23,11 +23,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun BoardScreen(
+    navController: NavController,
     modifier: Modifier = Modifier,
     viewModel: BoardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
@@ -39,41 +41,13 @@ fun BoardScreen(
     val backgroundColor = Color(0xFFFEF9F0)
     val hashtagTextColor = Color(0xFFF79800)
 
-    Scaffold(
-        containerColor = backgroundColor,
-        floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End) {
-                if (isSearchMode) {
-                    OutlinedTextField(
-                        value = searchText,
-                        onValueChange = { viewModel.updateSearchText(it) },
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .fillMaxWidth(0.85f),
-                        placeholder = { Text("검색어를 입력하세요") },
-                        singleLine = true
-                    )
-                }
-                FloatingActionButton(
-                    onClick = { isSearchMode = !isSearchMode },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                }
-                FloatingActionButton(
-                    onClick = { /* TODO: 글쓰기 이동 */ },
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "글쓰기")
-                }
-            }
-        }
-    ) {
-        Column(modifier = modifier.padding(16.dp)) {
+    Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
+        Column(modifier = modifier.padding(top = 16.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp)
             ) {
                 viewModel.allCategories.forEach { category ->
                     val selected = selectedCategories.contains(category)
@@ -86,15 +60,36 @@ fun BoardScreen(
                         onClick = { viewModel.toggleCategory(category) },
                         colors = ButtonDefaults.buttonColors(containerColor = background),
                         border = border,
-                        modifier = Modifier
-                            .padding(end = 8.dp),
+                        modifier = Modifier.padding(end = 8.dp),
                         shape = RoundedCornerShape(20.dp)
                     ) {
                         Text(text = category, color = content)
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (isSearchMode) {
+                OutlinedTextField(
+                    value = searchText,
+                    onValueChange = { viewModel.updateSearchText(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    placeholder = { Text("검색어를 입력하세요") },
+                    singleLine = true,
+                    shape = RoundedCornerShape(50.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color(0xFFF79800),
+                        focusedBorderColor = Color(0xFFF79800),
+                        cursorColor = Color(0xFFF79800),
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
+                )
+            }
 
             LazyColumn {
                 items(posts) { post ->
@@ -102,9 +97,13 @@ fun BoardScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color.White)
-                            .padding(vertical = 16.dp, horizontal = 12.dp)
+                            .padding(vertical = 16.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                        ) {
                             Image(
                                 painter = rememberAsyncImagePainter(post.profileImage),
                                 contentDescription = null,
@@ -127,14 +126,19 @@ fun BoardScreen(
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = post.content)
+                        Text(
+                            text = post.content,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(modifier = Modifier.fillMaxWidth()) {
+                        Row(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                        ) {
                             post.hashtags.forEach { tag ->
                                 Text(
                                     text = tag,
-                                    modifier = Modifier
-                                        .padding(end = 4.dp),
+                                    modifier = Modifier.padding(end = 4.dp),
                                     color = hashtagTextColor,
                                     fontSize = 12.sp
                                 )
@@ -146,14 +150,17 @@ fun BoardScreen(
                             contentDescription = null,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(180.dp)
-                                .clip(RoundedCornerShape(12.dp)),
+                                .height(300.dp),
                             contentScale = ContentScale.Crop
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "📍 ${post.location}", fontSize = 12.sp, color = Color.Gray)
+                        Text(text = "📍 ${post.location}에서 작성한 글입니다.", fontSize = 12.sp, color = Color.Gray,
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp))
                         Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)) {
                             Text("❤️ ${post.likes}", fontSize = 12.sp)
                             Spacer(modifier = Modifier.width(12.dp))
                             Text("💬 ${post.comments}", fontSize = 12.sp)
@@ -162,6 +169,32 @@ fun BoardScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
             }
+        }
+
+        // 오른쪽 하단 글쓰기 플로팅 버튼
+        FloatingActionButton(
+            onClick = { navController.navigate("board/write") },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = Color(0xFFF79800),
+            contentColor = Color.White,
+            shape = CircleShape
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "글쓰기")
+        }
+
+        // 검색 플로팅 버튼 (카테고리 아래, 게시글과 겹치게)
+        FloatingActionButton(
+            onClick = { isSearchMode = !isSearchMode },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(y = 72.dp, x = (-16).dp),
+            containerColor = Color(0xFFF79800),
+            contentColor = Color.White,
+            shape = CircleShape
+        ) {
+            Icon(Icons.Default.Search, contentDescription = "Search")
         }
     }
 }

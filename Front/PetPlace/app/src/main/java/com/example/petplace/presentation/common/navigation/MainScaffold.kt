@@ -12,6 +12,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
 import com.example.petplace.presentation.feature.board.BoardScreen
+import com.example.petplace.presentation.feature.board.BoardWriteScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.home.HomeScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
@@ -48,10 +49,11 @@ fun MainScaffold() {
             composable("login") { LoginScreen(navController) }
             composable("join") { JoinScreen(navController) }
             composable(BottomNavItem.Home.route) { HomeScreen() }
-            composable(BottomNavItem.Board.route) { BoardScreen() }
+            composable(BottomNavItem.Board.route) { BoardScreen(navController = navController) }
             composable(BottomNavItem.Map.route) { MapScreen() }
             composable(BottomNavItem.Chat.route) { ChatScreen() }
             composable(BottomNavItem.MyPage.route) { MyPageScreen() }
+            composable("board/write") { BoardWriteScreen(navController = navController) }
         }
     }
 }
