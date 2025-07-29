@@ -1,8 +1,8 @@
-package com.petplace.petplace.domain.feed.service;
+package com.minjeok4go.petplace.domain.feed.service;
 
-import com.petplace.petplace.domain.feed.model.Feed;
-import com.petplace.petplace.domain.feed.model.FeedDto;
-import com.petplace.petplace.domain.feed.repository.FeedDummyRepository;
+import com.minjeok4go.petplace.domain.feed.model.Feed;
+import com.minjeok4go.petplace.domain.feed.model.FeedDto;
+import com.minjeok4go.petplace.domain.feed.repository.FeedDummyRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.*;

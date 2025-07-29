@@ -1,9 +1,9 @@
-package com.petplace.petplace.domain.feed.repository;
+package com.minjeok4go.petplace.domain.feed.repository;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.petplace.petplace.domain.feed.model.Feed;
+import com.minjeok4go.petplace.domain.feed.model.Feed;
 import org.springframework.stereotype.Repository;
 
 import java.io.InputStream;

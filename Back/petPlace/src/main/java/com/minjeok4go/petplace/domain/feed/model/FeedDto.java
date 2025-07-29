@@ -1,4 +1,4 @@
-package com.petplace.petplace.domain.feed.model;
+package com.minjeok4go.petplace.domain.feed.model;
 
 import lombok.*;
 import java.time.LocalDateTime;
