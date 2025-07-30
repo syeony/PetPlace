@@ -6,33 +6,30 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.petplace.R
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BoardWriteScreen(
     navController: NavController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: BoardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    val allCategories = listOf("내새꾸자랑", "나눔", "공구", "정보", "자유")
-    val allTags = listOf("내새꾸자랑", "나눔", "공구", "정보", "자유")
+    val allCategories = viewModel.allCategories
+    val allTags = listOf("1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999", "1010")
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var selectedTags by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -82,27 +79,37 @@ fun BoardWriteScreen(
         Text("카테고리를 하나 선택해주세요.", fontSize = 12.sp, color = Color.Gray)
 
         Spacer(modifier = Modifier.height(16.dp))
-        Text("제목", fontWeight = FontWeight.Bold)
-        OutlinedTextField(
-            value = title,
-            onValueChange = { title = it },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("제목을 입력해주세요...") },
-            singleLine = true
-        )
 
-        Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(
             value = content,
             onValueChange = { content = it },
-            modifier = Modifier.fillMaxWidth().height(120.dp),
-            placeholder = { Text("내용을 입력해 주세요...") }
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp),
+            placeholder = { Text("내용을 입력해 주세요...") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                disabledBorderColor = Color.Transparent,
+                errorBorderColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                cursorColor = Color(0xFFF79800),
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
+            )
         )
 
         Spacer(modifier = Modifier.height(12.dp))
         Text("해시태그를 선택해주세요.(4개 이내)", fontSize = 14.sp)
         Spacer(modifier = Modifier.height(6.dp))
-        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+        FlowRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+//            mainAxisSpacing = 8.dp,
+//            crossAxisSpacing = 8.dp
+        ) {
             allTags.forEach { tag ->
                 val selected = tag in selectedTags
                 val bgColor = if (selected) Color(0xFFF79800) else Color.White
@@ -113,17 +120,16 @@ fun BoardWriteScreen(
                     text = tag,
                     color = textColor,
                     modifier = Modifier
-                        .padding(4.dp)
                         .border(1.dp, borderColor, RoundedCornerShape(20.dp))
                         .background(bgColor, RoundedCornerShape(20.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
                         .clickable {
                             selectedTags = if (selected) {
                                 selectedTags - tag
                             } else if (selectedTags.size < 4) {
                                 selectedTags + tag
                             } else selectedTags
-                        },
+                        }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                     fontSize = 13.sp
                 )
             }

@@ -119,7 +119,7 @@ fun BoardScreen(
                                     color = style.second,
                                     fontSize = 12.sp,
                                     modifier = Modifier
-                                        .background(color = style.first, shape = RoundedCornerShape(8.dp))
+                                        .background(color = style.first, shape = RoundedCornerShape(4.dp))
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                                 Text(text = post.author, fontWeight = FontWeight.Bold)

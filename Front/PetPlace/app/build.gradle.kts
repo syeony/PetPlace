@@ -96,4 +96,7 @@ dependencies {
 
     //board 피드에서 필요
     implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+    implementation("androidx.compose.foundation:foundation")
+
 }
