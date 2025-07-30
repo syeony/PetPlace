@@ -1,8 +1,12 @@
 package com.example.petplace.presentation.feature.chat
 
 import android.R.id
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,15 +15,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,7 +46,8 @@ fun SingleChatScreen(
     messages: List<ChatMessage> = sampleMessages,
     navController: NavController
 ) {
-
+    var messageInput by remember { mutableStateOf("") }
+    var showAttachmentOptions by remember { mutableStateOf(false) }
     Scaffold(
         topBar = {
             ChatTopAppBar(
@@ -46,6 +57,16 @@ fun SingleChatScreen(
                 })
         },
         bottomBar = {
+            AnimatedVisibility( // Animate visibility of attachment options
+                visible = showAttachmentOptions,
+                enter = expandVertically(expandFrom = Alignment.Bottom),
+                exit = shrinkVertically(shrinkTowards = Alignment.Bottom)
+            ) {
+                AttachmentOptionsGrid(
+                    onCloseClick = { showAttachmentOptions = false }, // Close button callback
+                    onOptionSelected = { /* Handle option selection */ } // Callback for individual options
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -53,16 +74,18 @@ fun SingleChatScreen(
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = { /* 전송 로직 */ }) {
+                IconButton(onClick = {
+                    showAttachmentOptions = !showAttachmentOptions
+                }) {
                     Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Send",
+                        imageVector = if (showAttachmentOptions) Icons.Default.Close else Icons.Default.Add,
+                        contentDescription = if (showAttachmentOptions) "Close" else "Add",
                         tint = Color.Black
                     )
                 }
                 TextField(
-                    value = "",
-                    onValueChange = {},
+                    value = messageInput,
+                    onValueChange = { newValue -> messageInput = newValue },
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
@@ -98,7 +121,8 @@ fun SingleChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 8.dp)
+                .imePadding(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(messages) { msg ->
@@ -180,6 +204,127 @@ fun SingleChatScreen(
         }
     }
 }
+
+// Composable for attachment options grid
+@Composable
+fun AttachmentOptionsGrid(
+    onCloseClick: () -> Unit,
+    onOptionSelected: (String) -> Unit // Callback for selected option (e.g., "album", "camera")
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(top = 16.dp, bottom = 8.dp, start = 16.dp, end = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Close (X) button
+            IconButton(onClick = onCloseClick) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "닫기",
+                    tint = Color.Black
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "메시지 보내기",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f) // Push text to center
+            )
+            // Empty Spacer to balance the layout if needed, or remove for simple right alignment
+            Spacer(modifier = Modifier.width(24.dp)) // Adjust as needed to align "메시지 보내기"
+
+            // Smile icon (You might need to add a custom drawable for this)
+            Icon(
+                painter = painterResource(id = R.drawable.ic_mypage), // Replace with your smile icon drawable
+                contentDescription = "이모티콘",
+                tint = Color.Gray,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(onClick = { /* 전송 로직 */ }) { // Send button
+                Icon(
+                    imageVector = Icons.Default.Send,
+                    contentDescription = "전송",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Grid for attachment options
+        // Using FlowRow from Accompanist if available, otherwise a nested Row/Column or LazyVerticalGrid
+        // For simplicity, let's use nested Rows for a fixed grid for now.
+        // For dynamic/more flexible grids, consider using Accompanist Flow Layouts or a custom layout.
+        val options = listOf(
+            AttachmentOption("앨범", R.drawable.ic_mypage, "album"), // Replace with your actual drawables
+            AttachmentOption("카메라", R.drawable.ic_map, "camera"),
+            AttachmentOption("자주쓰는문구", R.drawable.ic_chat, "text_phrases"),
+            AttachmentOption("장소", R.drawable.ic_board, "location"),
+            AttachmentOption("약속", R.drawable.ic_home, "appointment"),
+            AttachmentOption("당근페이", R.drawable.ic_mypage, "carrot_pay"),
+            AttachmentOption("편의점택배", R.drawable.ic_chat, "parcel_delivery"),
+            AttachmentOption("선물하기", R.drawable.ic_home, "gift")
+        )
+
+        // Assuming 4 columns, adjust as needed
+        val columns = 4
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            options.chunked(columns).forEach { rowOptions ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround // Distribute items evenly
+                ) {
+                    rowOptions.forEach { option ->
+                        AttachmentOptionItem(option = option, onClick = { onOptionSelected(option.key) })
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp)) // Space between rows
+            }
+        }
+    }
+}
+
+// Data class for an attachment option
+data class AttachmentOption(val name: String, val iconResId: Int, val key: String)
+
+// Composable for a single attachment option item
+@Composable
+fun AttachmentOptionItem(option: AttachmentOption, onClick: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp, horizontal = 4.dp) // Smaller padding around clickable area
+            .width(IntrinsicSize.Min) // Allows content to define width
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp) // Icon background size
+                .clip(CircleShape)
+                .background(Color(0xFFF3F4F6)), // Light gray background
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = option.iconResId),
+                contentDescription = option.name,
+                tint = Color.Unspecified, // Keep original icon tint if it's a colored drawable
+                modifier = Modifier.size(24.dp) // Icon size
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(text = option.name, fontSize = 11.sp, color = Color.Gray)
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
