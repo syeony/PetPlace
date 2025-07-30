@@ -4,10 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
 
 @Composable
-fun ChatScreen(navController: NavController? = null) {
+fun ChatScreen(navController: NavController) {
     ChatListScreen(
         onChatClick = { chatName ->
-            navController?.navigate("chatDetail/$chatName")
-        }
+            navController.navigate("chatDetail/$chatName")
+        },
     )
 }
