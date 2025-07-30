@@ -1,0 +1,129 @@
+package com.example.petplace.presentation.feature.chat
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.petplace.data.local.chat.ChatRoom
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.petplace.R
+
+@Composable
+fun ChatItem(chat: ChatRoom, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 프로필 이미지 (기본 아이콘 사용)
+            Image(
+                painter = painterResource(id = chat.profileImageUrl!!), // 대체 이미지 필요
+                contentDescription = "Profile Image",
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = chat.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = chat.region,
+                        color = Color.Gray,
+                        fontSize = 10.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(text = chat.time, color = Color.Gray, fontSize = 12.sp)
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    // 1. 메시지 텍스트
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = chat.lastMessage,
+                            color = Color.Gray,
+                            fontSize = 14.sp,
+                            maxLines = 2, // 또는 Int.MAX_VALUE
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    // 2. 뱃지
+                    if (chat.unreadCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 8.dp, top = 4.dp)
+                                .size(20.dp)
+                                .background(Color.Red, shape = CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = chat.unreadCount.toString(),
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            //
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ChatItemPreview() {
+    ChatItem(
+        ChatRoom(
+            1,
+            "홍길동",
+            "인의동",
+            "안녕하세요! 실종견 관련해서 연락드려요. 혹시 어제 저녁에 인의동 근처에서...",
+            "오전 10:15",
+            3,
+            profileImageUrl = R.drawable.ic_mypage
+        ),
+        onClick = {}
+    )
+}

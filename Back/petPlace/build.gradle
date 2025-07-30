@@ -4,7 +4,7 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
-group = 'com.petplace'
+group = 'com.minjeok4go'
 version = '0.0.1-SNAPSHOT'
 
 java {
@@ -44,10 +44,16 @@ dependencies {
     // --- API 문서화(Swagger/OpenAPI) ---
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'    // Swagger 문서 자동 생성
 
+    // --- JSON 파싱(Jackson) ---
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310' // (LocalDateTime 등 지원)
+
+
     // --- 테스트 ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'       // 스프링 테스트 기본
     testImplementation 'org.springframework.security:spring-security-test'        // 시큐리티 테스트 지원
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'                 // JUnit5 테스트 런처
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
