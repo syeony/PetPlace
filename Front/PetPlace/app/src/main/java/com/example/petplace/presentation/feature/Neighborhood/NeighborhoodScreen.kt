@@ -30,12 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.petplace.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NeighborhoodScreen() {
+fun NeighborhoodScreen(navController: NavController,          // ⬅️ 1‑번째 파라미터를 NavController
+                       modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = false,
@@ -64,7 +66,8 @@ fun NeighborhoodScreen() {
                     isSheetVisible.value = false
                 }
             },
-            sheetState = sheetState
+            sheetState = sheetState,
+            navController = navController
         )
     }
 

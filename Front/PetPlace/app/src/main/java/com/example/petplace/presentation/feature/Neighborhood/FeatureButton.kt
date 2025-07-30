@@ -3,6 +3,7 @@ package com.example.petplace.presentation.feature.Neighborhood
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,7 +30,8 @@ private val BorderColor = Color(0xFFFFEDD5)   // #FFEDD5
 fun FeatureButton(
     label: String,
     icon: Any,          // ImageVector or Int
-    circleColor: Color  // 파스텔톤 배경 원 색
+    circleColor: Color,  // 파스텔톤 배경 원 색
+    onClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -38,6 +40,7 @@ fun FeatureButton(
                 BorderStroke(1.dp, BorderColor),
                 shape = RoundedCornerShape(20.dp)
             )
+            .clickable { onClick() }
             .padding(vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
