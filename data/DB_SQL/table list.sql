@@ -31,7 +31,7 @@ CREATE TABLE `User` (
     `phone_number` VARCHAR(20) NOT NULL,
     `gender` ENUM('male', 'female') NOT NULL,
     `birthday` DATE NOT NULL,
-    `isForeigner` TINYINT NULL DEFAULT 0,
+    `is_foreigner` TINYINT NULL DEFAULT 0,
     `level` INT NOT NULL DEFAULT 1,
     `experience` INT NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
