@@ -13,14 +13,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
+import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
-import com.example.petplace.presentation.feature.feed.BoardScreen
+import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.feed.BoardWriteScreen
-import com.example.petplace.presentation.feature.home.HomeScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.login.LoginScreen
-import com.example.petplace.presentation.feature.map.MapScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 
 @Composable
@@ -30,9 +29,8 @@ fun MainScaffold() {
     val currentRoute = navBackStackEntry?.destination?.route
 
     val bottomNavRoutes = listOf(
-        BottomNavItem.Home.route,
-        BottomNavItem.Board.route,
-        BottomNavItem.Map.route,
+        BottomNavItem.Feed.route,
+        BottomNavItem.Neighborhood.route,
         BottomNavItem.Chat.route,
         BottomNavItem.MyPage.route
     )
@@ -51,9 +49,8 @@ fun MainScaffold() {
         ) {
             composable("login") { LoginScreen(navController) }
             composable("join") { JoinScreen(navController) }
-            composable(BottomNavItem.Home.route) { HomeScreen() }
-            composable(BottomNavItem.Board.route) { BoardScreen(navController = navController) }
-            composable(BottomNavItem.Map.route) { MapScreen() }
+            composable(BottomNavItem.Feed.route) { FeedScreen(navController = navController) }
+            composable(BottomNavItem.Neighborhood.route) { NeighborhoodScreen()}
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
             composable(BottomNavItem.MyPage.route) { MyPageScreen() }
             composable(
