@@ -1,31 +1,398 @@
 package com.example.petplace.presentation.feature.join
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
+import com.canhub.cropper.*
+import com.example.petplace.R
+import com.example.petplace.presentation.common.theme.BackgroundSoft
+import com.example.petplace.presentation.common.theme.PrimaryColor
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.android.gms.location.LocationServices
+import com.kakao.vectormap.*
+import com.kakao.vectormap.camera.CameraUpdateFactory
+import com.kakao.vectormap.label.LabelOptions
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
-fun JoinScreen(navController: NavHostController) {
-    Box(
+fun JoinScreen(navController: NavController) {
+    val context = LocalContext.current
+
+    // ViewModel + 동네 이름 상태
+    val vm: JoinViewModel = hiltViewModel()
+    val rawRegionName by vm.regionName.collectAsState(initial = null)
+    val regionNameDisplay = rawRegionName ?: "불러오는 중…"
+
+    // 위치 권한
+    val locationPerm = rememberMultiplePermissionsState(
+        listOf(Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION)
+    )
+    LaunchedEffect(Unit) { locationPerm.launchMultiplePermissionRequest() }
+
+    // 프로필 & 폼 상태
+    var croppedUri by remember { mutableStateOf<Uri?>(null) }
+    var userId by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var nickname by remember { mutableStateOf("") }
+    var agreeAll by remember { mutableStateOf(false) }
+    var agreeService by remember { mutableStateOf(false) }
+    var agreePrivacy by remember { mutableStateOf(false) }
+    var agreeMarketing by remember { mutableStateOf(false) }
+
+    // 지도 다이얼로그 / 인증 완료된 동네
+    var showMapDialog by remember { mutableStateOf(false) }
+    var currentLat by remember { mutableStateOf(0.0) }
+    var currentLng by remember { mutableStateOf(0.0) }
+    var confirmedRegion by remember { mutableStateOf<String?>(null) }
+
+    // 이미지 런처
+    val cropLauncher = rememberLauncherForActivityResult(CropImageContract()) { res ->
+        if (res.isSuccessful) croppedUri = res.uriContent
+    }
+    val pickLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            val opts = CropImageContractOptions(it, CropImageOptions()).apply {
+                setAspectRatio(1,1)
+                setCropShape(CropImageView.CropShape.RECTANGLE)
+                setGuidelines(CropImageView.Guidelines.ON)
+            }
+            cropLauncher.launch(opts)
+        }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        contentAlignment = Alignment.Center
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "회원가입 화면", style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(32.dp))
-            Button(onClick = {
-                navController.navigate("login") {
-                    popUpTo("login") { inclusive = true }
+        // 프로필
+        Box(modifier = Modifier.size(120.dp)) {
+            Surface(
+                modifier = Modifier.size(120.dp),
+                shape = CircleShape,
+                color = Color(0xFFE0E0E0)
+            ) {
+                if (croppedUri != null) {
+                    AsyncImage(
+                        model = croppedUri,
+                        contentDescription = "프로필",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_mypage),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(30.dp),
+                        tint = Color.Gray
+                    )
                 }
-            }) {
-                Text("로그인으로 이동")
+            }
+            Surface(
+                modifier = Modifier
+                    .size(36.dp)
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 8.dp, y = 8.dp)
+                    .clickable { pickLauncher.launch("image/*") },
+                shape = CircleShape,
+                color = PrimaryColor,
+                shadowElevation = 4.dp
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_gallery),
+                    contentDescription = null,
+                    modifier = Modifier.padding(6.dp),
+                    tint = Color.White
+                )
+            }
+        }
+
+        // 아이디 + 중복확인
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = userId,
+                onValueChange = { userId = it },
+                label = { Text("아이디") },
+                modifier = Modifier.weight(1f),
+                colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
+            )
+            Button(
+                onClick = { /* 중복확인 */ },
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+            ) {
+                Text("중복확인", color = Color.White)
+            }
+        }
+
+        // 비밀번호
+        OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("비밀번호") },
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
+        )
+
+        // 닉네임 + 중복확인
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = nickname,
+                onValueChange = { nickname = it },
+                label = { Text("닉네임") },
+                modifier = Modifier.weight(1f),
+                colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
+            )
+            Button(
+                onClick = { /* 닉네임 확인 */ },
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+            ) {
+                Text("중복확인", color = Color.White)
+            }
+        }
+
+        // 현재 위치 인증 카드
+        if (confirmedRegion == null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_location_on),
+                            contentDescription = null,
+                            tint = PrimaryColor
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text("현재 위치로 인증", fontWeight = FontWeight.Medium)
+                            Text("GPS를 통해 동네를 인증합니다", fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = {
+                        if (locationPerm.allPermissionsGranted) {
+                            getCurrentLocation(context) { lat, lng ->
+                                currentLat = lat
+                                currentLng = lng
+                                vm.fetchRegionByCoord(lat, lng)
+                                showMapDialog = true
+                            }
+                        } else {
+                            Toast.makeText(context, "위치 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+                            locationPerm.launchMultiplePermissionRequest()
+                        }
+                    }) {
+                        Text("현재 위치 인증하기")
+                    }
+                }
+            }
+        } else {
+            // 인증 완료 후
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_location_on),
+                            contentDescription = null,
+                            tint = PrimaryColor
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = confirmedRegion!!,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 24.sp
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = {}) {
+                        Text("현재 위치 인증 완료")
+                    }
+                }
+            }
+        }
+
+        // 약관
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(checked = agreeAll, onCheckedChange = {
+                    agreeAll = it
+                    agreeService = it
+                    agreePrivacy = it
+                    agreeMarketing = it
+                })
+                Text("전체 동의", modifier = Modifier.weight(1f))
+            }
+            Divider(color = Color.LightGray, thickness = 1.dp)
+            AgreementRow(agreeService, { agreeService = it }, "[필수] 서비스 이용약관")
+            AgreementRow(agreePrivacy, { agreePrivacy = it }, "[필수] 개인정보 처리방침")
+            AgreementRow(agreeMarketing, { agreeMarketing = it }, "[선택] 마케팅 정보 수신")
+        }
+
+        // 회원가입 버튼
+        Button(
+            onClick = { /* 회원가입 처리 */ },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+        ) {
+            Text("회원가입", color = Color.White)
+        }
+    }
+
+    // 지도 다이얼로그
+    if (showMapDialog) {
+        Dialog(onDismissRequest = { showMapDialog = false }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.7f),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(Modifier.fillMaxSize()) {
+                    // ① 동네 이름
+                    Text(
+                        text = regionNameDisplay,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    // ② 지도
+                    AndroidView(
+                        factory = { ctx ->
+                            MapView(ctx).apply {
+                                start(
+                                    object : MapLifeCycleCallback() {
+                                        override fun onMapDestroy() {}
+                                        override fun onMapError(e: Exception?) {}
+                                        override fun onMapResumed() {}
+                                    },
+                                    object : KakaoMapReadyCallback() {
+                                        override fun onMapReady(map: KakaoMap) {
+                                            val pos = LatLng.from(currentLat, currentLng)
+                                            map.labelManager?.layer?.addLabel(
+                                                LabelOptions.from(pos)
+                                                    .setStyles(R.drawable.location_on)
+                                            )
+                                            map.moveCamera(
+                                                CameraUpdateFactory.newCenterPosition(pos, 15)
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    )
+                    // ③ 취소 / 확인
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
+                    ) {
+                        OutlinedButton(onClick = { showMapDialog = false }) {
+                            Text("취소")
+                        }
+                        // Confirm 버튼은 regionName != null 일 때만 enabled
+                        Button(
+                            onClick = {
+                                showMapDialog = false
+                                // rawRegionName 이 non-null 일 때만 설정
+                                rawRegionName?.let { confirmedRegion = it }
+                            },
+                            enabled = (rawRegionName != null)
+                        ) {
+                            Text("확인")
+                        }
+                    }
+                }
             }
         }
     }
+}
+
+@SuppressLint("MissingPermission")
+private fun getCurrentLocation(
+    context: Context,
+    onLocationReceived: (Double, Double) -> Unit
+) {
+    LocationServices
+        .getFusedLocationProviderClient(context)
+        .lastLocation
+        .addOnSuccessListener {
+            it?.let { onLocationReceived(it.latitude, it.longitude) }
+        }
+}
+
+@Composable
+private fun AgreementRow(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    title: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Checkbox(checked, onCheckedChange)
+        Text(title, modifier = Modifier.weight(1f))
+        Text("보기", color = Color.Blue, modifier = Modifier.clickable { /* 상세보기 */ })
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFEF9F0)
+@Composable
+private fun JoinPreview() {
+    JoinScreen(navController = rememberNavController())
 }

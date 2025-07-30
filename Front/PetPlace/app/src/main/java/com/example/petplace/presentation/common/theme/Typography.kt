@@ -27,9 +27,31 @@ val AppTypography = Typography(
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp
     ),
+    headlineLarge = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Bold,
+        fontSize = 48.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Medium,
+        fontSize = 24.sp
+    ),
     labelSmall = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Medium,
+        fontSize = 24.sp,
+//        lineHeight = 20.sp,
+//        letterSpacing = 0.1.sp
     )
 )

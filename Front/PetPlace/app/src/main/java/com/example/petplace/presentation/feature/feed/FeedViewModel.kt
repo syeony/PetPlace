@@ -1,8 +1,9 @@
-package com.example.petplace.presentation.feature.board
+package com.example.petplace.presentation.feature.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.petplace.presentation.feature.board.model.Post
+import com.example.petplace.presentation.feature.feed.model.Comment
+import com.example.petplace.presentation.feature.feed.model.Post
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -20,6 +21,8 @@ class BoardViewModel : ViewModel() {
     private val _allPosts = MutableStateFlow(samplePosts)
     private val _filteredPosts = MutableStateFlow(samplePosts)
     val filteredPosts: StateFlow<List<Post>> = _filteredPosts
+
+    private val _comments = MutableStateFlow(sampleComments)
 
     init {
         applyFilters()
@@ -48,40 +51,97 @@ class BoardViewModel : ViewModel() {
             }
         }
     }
+
+    fun getCommentsForPost(postId: String): List<Comment> {
+        return _comments.value.filter { it.postId == postId }
+    }
 }
 
 val samplePosts = listOf(
     Post(
+        id = "1",
         profileImage = "https://randomuser.me/api/portraits/women/1.jpg",
         category = "내새꾸자랑",
         author = "이도형",
         content = "오늘 처음으로 집에서 목욕시켜봤는데 생각보다 순했어요! 처음엔 무서워했지만 금세 적응하더라구요 ㅎㅎ",
         hashtags = listOf("#골든리트리버", "#목욕", "#첫경험", "#귀여워"),
-        imageUrl = "https://lh4.googleusercontent.com/proxy/d9kCctaZDANtXrlzOCIfN9dV8y0d0wD75pIdJ7RVeebztPErjpoy-oskh3PGWrm8jHuDDhNjMCzzD4PJ1RPFF4HRZckQcCEQfxyMWPQ-",
+        imageUrls = listOf(
+            "https://lh4.googleusercontent.com/proxy/d9kCctaZDANtXrlzOCIfN9dV8y0d0wD75pIdJ7RVeebztPErjpoy-oskh3PGWrm8jHuDDhNjMCzzD4PJ1RPFF4HRZckQcCEQfxyMWPQ-",
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/640px-Felis_catus-cat_on_snow.jpg"
+        ),
         location = "인의동",
         likes = 24,
         comments = 8
     ),
     Post(
+        id = "2",
         profileImage = "https://randomuser.me/api/portraits/men/2.jpg",
         category = "나눔",
         author = "송정현",
         content = "집에 쌓여있는 고양이 장난감들 나눔합니다! 우리 냥이가 안 가지고 놀아서... 필요하신 분 댓글 남겨주세요",
         hashtags = listOf("#고양이", "#장난감", "#나눔", "#무료"),
-        imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/640px-Felis_catus-cat_on_snow.jpg",
+        imageUrls = listOf(
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/640px-Felis_catus-cat_on_snow.jpg",
+        ),
         location = "인의동",
         likes = 12,
         comments = 15
     ),
     Post(
+        id = "3",
         profileImage = "https://randomuser.me/api/portraits/women/3.jpg",
         category = "내새꾸자랑",
         author = "정유진",
         content = "오늘도 열심히 해바라기씨 까먹는 우리 햄찌 ㅋㅋ 볼주머니 가득 채우고 뿌듯한 표정이에요",
         hashtags = listOf("#햄스터", "#간식", "#cute", "#해바라기씨"),
-        imageUrl = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/PhodopusSungorus_2.jpg/640px-PhodopusSungorus_2.jpg",
+        imageUrls = listOf(
+            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/PhodopusSungorus_2.jpg/640px-PhodopusSungorus_2.jpg",
+            ),
         location = "인의동",
         likes = 31,
         comments = 6
+    )
+)
+
+val sampleComments = listOf(
+    Comment(
+        postId = "1",
+        author = "김지은",
+        profileImage = "https://randomuser.me/api/portraits/women/10.jpg",
+        town = "인의동",
+        text = "너무 귀엽네요!",
+        isMine = false
+    ),
+    Comment(
+        postId = "1",
+        author = "나",
+        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
+        town = "인의동",
+        text = "감사해요!",
+        isMine = true
+    ),
+    Comment(
+        postId = "1",
+        author = "나",
+        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
+        town = "인의동",
+        text = "감사해요!",
+        isMine = true
+    ),
+    Comment(
+        postId = "1",
+        author = "나",
+        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
+        town = "인의동",
+        text = "감사해요!",
+        isMine = true
+    ),
+    Comment(
+        postId = "1",
+        author = "나",
+        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
+        town = "인의동",
+        text = "감사해요!",
+        isMine = true
     )
 )
