@@ -60,7 +60,7 @@ import com.example.petplace.R
 @OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun BoardScreen(
+fun FeedScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
     viewModel: BoardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
