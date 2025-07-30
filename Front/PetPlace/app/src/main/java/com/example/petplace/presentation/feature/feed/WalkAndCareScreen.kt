@@ -1,4 +1,4 @@
-package com.example.petplace.presentation.feature.board
+package com.example.petplace.presentation.feature.feed
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image

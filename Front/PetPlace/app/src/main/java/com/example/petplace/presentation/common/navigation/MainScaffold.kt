@@ -17,6 +17,8 @@ import com.example.petplace.presentation.feature.board.BoardScreen
 import com.example.petplace.presentation.feature.board.BoardWriteScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
+import com.example.petplace.presentation.feature.feed.BoardScreen
+import com.example.petplace.presentation.feature.feed.BoardWriteScreen
 import com.example.petplace.presentation.feature.home.HomeScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.login.LoginScreen
