@@ -87,7 +87,7 @@ fun LoginScreen(navController: NavController) {
 
         Button(
             onClick = {
-                navController.navigate("nav_home") {
+                navController.navigate("nav_feed") {
                     popUpTo("login") { inclusive = true } // 로그인 화면 뒤로가기 방지
                 }
             },

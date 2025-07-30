@@ -21,9 +21,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 @Composable
 fun BottomBar(navController: NavHostController) {
     val items = listOf(
-        BottomNavItem.Home,
-        BottomNavItem.Board,
-        BottomNavItem.Map,
+        BottomNavItem.Feed,
+        BottomNavItem.Neighborhood,
         BottomNavItem.Chat,
         BottomNavItem.MyPage
     )
