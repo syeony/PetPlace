@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,8 +27,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,11 +47,15 @@ import com.example.petplace.presentation.common.theme.PrimaryColor
 @Composable
 fun SingleChatScreen(
     chatPartnerName: String,
-    messages: List<ChatMessage> = sampleMessages,
-    navController: NavController
+    navController: NavController,
+    viewModel: ChatViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    var messageInput by remember { mutableStateOf("") }
-    var showAttachmentOptions by remember { mutableStateOf(false) }
+    val messageInput by viewModel.messageInput.collectAsState()
+    val showAttachmentOptions by viewModel.showAttachmentOptions.collectAsState()
+    val messages by viewModel.messages.collectAsState()
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
     Scaffold(
         topBar = {
             ChatTopAppBar(
@@ -63,7 +71,7 @@ fun SingleChatScreen(
                 exit = shrinkVertically(shrinkTowards = Alignment.Bottom)
             ) {
                 AttachmentOptionsGrid(
-                    onCloseClick = { showAttachmentOptions = false }, // Close button callback
+                    onCloseClick = { viewModel.closeAttachmentOptions() }, // Close button callback
                     onOptionSelected = { /* Handle option selection */ } // Callback for individual options
                 )
             }
@@ -75,7 +83,13 @@ fun SingleChatScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = {
-                    showAttachmentOptions = !showAttachmentOptions
+                    if (showAttachmentOptions) {
+                        viewModel.toggleAttachmentOptions()
+                    } else {
+                        keyboardController?.hide()
+                        focusRequester.freeFocus()
+                        viewModel.toggleAttachmentOptions()
+                    }
                 }) {
                     Icon(
                         imageVector = if (showAttachmentOptions) Icons.Default.Close else Icons.Default.Add,
@@ -85,11 +99,12 @@ fun SingleChatScreen(
                 }
                 TextField(
                     value = messageInput,
-                    onValueChange = { newValue -> messageInput = newValue },
+                    onValueChange = { viewModel.onMessageInputChange(it) },
                     modifier = Modifier
                         .weight(1f)
                         .height(52.dp)
-                        .clip(RoundedCornerShape(28.dp)), // 둥근 모서리 적용
+                        .clip(RoundedCornerShape(28.dp))
+                        .focusRequester(focusRequester), // 둥근 모서리 적용
                     placeholder = { Text("메시지를 입력하세요...", color = Color(0xFFADAEBC)) },
                     colors = TextFieldDefaults.textFieldColors(
                         containerColor = Color(0xFFF3F4F6),
@@ -100,7 +115,7 @@ fun SingleChatScreen(
                 )
                 Spacer(Modifier.width(10.dp))
                 IconButton(
-                    onClick = { /* 전송 로직 */ },
+                    onClick = { viewModel.sendMessage() },
                     modifier = Modifier
                         .background(
                             color = MaterialTheme.colorScheme.primary,
@@ -382,28 +397,22 @@ fun ChatTopAppBar(
 }
 
 
-val sampleMessages = listOf(
-    ChatMessage("아직 판매중이신가요?", false),
-    ChatMessage("네, 아직 판매중입니다!", true),
-    ChatMessage("직거래 가능한가요? 위치가 어디신가요?", false),
-    ChatMessage("강남역 근처에서 직거래 가능해요!", true),
-    ChatMessage("좋네요!", false),
-    ChatMessage("내일 오후에 만날 수 있을까요?", false)
-)
 
 
-@Preview(showBackground = true)
-@Composable
-fun SingleChatScreenPreview() {
-    SingleChatScreen(
-        "김민수",
-        listOf(
-            ChatMessage("안녕하세요!", false),
-            ChatMessage("네, 반갑습니다.", true),
-            ChatMessage("오늘 회의는 몇 시예요?", false),
-            ChatMessage("오후 3시에 시작해요.", true),
-            ChatMessage("감사합니다!", false)
-        ),
-        navController = TODO()
-    )
-}
+
+//@Preview(showBackground = true)
+//@Composable
+//fun SingleChatScreenPreview() {
+//    val navController = remember { NavController(LocalContext.current) }
+//    SingleChatScreen(
+//        "김민수",
+//        listOf(
+//            ChatMessage("안녕하세요!", false),
+//            ChatMessage("네, 반갑습니다.", true),
+//            ChatMessage("오늘 회의는 몇 시예요?", false),
+//            ChatMessage("오후 3시에 시작해요.", true),
+//            ChatMessage("감사합니다!", false)
+//        ),
+//        navController = navController
+//    )
+//}
