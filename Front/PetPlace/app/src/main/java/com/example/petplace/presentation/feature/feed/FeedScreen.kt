@@ -1,31 +1,63 @@
-package com.example.petplace.presentation.feature.board
+package com.example.petplace.presentation.feature.feed
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.petplace.R
 
+@OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun BoardScreen(
@@ -37,6 +69,7 @@ fun BoardScreen(
     val searchText by viewModel.searchText.collectAsState()
     val posts by viewModel.filteredPosts.collectAsState()
     var isSearchMode by remember { mutableStateOf(false) }
+    var showCommentsForPostId by remember { mutableStateOf<String?>(null) }
 
     val backgroundColor = Color(0xFFFEF9F0)
     val hashtagTextColor = Color(0xFFF79800)
@@ -101,15 +134,12 @@ fun BoardScreen(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         ) {
                             Image(
                                 painter = rememberAsyncImagePainter(post.profileImage),
                                 contentDescription = null,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
+                                modifier = Modifier.size(40.dp).clip(CircleShape)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
@@ -118,52 +148,88 @@ fun BoardScreen(
                                     post.category,
                                     color = style.second,
                                     fontSize = 12.sp,
-                                    modifier = Modifier
-                                        .background(color = style.first, shape = RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    modifier = Modifier.background(color = style.first, shape = RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                                 Text(text = post.author, fontWeight = FontWeight.Bold)
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = post.content,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
+                        Text(text = post.content, modifier = Modifier.padding(horizontal = 16.dp))
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                        ) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                             post.hashtags.forEach { tag ->
-                                Text(
-                                    text = tag,
-                                    modifier = Modifier.padding(end = 4.dp),
-                                    color = hashtagTextColor,
-                                    fontSize = 12.sp
-                                )
+                                Text(text = tag, modifier = Modifier.padding(end = 4.dp), color = hashtagTextColor, fontSize = 12.sp)
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Image(
-                            painter = rememberAsyncImagePainter(post.imageUrl),
-                            contentDescription = null,
+//                        Image(
+//                            painter = rememberAsyncImagePainter(post.imageUrl),
+//                            contentDescription = null,
+//                            modifier = Modifier.fillMaxWidth().height(300.dp),
+//                            contentScale = ContentScale.Crop
+//                        )
+                        val imageCount = post.imageUrls.size
+
+                        val pagerState = rememberPagerState(pageCount = {imageCount})
+
+                        HorizontalPager(
+                            state = pagerState,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(300.dp),
-                            contentScale = ContentScale.Crop
-                        )
+                        ) { page ->
+                            if (page in post.imageUrls.indices) {
+                                Box {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(post.imageUrls[page]),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+
+                                    Text(
+                                        text = "${page + 1}/${post.imageUrls.size}",
+                                        fontSize = 12.sp,
+                                        color = Color.White,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp)
+                                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+
+
+
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "📍 ${post.location}에서 작성한 글입니다.", fontSize = 12.sp, color = Color.Gray,
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp))
+
+                        Text(text = "📍 ${post.location}에서 작성한 글입니다.", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(horizontal = 16.dp))
+
                         Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)) {
-                            Text("❤️ ${post.likes}", fontSize = 12.sp)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text("💬 ${post.comments}", fontSize = 12.sp)
+
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp)) {
+                            var isLiked by remember { mutableStateOf(false) }
+
+                            IconButton(onClick = { isLiked = !isLiked }) {
+                                Icon(
+                                    imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = if (isLiked) "좋아요 취소" else "좋아요",
+                                    modifier = Modifier.size(25.dp),
+                                    tint = if (isLiked) Color(0xFFF44336) else LocalContentColor.current
+                                )
+                            }
+                            Text("${post.likes}", fontSize = 15.sp)
+                            Spacer(modifier = Modifier.width(15.dp))
+                            IconButton(onClick = { showCommentsForPostId = post.id }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.outline_chat_bubble_24),
+                                    contentDescription = "댓글창",
+                                    modifier = Modifier.size(25.dp)
+                                )
+                            }
+                            Text("${post.comments}", fontSize = 15.sp)
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
@@ -171,12 +237,16 @@ fun BoardScreen(
             }
         }
 
-        // 오른쪽 하단 글쓰기 플로팅 버튼
+        if (showCommentsForPostId != null) {
+            CommentBottomSheet(
+                comments = viewModel.getCommentsForPost(showCommentsForPostId!!),
+                onDismiss = { showCommentsForPostId = null }
+            )
+        }
+
         FloatingActionButton(
             onClick = { navController.navigate("board/write") },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             containerColor = Color(0xFFF79800),
             contentColor = Color.White,
             shape = CircleShape
@@ -184,12 +254,9 @@ fun BoardScreen(
             Icon(Icons.Default.Add, contentDescription = "글쓰기")
         }
 
-        // 검색 플로팅 버튼 (카테고리 아래, 게시글과 겹치게)
         FloatingActionButton(
             onClick = { isSearchMode = !isSearchMode },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(y = 72.dp, x = (-16).dp),
+            modifier = Modifier.align(Alignment.TopEnd).offset(y = 72.dp, x = (-16).dp),
             containerColor = Color(0xFFF79800),
             contentColor = Color.White,
             shape = CircleShape

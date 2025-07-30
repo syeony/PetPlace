@@ -13,8 +13,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
-import com.example.petplace.presentation.feature.board.BoardScreen
-import com.example.petplace.presentation.feature.board.BoardWriteScreen
+import com.example.petplace.presentation.feature.feed.BoardScreen
+import com.example.petplace.presentation.feature.feed.BoardWriteScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
 import com.example.petplace.presentation.feature.home.HomeScreen
