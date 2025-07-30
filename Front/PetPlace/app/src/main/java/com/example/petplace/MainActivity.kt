@@ -10,9 +10,10 @@ import com.example.petplace.presentation.common.navigation.MainScaffold
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
 import android.util.Log
 import com.kakao.sdk.common.util.Utility
+import dagger.hilt.android.AndroidEntryPoint
 
 
-//@AndroidEntryPoint 이게 hilt인데 쓸래??
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
