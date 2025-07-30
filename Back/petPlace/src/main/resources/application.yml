@@ -1,3 +1,6 @@
+jwt:
+  secret: your-super-secret-key-that-is-long-and-secure-enough-to-be-safe
+  expiration_time: 3600000
 spring:
   security:
     user:
