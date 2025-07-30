@@ -61,7 +61,10 @@ fun MainScaffold() {
                 arguments = listOf(navArgument("chatName") { type = NavType.StringType })
             ) { backStackEntry ->
                 val chatName = backStackEntry.arguments?.getString("chatName") ?: ""
-                SingleChatScreen(chatPartnerName = chatName)
+                SingleChatScreen(
+                    chatPartnerName = chatName,
+                    navController = navController
+                )
             }
             composable("board/write") { BoardWriteScreen(navController = navController) }
         }

@@ -18,10 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.petplace.R
 import com.example.petplace.data.local.chat.ChatMessage
 import com.example.petplace.presentation.common.theme.PrimaryColor
@@ -31,11 +33,17 @@ import com.example.petplace.presentation.common.theme.PrimaryColor
 @Composable
 fun SingleChatScreen(
     chatPartnerName: String,
-    messages: List<ChatMessage> = sampleMessages
+    messages: List<ChatMessage> = sampleMessages,
+    navController: NavController
 ) {
+
     Scaffold(
         topBar = {
-            ChatTopAppBar(chatPartnerName)
+            ChatTopAppBar(
+                chatPartnerName,
+                onBackClick = {
+                    navController.popBackStack()
+                })
         },
         bottomBar = {
             Row(
@@ -103,32 +111,68 @@ fun SingleChatScreen(
                     horizontalArrangement = alignment
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Surface(
-                            color = bgColor,
-                            shape = MaterialTheme.shapes.medium,
-                            shadowElevation = 1.dp
-                        ) {
-                            Text(
-                                text = msg.content,
-                                color = textColor,
-                                modifier = Modifier.padding(10.dp),
-                                fontSize = 14.sp
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Column {
-                            Text(
-                                text = "읽음", // 실제 시간으로 변경 가능
-                                fontSize = 10.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-                            Text(
-                                text = "오후 2:30", // 실제 시간으로 변경 가능
-                                fontSize = 10.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            if (msg.isFromMe) {
+                                // 내가 보낸 메시지일 경우: 읽음/시간 -> 메시지 버블
+                                Column {
+                                    Text(
+                                        text = "읽음", // 실제 시간으로 변경 가능
+                                        fontSize = 10.sp,
+                                        color = Color.Gray,
+                                        modifier = Modifier
+                                            .padding(horizontal = 4.dp)
+                                            .align(Alignment.End)
+                                    )
+                                    Text(
+                                        text = "오후 2:30", // 실제 시간으로 변경 가능
+                                        fontSize = 10.sp,
+                                        color = Color.Gray,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(2.dp)) // 가로 간격으로 변경
+                                Surface(
+                                    color = bgColor,
+                                    shape = MaterialTheme.shapes.medium,
+                                    shadowElevation = 1.dp
+                                ) {
+                                    Text(
+                                        text = msg.content,
+                                        color = textColor,
+                                        modifier = Modifier.padding(10.dp),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            } else {
+                                // 상대방이 보낸 메시지일 경우: 메시지 버블 -> 읽음/시간
+                                Surface(
+                                    color = bgColor,
+                                    shape = MaterialTheme.shapes.medium,
+                                    shadowElevation = 1.dp
+                                ) {
+                                    Text(
+                                        text = msg.content,
+                                        color = textColor,
+                                        modifier = Modifier.padding(10.dp),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(2.dp)) // 가로 간격으로 변경
+                                Column {
+                                    Text(
+                                        text = "읽음", // 실제 시간으로 변경 가능
+                                        fontSize = 10.sp,
+                                        color = Color.Gray,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    )
+                                    Text(
+                                        text = "오후 2:30", // 실제 시간으로 변경 가능
+                                        fontSize = 10.sp,
+                                        color = Color.Gray,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -214,6 +258,7 @@ fun SingleChatScreenPreview() {
             ChatMessage("오늘 회의는 몇 시예요?", false),
             ChatMessage("오후 3시에 시작해요.", true),
             ChatMessage("감사합니다!", false)
-        )
+        ),
+        navController = TODO()
     )
 }
