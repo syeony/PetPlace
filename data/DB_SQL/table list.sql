@@ -120,6 +120,7 @@ CREATE TABLE `Feed` (
 -- ✅ Comment
 CREATE TABLE `Comment` (
     `id` INT NOT NULL AUTO_INCREMENT,
+    `cid` INT NULL,
     `fid` INT NOT NULL,
     `content` VARCHAR(200) NOT NULL,
     `uid` INT NOT NULL,
@@ -130,8 +131,10 @@ CREATE TABLE `Comment` (
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
     FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`fid`) REFERENCES `Feed`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`fid`) REFERENCES `Feed`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`cid`) REFERENCES `Comment`(`id`) ON DELETE CASCADE
 );
+
 
 -- ✅ Care
 CREATE TABLE `Care` (
