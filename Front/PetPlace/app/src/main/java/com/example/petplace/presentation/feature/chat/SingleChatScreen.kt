@@ -2,10 +2,12 @@ package com.example.petplace.presentation.feature.chat
 
 import android.R.id
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -25,6 +27,7 @@ import com.example.petplace.data.local.chat.ChatMessage
 import com.example.petplace.presentation.common.theme.PrimaryColor
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SingleChatScreen(
     chatPartnerName: String,
@@ -38,6 +41,7 @@ fun SingleChatScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .background(Color.White)
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -45,7 +49,7 @@ fun SingleChatScreen(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Send",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = Color.Black
                     )
                 }
                 TextField(
@@ -53,16 +57,32 @@ fun SingleChatScreen(
                     onValueChange = {},
                     modifier = Modifier
                         .weight(1f)
-                        .height(56.dp),
-                    placeholder = { Text("메시지를 입력하세요...") }
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(28.dp)), // 둥근 모서리 적용
+                    placeholder = { Text("메시지를 입력하세요...", color = Color(0xFFADAEBC)) },
+                    colors = TextFieldDefaults.textFieldColors(
+                        containerColor = Color(0xFFF3F4F6),
+                        focusedIndicatorColor = Color.Transparent, // 포커스 시 밑줄 제거
+                        unfocusedIndicatorColor = Color.Transparent, // 비포커스 시 밑줄 제거
+                        disabledIndicatorColor = Color.Transparent // 비활성화 시 밑줄 제거
+                    )
                 )
-                IconButton(onClick = { /* 전송 로직 */ }) {
+                Spacer(Modifier.width(10.dp))
+                IconButton(
+                    onClick = { /* 전송 로직 */ },
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(14.dp) // 둥근 모양
+                        )
+                ) {
                     Icon(
                         imageVector = Icons.Default.Send,
                         contentDescription = "Send",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = Color.White
                     )
                 }
+                Spacer(Modifier.width(10.dp))
             }
         }
     ) { innerPadding ->
