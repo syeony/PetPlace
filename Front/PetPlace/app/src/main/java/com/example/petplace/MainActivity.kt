@@ -8,12 +8,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.petplace.presentation.common.navigation.MainScaffold
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
-import dagger.hilt.android.AndroidEntryPoint
+import android.util.Log
+import com.kakao.sdk.common.util.Utility
+
 
 //@AndroidEntryPoint 이게 hilt인데 쓸래??
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        var keyHash = Utility.getKeyHash(this)
+        Log.e("KeyHash", "해쉬값 : ${keyHash}")
         setContent {
             PetPlaceTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {

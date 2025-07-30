@@ -8,6 +8,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -47,6 +48,18 @@ import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import com.kakao.vectormap.label.LabelStyle
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.ComponentActivity
+import com.kakao.vectormap.label.LabelLayerOptions
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import org.json.JSONObject
+import java.io.IOException
+import com.example.petplace.BuildConfig
+
+
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -317,34 +330,139 @@ fun AgreementRow(
         )
     }
 }
-
 @Composable
-fun KakaoMapScreen(lat: Double, lng: Double) {
-    AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = { context ->
-            MapView(context).apply {
-                start(
-                    object : MapLifeCycleCallback() {
-                        override fun onMapDestroy() { Log.d("KakaoMap", "Map destroyed") }
-                        override fun onMapError(error: Exception?) { Log.e("KakaoMap", "Error: ${error?.message}") }
-                    },
-                    object : KakaoMapReadyCallback() {
-                        override fun onMapReady(kakaoMap: KakaoMap) {
-                            val center = LatLng.from(lat, lng)
-                            kakaoMap.moveCamera(CameraUpdateFactory.newCenterPosition(center))
+fun KakaoMapScreen(
+    lat: Double,
+    lng: Double,
+    onConfirm: (String) -> Unit = {},
+    onCancel: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    var currentAddress by remember { mutableStateOf("동네를 가져오는 중...") }
 
-                            val markerLayer = kakaoMap.labelManager?.getLayer("markerLayer")
-                            val markerStyle = LabelStyle.from(R.drawable.ic_location_on)
-                            val marker = LabelOptions.from(center).setStyles(markerStyle)
-                            markerLayer?.addLabel(marker)
+    // 위경도로 동네명 가져오기
+    LaunchedEffect(Unit) {
+        fetchAddressFromKakao(context, lat, lng) { address ->
+            currentAddress = address
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 맵
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { context ->
+                MapView(context).apply {
+                    start(
+                        object : MapLifeCycleCallback() {
+                            override fun onMapDestroy() { Log.d("KakaoMap", "Map destroyed") }
+                            override fun onMapError(error: Exception?) { Log.e("KakaoMap", "Error: ${error?.message}") }
+                        },
+                        object : KakaoMapReadyCallback() {
+                            override fun onMapReady(kakaoMap: KakaoMap) {
+                                val myLocation = LatLng.from(lat, lng)
+
+                                kakaoMap.moveCamera(CameraUpdateFactory.newCenterPosition(myLocation))
+
+                                val labelManager = kakaoMap.labelManager
+                                val markerLayer = labelManager?.getLayer("markerLayer")
+                                    ?: labelManager?.addLayer(LabelLayerOptions.from("markerLayer"))
+
+                                val markerStyle = LabelStyle.from(R.drawable.location_on)
+                                val marker = LabelOptions.from(myLocation).setStyles(markerStyle)
+                                markerLayer?.addLabel(marker)
+                            }
                         }
-                    }
-                )
+                    )
+                }
+            }
+        )
+
+        // 상단 동네 표시
+        Text(
+            text = currentAddress,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 40.dp)
+                .background(Color.White.copy(alpha = 0.8f), shape = RoundedCornerShape(12.dp))
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+
+        //  하단 버튼 Row
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(onClick = onCancel) {
+                Text("취소")
+            }
+            Button(onClick = { onConfirm(currentAddress) }) {
+                Text("확인")
             }
         }
-    )
+    }
 }
+
+fun fetchAddressFromKakao(
+    context: Context,
+    lat: Double,
+    lng: Double,
+    callback: (String) -> Unit
+) {
+    val client = OkHttpClient()
+    val request = Request.Builder()
+        .url("https://dapi.kakao.com/v2/local/geo/coord2address.json?x=$lng&y=$lat")
+        .addHeader("Authorization", "KakaoAK ${BuildConfig.KAKAO_REST_KEY}") // 실제 키
+        .build()
+
+    client.newCall(request).enqueue(object : Callback {
+        override fun onFailure(call: Call, e: IOException) {
+            Log.e("KakaoMap", "주소 요청 실패: ${e.message}")
+            (context as ComponentActivity).runOnUiThread {
+                callback("네트워크 오류")
+            }
+        }
+
+        override fun onResponse(call: Call, response: Response) {
+            val body = response.body?.string().orEmpty()
+            if (body.isEmpty()) {
+                (context as ComponentActivity).runOnUiThread {
+                    callback("응답 없음")
+                }
+                return
+            }
+
+            try {
+                val json = JSONObject(body)
+                val documents = json.optJSONArray("documents") // 안전 처리
+                if (documents != null && documents.length() > 0) {
+                    val first = documents.getJSONObject(0)
+                    val addressObj = first.optJSONObject("address")
+                    val addressName = addressObj?.optString("region_3depth_name") ?: "주소 없음"
+
+                    (context as ComponentActivity).runOnUiThread {
+                        callback(addressName)
+                    }
+                } else {
+                    (context as ComponentActivity).runOnUiThread {
+                        callback("주소 없음")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("KakaoMap", "JSON 파싱 오류: ${e.message}")
+                (context as ComponentActivity).runOnUiThread {
+                    callback("파싱 오류")
+                }
+            }
+        }
+    })
+}
+
 
 @Preview(showBackground = true, backgroundColor = 0xFFFEF9F0)
 @Composable

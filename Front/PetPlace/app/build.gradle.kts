@@ -16,6 +16,11 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+        buildConfigField(
+            "String",
+            "KAKAO_REST_KEY",
+            "\"${project.properties["KAKAO_REST_KEY"]}\""
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,6 +46,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -59,7 +65,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.0")
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
-    implementation(libs.play.services.maps)
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
     implementation("com.google.android.material:material:1.11.0")
 
@@ -73,7 +78,9 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     // 카카오 맵
+    implementation("com.kakao.sdk:v2-all:2.20.0")
     implementation ("com.kakao.maps.open:android:2.12.8")
+//    implementation ("com.kakao.sdk:v2-common:2.20.0")
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
     kapt("com.google.dagger:hilt-android-compiler:2.48")
