@@ -13,7 +13,7 @@ INSERT INTO `User` (
     `user_id`, `password`, `name`, `nickname`, `created_at`, `rid`,
     `default_pet_id`, `kakao_oauth`, `user_img_src`, `pet_smell`,
     `default_badge_id`, `ci`, `phone_number`, `gender`, `birthday`,
-    `isForeigner`, `level`, `experience`
+    `is_foreigner`, `level`, `experience`
 ) VALUES
 ('user01', 'pass1234', '김철수', '철수', NOW(), 1001, NULL, NULL, NULL, 36.5, NULL, 'CI_USER_001', '01012345678', 'male', '1990-01-15', 0, 1, 0),
 ('user02', 'pass1234', '이영희', '영희', NOW(), 1002, NULL, NULL, NULL, 36.7, NULL, 'CI_USER_002', '01023456789', 'female', '1992-03-10', 0, 1, 0),
