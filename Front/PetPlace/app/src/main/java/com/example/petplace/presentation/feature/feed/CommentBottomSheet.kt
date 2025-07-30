@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,14 +27,17 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.petplace.R
 import com.example.petplace.presentation.feature.feed.model.Comment
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,44 +75,122 @@ fun CommentBottomSheet(
             Spacer(modifier = Modifier.height(16.dp))
             LazyColumn {
                 items(comments) { comment ->
-                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Image(
-                                painter = rememberAsyncImagePainter(comment.profileImage),
-                                contentDescription = null,
-                                modifier = Modifier.size(35.dp).clip(CircleShape)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                    Text(text = comment.author, fontWeight = FontWeight.Bold)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(text = comment.town, fontSize = 12.sp, color = Color.Gray)
+                    if(comment.replies.isEmpty()){
+                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(comment.profileImage),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(35.dp).clip(CircleShape)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                        Text(text = comment.author, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(text = comment.town, fontSize = 12.sp, color = Color.Gray)
+                                    }
+                                    Text(text = comment.text)
                                 }
-                                Text(text = comment.text)
+                                Spacer(modifier = Modifier.weight(1f))
+//
                             }
-                            Spacer(modifier = Modifier.weight(1f))
-                            if (comment.isMine) {
-                                IconButton(onClick = { /* 수정 */ }) {
-                                    Icon(Icons.Default.Create, contentDescription = "수정")
+                            if (comment.replies.isEmpty()) {
+                                TextButton(onClick = { /* 답글 */ }) {
+                                    Text("답글 달기", fontSize = 10.sp)
                                 }
-                                IconButton(onClick = { /* 삭제 */ }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "삭제")
-                                }
-                            }
-                        }
-                        if (comment.replies.isEmpty()) {
-                            TextButton(onClick = { /* 답글 */ }) {
-                                Text("답글 달기", fontSize = 10.sp)
-                            }
-                        } else {
-                            comment.replies.forEach { reply ->
-                                Row(modifier = Modifier.padding(start = 36.dp)) {
-                                    Text("${reply.author}: ${reply.text}")
+                            } else {
+                                comment.replies.forEach { reply ->
+                                    Row(modifier = Modifier.padding(start = 36.dp)) {
+                                        Text("${reply.author}: ${reply.text}")
+                                    }
                                 }
                             }
                         }
                     }
+                    else{
+                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(comment.profileImage),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(35.dp).clip(CircleShape)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                        Text(text = comment.author, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(text = comment.town, fontSize = 12.sp, color = Color.Gray)
+                                    }
+                                    Text(text = comment.text)
+                                }
+                                Spacer(modifier = Modifier.weight(1f))
+                                if (comment.isMine) {
+                                    IconButton(onClick = { /* 수정 */ }) {
+                                        Icon(Icons.Default.Create, contentDescription = "수정")
+                                    }
+                                    IconButton(onClick = { /* 삭제 */ }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "삭제")
+                                    }
+                                }
+                            }
+                            if (comment.replies.isEmpty()) {
+                                TextButton(onClick = { /* 답글 */ }) {
+                                    Text("답글 달기", fontSize = 10.sp)
+                                }
+                            } else {
+                                comment.replies.forEach { reply ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        // 아이콘
+                                        Icon(
+                                            painter = painterResource(R.drawable.ic_reply),
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(20.dp)     // 아이콘 크기만큼만
+//                                                .padding(), // 텍스트와 간격
+                                            ,
+                                            tint = Color.Gray
+                                        )
+                                        Spacer(modifier = Modifier.width(24.dp))
+                                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                            Image(
+                                                painter = rememberAsyncImagePainter(reply.profileImage),
+                                                contentDescription = null,
+                                                modifier = Modifier.size(35.dp).clip(CircleShape)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column {
+                                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                                    Text(text = reply.author, fontWeight = FontWeight.Bold)
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(text = reply.town, fontSize = 12.sp, color = Color.Gray)
+                                                }
+                                                Text(text = reply.text)
+                                            }
+                                            Spacer(modifier = Modifier.weight(1f))
+//                                            if (reply.isMine) {
+//                                                IconButton(onClick = { /* 수정 */ }) {
+//                                                    Icon(Icons.Default.Create, contentDescription = "수정")
+//                                                }
+//                                                IconButton(onClick = { /* 삭제 */ }) {
+//                                                    Icon(Icons.Default.Clear, contentDescription = "삭제")
+//                                                }
+//                                            }
+                                        }
+
+                                    }
+
+                                }
+                            }
+                        }
+
+
+                    }
+
                 }
             }
         }
