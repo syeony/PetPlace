@@ -3,7 +3,7 @@ package com.minjeok4go.petplace.domain.feed.model;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -13,30 +13,44 @@ import java.util.List;
 public class FeedDto {
     private Long id;
     private String content;
+    private Long uid;
     private String userNick;
     private String userImg;
-    private Integer rid;
+    private Long rid;
     private String category;
-    private List<Integer> tags;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime deletedAt;
     private Integer like;
     private Integer view;
-    private Double score; //  추천 점수 (선택 사항) (프런트에 추천 강도 표시, 추천 순서 정렬 등 필요할 때 사용하기 위해 추가)
+    private Double score;  // ✅ 추천 점수 추가
+    private List<TagDto> tags;  // ✅ 태그 객체 리스트로 변경
+    private List<CommentDto> comments;
+    private Integer commentCount;
 
-    // Feed → FeedDto 변환 메서드 서비스 / 컨특롤러에서 쉽게 DTO로 변환하기 위해 쓰는 패턴 (정적 변환 메서드)
     public static FeedDto from(Feed feed, Double score) {
         return FeedDto.builder()
                 .id(feed.getId())
                 .content(feed.getContent())
+                .uid(feed.getUid())
                 .userNick(feed.getUserNick())
                 .userImg(feed.getUserImg())
                 .rid(feed.getRid())
-                .category(feed.getCategory())
-                .tags(feed.getTags())
+                .category(feed.getCategory().name())
                 .createdAt(feed.getCreatedAt())
+                .updatedAt(feed.getUpdatedAt())
+                .deletedAt(feed.getDeletedAt())
                 .like(feed.getLike())
                 .view(feed.getView())
-                .score(score)
+                .score(score)  // ✅ 추천 점수 설정
+                .tags(feed.getHashtags().stream()
+                        .map(h -> new TagDto(h.getTag().getId(), h.getTag().getTagName()))
+                        .distinct()
+                        .collect(Collectors.toList()))
+                .comments(feed.getComments().stream()
+                        .map(CommentDto::from)
+                        .collect(Collectors.toList()))
+                .commentCount(feed.getComments().size())
                 .build();
     }
 }
