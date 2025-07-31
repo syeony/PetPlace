@@ -119,4 +119,7 @@ dependencies {
     // neighborhood에서 필요
     implementation("androidx.compose.material3:material3:1.2.1")
 
+    //Missing_register에서 필요
+    implementation("com.github.yalantis:ucrop:2.2.8")
+
 }
