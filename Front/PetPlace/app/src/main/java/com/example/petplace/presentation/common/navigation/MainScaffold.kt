@@ -76,7 +76,7 @@ fun MainScaffold() {
                 )
             ) { backStackEntry ->
                 val showDialog = backStackEntry.arguments?.getBoolean("showDialog") ?: false
-                NeighborhoodScreen(navController, showDialog)   // ← 파라미터 전달
+                NeighborhoodScreen(navController)   // ← 파라미터 전달
             }
             composable("Missing_register") { RegisterScreen(navController) }
             composable("family/select") { FamilySelectScreen(navController) }

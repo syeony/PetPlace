@@ -61,7 +61,9 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
 
     // Jetpack Compose (Material3 기준)
-    implementation("androidx.compose.ui:ui:1.6.0")
+    implementation("androidx.compose.ui:ui:1.6.0"
+
+    )
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.0")
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
@@ -116,8 +118,6 @@ dependencies {
     implementation("androidx.compose.foundation:foundation:1.4.3")
     implementation("com.google.accompanist:accompanist-pager:0.32.0")
 
-    // neighborhood에서 필요
-    implementation("androidx.compose.material3:material3:1.2.1")
 
     //Missing_register에서 필요
     implementation("com.github.yalantis:ucrop:2.2.8")
