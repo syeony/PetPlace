@@ -5,7 +5,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.minjeok4go.petplace.auth.dto.TokenDto;
-import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
 import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.dto.AutoLoginResponseDto;
@@ -63,21 +62,35 @@ public class UserController {
 
 
     // 아이디 중복 체크
-    @Operation(summary = "아이디 중복 체크", description = "입력한 아이디가 이미 사용 중인지 확인합니다.") // 2. API 설명 추가
-    @ApiResponse(responseCode = "200", description = "확인 성공 (true: 중복, false: 사용 가능)") // 3. 응답 설명 추가
+    @Operation(summary = "아이디 중복 체크", description = "입력한 아이디가 이미 사용 중인지 확인합니다.")
+    @ApiResponse(responseCode = "200", description = "사용 가능한 아이디") // 1. 응답 설명 수정
+    @ApiResponse(responseCode = "409", description = "이미 존재하는 아이디 (중복)") // 2. 409 응답 추가
     @PostMapping("/check-userid")
-    public ResponseEntity<CheckDuplicateResponseDto> checkUserIdDuplicate(@RequestParam("user_id") String userId) {
-        CheckDuplicateResponseDto response = userService.checkUserIdDuplicate(userId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<String> checkUserIdDuplicate(@RequestParam("user_id") String userId) {
+        boolean isDuplicate = userService.checkUserIdDuplicate(userId).isDuplicate();
+
+        if (isDuplicate) { // 4. isDuplicate 값에 따라 분기
+            // 중복이면 409 Conflict 반환
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 사용 중인 아이디입니다.");
+        } else {
+            // 중복이 아니면 200 OK 반환
+            return ResponseEntity.ok("사용 가능한 아이디입니다.");
+        }
     }
 
     // 닉네임 중복 체크
     @Operation(summary = "닉네임 중복 체크", description = "입력한 닉네임이 이미 사용 중인지 확인합니다.")
-    @ApiResponse(responseCode = "200", description = "확인 성공 (true: 중복, false: 사용 가능)")
+    @ApiResponse(responseCode = "200", description = "사용 가능한 닉네임")
+    @ApiResponse(responseCode = "409", description = "이미 존재하는 닉네임 (중복)")
     @PostMapping("/check-nickname")
-    public ResponseEntity<CheckDuplicateResponseDto> checkNicknameDuplicate(@RequestParam("nickname") String nickname) {
-        CheckDuplicateResponseDto response = userService.checkNicknameDuplicate(nickname);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<String> checkNicknameDuplicate(@RequestParam("nickname") String nickname) {
+        boolean isDuplicate = userService.checkNicknameDuplicate(nickname).isDuplicate();
+
+        if (isDuplicate) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 사용 중인 닉네임입니다.");
+        } else {
+            return ResponseEntity.ok("사용 가능한 닉네임입니다.");
+        }
     }
     @GetMapping("/test-auth")
     @Operation(summary = "토큰 인증 테스트", description = "JWT 토큰으로 인증된 사용자 정보를 확인합니다.")
