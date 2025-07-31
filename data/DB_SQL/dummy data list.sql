@@ -223,3 +223,219 @@ INSERT INTO `Chat` (`crid`, `uid`, `message`) VALUES
 INSERT INTO `MessageRead` (`crid`, `cid`, `uid`, `read_at`) VALUES
 (3, 6, 5, NOW()),
 (3, 6, 4, NULL);
+
+-- 댓글 더미 데이터
+-- Feed 1 (id=1)
+INSERT INTO `Comment` (`cid`, `fid`, `content`, `uid`, `user_nick`, `user_img`, `created_at`)
+VALUES
+(NULL, 1, '초코 너무 귀여워요 🐶', 2, '영희', NULL, NOW()),
+(NULL, 1, '산책 어디서 하셨나요?', 3, '민수', NULL, NOW());
+
+-- Feed 1 대댓글 (cid = 첫 번째 댓글 id = 1)
+INSERT INTO `Comment` (`cid`, `fid`, `content`, `uid`, `user_nick`, `user_img`, `created_at`)
+VALUES
+(1, 1, '감사해요! 한강공원에서 했어요!', 1, '철수', NULL, NOW());
+
+-- Feed 2 (id=2)
+INSERT INTO `Comment` (`cid`, `fid`, `content`, `uid`, `user_nick`, `user_img`, `created_at`)
+VALUES
+(NULL, 2, '강아지 간식 추천: 닭가슴살!', 4, '지혜', NULL, NOW()),
+(NULL, 2, '저도 궁금했어요~', 5, '우성', NULL, NOW());
+
+-- Feed 2 대댓글 (cid = 첫 번째 댓글 id = 4)
+INSERT INTO `Comment` (`cid`, `fid`, `content`, `uid`, `user_nick`, `user_img`, `created_at`)
+VALUES
+(4, 2, '오 추천 감사합니다!', 1, '철수', NULL, NOW());
+
+-- Feed 3 (id=3)
+INSERT INTO `Comment` (`cid`, `fid`, `content`, `uid`, `user_nick`, `user_img`, `created_at`)
+VALUES
+(NULL, 3, '포메라니안 털 진짜 많이 빠지죠?', 2, '영희', NULL, NOW()),
+(NULL, 3, '저희 집은 매일 빗질해줘요!', 3, '민수', NULL, NOW()),
+(NULL, 3, '초코 너무 귀여워요!', 5, '우성', NULL, NOW());
+
+-- Feed 3 대댓글 (cid = 두 번째 댓글 id = 7)
+INSERT INTO `Comment` (`cid`, `fid`, `content`, `uid`, `user_nick`, `user_img`, `created_at`)
+VALUES
+(7, 3, '역시 매일 빗질해야겠네요!', 1, '철수', NULL, NOW());
+
+-- 좋아요 더미 데이터
+-- User01이 다른 유저의 Feed에 좋아요
+INSERT INTO `Like` (`fid`, `uid`) VALUES
+(11, 1), (12, 1), (21, 1), (22, 1), (31, 1), (41, 1), (42, 1);
+
+-- User02
+INSERT INTO `Like` (`fid`, `uid`) VALUES
+(1, 2), (2, 2), (23, 2), (24, 2), (32, 2), (43, 2), (44, 2);
+
+-- User03
+INSERT INTO `Like` (`fid`, `uid`) VALUES
+(3, 3), (4, 3), (13, 3), (14, 3), (33, 3), (45, 3), (46, 3);
+
+-- User04
+INSERT INTO `Like` (`fid`, `uid`) VALUES
+(5, 4), (6, 4), (15, 4), (16, 4), (25, 4), (47, 4), (48, 4);
+
+-- User05
+INSERT INTO `Like` (`fid`, `uid`) VALUES
+(7, 5), (8, 5), (17, 5), (18, 5), (26, 5), (34, 5), (49, 5);
+
+-- 태그 더미 데이터
+INSERT INTO `Tag` (`tag_name`) VALUES
+('강아지'), ('고양이'), ('토끼'), ('햄스터'), ('파충류'),
+('반려동물용품'), ('훈련팁'), ('건강관리'), ('산책코스'), ('입양후기'),
+('간식추천'), ('사료후기'), ('미용'), ('동물병원'), ('호텔리뷰'),
+('일상공유'), ('귀여움주의'), ('사진공유'), ('초보집사'), ('경험담');
+
+-- 해시태그 더미 데이터
+-- Feed 1
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (1, 1), (1, 9), (1, 11);
+
+-- Feed 2
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (2, 1), (2, 6);
+
+-- Feed 3
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (3, 1), (3, 8), (3, 10), (3, 16);
+
+-- Feed 4
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (4, 1), (4, 17);
+
+-- Feed 5
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (5, 1), (5, 9), (5, 13);
+
+-- Feed 6
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (6, 1), (6, 8), (6, 12);
+
+-- Feed 7
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (7, 1), (7, 18);
+
+-- Feed 8
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (8, 1), (8, 9);
+
+-- Feed 9
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (9, 1), (9, 14);
+
+-- Feed 10
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (10, 1), (10, 8), (10, 16);
+
+-- Feed 11
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (11, 2), (11, 17);
+
+-- Feed 12
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (12, 2), (12, 6), (12, 11);
+
+-- Feed 13
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (13, 2), (13, 18), (13, 16);
+
+-- Feed 14
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (14, 2), (14, 8), (14, 12);
+
+-- Feed 15
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (15, 2), (15, 13);
+
+-- Feed 16
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (16, 2), (16, 9), (16, 10);
+
+-- Feed 17
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (17, 2), (17, 6);
+
+-- Feed 18
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (18, 2), (18, 16);
+
+-- Feed 19
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (19, 2), (19, 17);
+
+-- Feed 20
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (20, 2), (20, 8);
+
+-- Feed 21
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (21, 3), (21, 6);
+
+-- Feed 22
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (22, 3), (22, 16), (22, 17);
+
+-- Feed 23
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (23, 3), (23, 18), (23, 9);
+
+-- Feed 24
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (24, 3), (24, 8);
+
+-- Feed 25
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (25, 3), (25, 12), (25, 13);
+
+-- Feed 26
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (26, 3), (26, 10);
+
+-- Feed 27
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (27, 3), (27, 6), (27, 16);
+
+-- Feed 28
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (28, 3), (28, 18);
+
+-- Feed 29
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (29, 3), (29, 9);
+
+-- Feed 30
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (30, 3), (30, 11), (30, 13);
+
+-- Feed 31
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (31, 4), (31, 12);
+
+-- Feed 32
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (32, 4), (32, 6), (32, 17);
+
+-- Feed 33
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (33, 4), (33, 8), (33, 13);
+
+-- Feed 34
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (34, 4), (34, 18);
+
+-- Feed 35
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (35, 4), (35, 9);
+
+-- Feed 36
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (36, 4), (36, 16);
+
+-- Feed 37
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (37, 4), (37, 6), (37, 17);
+
+-- Feed 38
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (38, 4), (38, 10);
+
+-- Feed 39
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (39, 4), (39, 8);
+
+-- Feed 40
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (40, 4), (40, 18);
+
+-- Feed 41
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (41, 5), (41, 6);
+
+-- Feed 42
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (42, 5), (42, 10), (42, 12);
+
+-- Feed 43
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (43, 5), (43, 9), (43, 16);
+
+-- Feed 44
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (44, 5), (44, 8);
+
+-- Feed 45
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (45, 5), (45, 17);
+
+-- Feed 46
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (46, 5), (46, 6), (46, 13);
+
+-- Feed 47
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (47, 5), (47, 18);
+
+-- Feed 48
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (48, 5), (48, 8), (48, 14);
+
+-- Feed 49
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (49, 5), (49, 9), (49, 11);
+
+-- Feed 50
+INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (50, 5), (50, 16);
+
+
