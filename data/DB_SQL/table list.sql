@@ -106,7 +106,7 @@ CREATE TABLE `Feed` (
     `user_nick` VARCHAR(200) NOT NULL,
     `user_img` VARCHAR(500) NULL,
     `rid` BIGINT NOT NULL,
-    `category` ENUM('mypet', 'share', 'info', 'any', 'review') NOT NULL,
+    `category` ENUM('MYPET', 'SHARE', 'INFO', 'ANY', 'REVIEW') NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `updated_at` DATETIME NULL,
     `deleted_at` DATETIME NULL,
@@ -300,3 +300,5 @@ CREATE TABLE `ReadMe` (
     UNIQUE KEY uq_readme_uid (`uid`),
     FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE
 );
+
+commit;

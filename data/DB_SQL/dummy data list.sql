@@ -438,4 +438,4 @@ INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (49, 5), (49, 9), (49, 11);
 -- Feed 50
 INSERT INTO `Hashtag` (`fid`, `tid`) VALUES (50, 5), (50, 16);
 
-
+commit;
