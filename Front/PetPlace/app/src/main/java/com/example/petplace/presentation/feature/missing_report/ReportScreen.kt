@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.petplace.R // Ensure this R points to your resources
 import java.time.LocalDate
 import java.time.LocalTime
@@ -36,8 +37,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
-    onBackClick: () -> Unit = {},
-    onReportComplete: () -> Unit = {}
+    navController: NavController
 ) {
     var description by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf(LocalDate.of(2024, 1, 15)) }
@@ -63,7 +63,9 @@ fun ReportScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = {
+                        navController.popBackStack()
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -80,7 +82,10 @@ fun ReportScreen(
         },
         bottomBar = {
             Button(
-                onClick = onReportComplete,
+                onClick = {
+                    // 작성 완료 시
+                    navController.popBackStack()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -301,12 +306,12 @@ fun ReportScreen(
 }
 
 // Preview for ReportScreen
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-fun ReportScreenPreview() {
-    ReportScreen()
-}
+//@RequiresApi(Build.VERSION_CODES.O)
+//@Preview(showBackground = true, widthDp = 360)
+//@Composable
+//fun ReportScreenPreview() {
+//    ReportScreen(navController = TODO())
+//}
 
 // Dummy drawables for the preview
 // You should replace these with your actual drawable resources in your project
