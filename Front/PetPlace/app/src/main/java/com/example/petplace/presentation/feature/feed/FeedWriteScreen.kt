@@ -99,7 +99,7 @@ fun BoardWriteScreen(
                     val selected = selectedCategory == category
                     val bgColor = if (selected) Color(0xFFF79800) else Color.White
                     val textColor = if (selected) Color.White else Color.DarkGray
-                    val borderColor = if (selected) Color.Transparent else Color(0xFF4B5563)
+                    val borderColor = if (selected) Color.Transparent else Color.DarkGray
 
                     Box(
                         modifier = Modifier
@@ -109,7 +109,7 @@ fun BoardWriteScreen(
                             .clickable { selectedCategory = category }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Text(text = category, color = textColor, fontSize = 17.sp)
+                        Text(text = category, color = textColor, fontSize = 14.sp)
                     }
                 }
             }
@@ -173,7 +173,7 @@ fun BoardWriteScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Row(modifier = Modifier.padding(horizontal = 16.dp)) {
                 selectedTags.forEach {
                     Text(
