@@ -20,16 +20,37 @@ val AppTypography = Typography(
     bodyLarge = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp
+        fontSize = 13.sp // 기존 14.sp → 13.sp
     ),
     headlineMedium = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Bold,
-        fontSize = 20.sp
+        fontSize = 16.sp // 기존 18.sp → 16.sp
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Bold,
+        fontSize = 36.sp // 기존 40.sp → 36.sp
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp // 기존 20.sp → 18.sp
     ),
     labelSmall = TextStyle(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Medium,
-        fontSize = 12.sp
+        fontSize = 9.sp // 기존 10.sp → 9.sp
+    ),
+    labelMedium = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp // 기존 14.sp → 12.sp
+    ),
+    labelLarge = TextStyle(
+        fontFamily = Pretendard,
+        fontWeight = FontWeight.Medium,
+        fontSize = 18.sp // 기존 20.sp → 18.sp
     )
 )
+

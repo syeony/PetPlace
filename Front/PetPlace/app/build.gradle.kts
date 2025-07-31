@@ -16,6 +16,11 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+        buildConfigField(
+            "String",
+            "KAKAO_REST_KEY",
+            "\"${project.properties["KAKAO_REST_KEY"]}\""
+        )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -41,10 +46,11 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.6.0"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 }
 
@@ -72,12 +78,16 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
+    // 카카오 SDK
+    implementation("com.kakao.sdk:v2-all:2.20.0")
+    implementation("com.kakao.maps.open:android:2.12.8")
+
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
     kapt("com.google.dagger:hilt-android-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
-    // Firebase Cloud Messaging (FCM)
+    // Firebase Cloud Messaging
     implementation("com.google.firebase:firebase-messaging:23.4.0")
 
     // 위치
@@ -89,14 +99,28 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.0")
     implementation("androidx.camera:camera-view:1.3.0")
 
+    // 이미지 로딩 (Coil)
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // 이미지 자르기
+    implementation("com.github.CanHub:Android-Image-Cropper:4.3.2")
+    implementation("com.github.yalantis:ucrop:2.2.8")
+
+    // 권한 요청
+    implementation("com.google.accompanist:accompanist-permissions:0.36.0")
+
+    // Pager
+    implementation("com.google.accompanist:accompanist-pager:0.32.0")
+
+    // Compose foundation
+    implementation("androidx.compose.foundation:foundation:1.4.3")
+
+    // Compose BOM (일부 의존성 통일)
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+
     // 테스트
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
-    //board 피드에서 필요
-    implementation("io.coil-kt:coil-compose:2.4.0")
-    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
-    implementation("androidx.compose.foundation:foundation")
-
 }
+

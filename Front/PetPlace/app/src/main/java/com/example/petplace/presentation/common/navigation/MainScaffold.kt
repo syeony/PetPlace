@@ -13,14 +13,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
-import com.example.petplace.presentation.feature.board.BoardScreen
-import com.example.petplace.presentation.feature.board.BoardWriteScreen
+import com.example.petplace.presentation.feature.Missing_register.FamilySelectScreen
+import com.example.petplace.presentation.feature.Missing_register.RegisterScreen
+import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
-import com.example.petplace.presentation.feature.home.HomeScreen
+import com.example.petplace.presentation.feature.feed.BoardWriteScreen
+import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.login.LoginScreen
-import com.example.petplace.presentation.feature.map.MapScreen
+import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
+import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 
 @Composable
@@ -30,18 +33,18 @@ fun MainScaffold() {
     val currentRoute = navBackStackEntry?.destination?.route
 
     val bottomNavRoutes = listOf(
-        BottomNavItem.Home.route,
-        BottomNavItem.Board.route,
-        BottomNavItem.Map.route,
+        BottomNavItem.Feed.route,
+        BottomNavItem.Neighborhood.route,
         BottomNavItem.Chat.route,
         BottomNavItem.MyPage.route
     )
 
     Scaffold(
         bottomBar = {
-            if (currentRoute in bottomNavRoutes) {
-                BottomBar(navController = navController)
+            val showBottom = bottomNavRoutes.any { route ->
+                currentRoute?.startsWith(route) == true   // ← startsWith 로 비교
             }
+            if (showBottom) BottomBar(navController)
         }
     ) { innerPadding ->
         NavHost(
@@ -51,9 +54,7 @@ fun MainScaffold() {
         ) {
             composable("login") { LoginScreen(navController) }
             composable("join") { JoinScreen(navController) }
-            composable(BottomNavItem.Home.route) { HomeScreen() }
-            composable(BottomNavItem.Board.route) { BoardScreen(navController = navController) }
-            composable(BottomNavItem.Map.route) { MapScreen() }
+            composable(BottomNavItem.Feed.route) { FeedScreen(navController = navController) }
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
             composable(BottomNavItem.MyPage.route) { MyPageScreen() }
             composable(
@@ -61,9 +62,30 @@ fun MainScaffold() {
                 arguments = listOf(navArgument("chatName") { type = NavType.StringType })
             ) { backStackEntry ->
                 val chatName = backStackEntry.arguments?.getString("chatName") ?: ""
-                SingleChatScreen(chatPartnerName = chatName)
+                SingleChatScreen(
+                    chatPartnerName = chatName,
+                    navController = navController
+                )
             }
             composable("board/write") { BoardWriteScreen(navController = navController) }
+            composable(
+                route = "${BottomNavItem.Neighborhood.route}?showDialog={showDialog}",
+                arguments = listOf(
+                    navArgument("showDialog") {
+                        type = NavType.BoolType
+                        defaultValue = false     // 기본값
+                    }
+                )
+            ) { backStackEntry ->
+                val showDialog = backStackEntry.arguments?.getBoolean("showDialog") ?: false
+                NeighborhoodScreen(navController, showDialog)   // ← 파라미터 전달
+            }
+
+            composable("missing_report") { ReportScreen(navController) }
+            composable("missing_map") { MissingMapScreen(navController) }
+            composable("Missing_register") { RegisterScreen(navController) }
+            composable("family/select") { FamilySelectScreen(navController) }
+
         }
     }
 }
