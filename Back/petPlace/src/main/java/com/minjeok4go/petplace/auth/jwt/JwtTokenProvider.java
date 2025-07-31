@@ -10,6 +10,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
 import java.security.Key;
 import java.util.Arrays;
@@ -17,6 +18,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class JwtTokenProvider {
 
@@ -52,15 +54,25 @@ public class JwtTokenProvider {
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
-    // 토큰 유효성 검증
+    // 토큰 유효성 검증 (로깅 추가)
     public boolean validateToken(String token) {
         try {
+            log.info("토큰 검증 시작: {}", token.substring(0, Math.min(token.length(), 20)) + "...");
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            log.info("토큰 검증 성공");
             return true;
+        } catch (io.jsonwebtoken.security.SecurityException | MalformedJwtException e) {
+            log.error("잘못된 JWT 서명입니다: {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            log.error("만료된 JWT 토큰입니다: {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            log.error("지원되지 않는 JWT 토큰입니다: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("JWT 토큰이 잘못되었습니다: {}", e.getMessage());
         } catch (Exception e) {
-            // MalformedJwtException, ExpiredJwtException 등 다양한 예외 처리
-            return false;
+            log.error("JWT 토큰 검증 중 예외 발생: {}", e.getMessage());
         }
+        return false;
     }
 
     private Claims parseClaims(String accessToken) {

@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.auth.config;
 
+import com.minjeok4go.petplace.auth.jwt.JwtAuthenticationEntryPoint;
 import com.minjeok4go.petplace.auth.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -9,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -18,30 +20,32 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // 세션 사용 안 함
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        // 아래의 API 경로는 인증 없이 누구나 접근 가능
+                        // 인증 없이 접근 가능한 경로
                         .requestMatchers("/api/user/signup", "/api/user/login",
-                                        "/api/user/check-userid/**", "/api/user/check-nickname/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**").permitAll()
-//                        .anyRequest().permitAll() // 모든 요청을 임시로 허용 디버깅 해보는 용
-                        // 그 외의 모든 요청은 반드시 인증 필요
+                                "/api/user/check-userid", "/api/user/check-nickname",
+                                "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        //자동 로그인은 토큰 인증 필요해
+                        .requestMatchers("/api/user/auto-login").authenticated()
+
+                        // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
-                // 우리가 만든 JWT 인증 필터를 UsernamePasswordAuthenticationFilter 앞에 추가
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // PasswordEncoder 빈 등록: 비밀번호 암호화를 담당합니다.
-    // 이걸로 UserService의 에러가 해결됩니다!
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
