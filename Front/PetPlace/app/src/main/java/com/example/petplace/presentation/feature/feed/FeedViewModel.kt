@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+
 class BoardViewModel : ViewModel() {
     val allCategories = listOf("내새꾸자랑", "나눔", "공구", "정보", "자유")
 

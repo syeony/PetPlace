@@ -102,6 +102,10 @@ fun NeighborhoodBottomSheet(
                                 navController.navigate("Missing_register")
                                 onDismiss()
                             }
+                            if (label == "실종펫 신고") {
+                                navController.navigate("missing_report")
+                                onDismiss()
+                            }
                         }
                         FeatureButton(
                             label, icon, bgColor, onClick
