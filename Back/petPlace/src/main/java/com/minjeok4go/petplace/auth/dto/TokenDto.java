@@ -7,4 +7,10 @@ import lombok.Getter;
 @AllArgsConstructor
 public class TokenDto {
     private String accessToken;
+    private String userId;
+    private String nickname;
+    private String userImgSrc;
+    private Integer level;
+    private Long defaultPetId;
+    private Long rid;
 }

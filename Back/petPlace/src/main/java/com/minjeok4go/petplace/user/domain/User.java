@@ -22,7 +22,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT
     private Long id;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, unique = true, length = 20)
     private String userId;
 
     @Column(nullable = false, length = 200)
@@ -31,7 +31,7 @@ public class User {
     @Column(nullable = false, length = 20)
     private String name;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, unique = true, length = 20)
     private String nickname;
 
     @CreationTimestamp // INSERT 시 현재 시간을 자동으로 저장합니다.

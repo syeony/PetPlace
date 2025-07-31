@@ -3,6 +3,7 @@ package com.minjeok4go.petplace.user.service;
 
 import com.minjeok4go.petplace.auth.dto.TokenDto;
 import com.minjeok4go.petplace.user.domain.User;
+import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
 import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.repository.UserRepository;
@@ -18,15 +19,21 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // ⚠️
-    private final JwtTokenProvider jwtTokenProvider; // ⚠️
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
     // 회원가입
     public void signup(UserSignupRequestDto requestDto) {
         // 1. 아이디 중복 확인
-        if (userRepository.findByUserId(requestDto.getUserId()).isPresent()) {
+        if (userRepository.existsByUserId(requestDto.getUserId())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
+        
+        // 1-2. 닉네임 중복 확인
+        if (userRepository.existsByNickname(requestDto.getNickname())) {
+            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+        }
+        
         // 2. 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
 
@@ -47,6 +54,22 @@ public class UserService {
         userRepository.save(user);
     }
 
+    // 아이디 중복 체크
+    @Transactional(readOnly = true)
+    public CheckDuplicateResponseDto checkUserIdDuplicate(String userId) {
+        boolean isDuplicate = userRepository.existsByUserId(userId);
+        String message = isDuplicate ? "이미 사용 중인 아이디입니다." : "사용 가능한 아이디입니다.";
+        return new CheckDuplicateResponseDto(isDuplicate, message);
+    }
+
+    // 닉네임 중복 체크
+    @Transactional(readOnly = true)
+    public CheckDuplicateResponseDto checkNicknameDuplicate(String nickname) {
+        boolean isDuplicate = userRepository.existsByNickname(nickname);
+        String message = isDuplicate ? "이미 사용 중인 닉네임입니다." : "사용 가능한 닉네임입니다.";
+        return new CheckDuplicateResponseDto(isDuplicate, message);
+    }
+
     // 로그인
     @Transactional(readOnly = true)
     public TokenDto login(UserLoginRequestDto requestDto) {
@@ -62,6 +85,14 @@ public class UserService {
         // 3. JWT 토큰 생성
         String accessToken = jwtTokenProvider.createToken(user.getUserId());
 
-        return new TokenDto(accessToken);
+        return new TokenDto(
+                accessToken,
+                user.getUserId(),
+                user.getNickname(),
+                user.getUserImgSrc(),
+                user.getLevel(),
+                user.getDefaultPetId(),
+                user.getRid()
+        );
     }
 }
