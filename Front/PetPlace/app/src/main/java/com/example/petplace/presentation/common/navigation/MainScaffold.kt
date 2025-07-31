@@ -22,6 +22,8 @@ import com.example.petplace.presentation.feature.feed.BoardWriteScreen
 import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.login.LoginScreen
+import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
+import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 
 @Composable
@@ -78,8 +80,12 @@ fun MainScaffold() {
                 val showDialog = backStackEntry.arguments?.getBoolean("showDialog") ?: false
                 NeighborhoodScreen(navController, showDialog)   // ← 파라미터 전달
             }
+
+            composable("missing_report") { ReportScreen(navController) }
+            composable("missing_map") { MissingMapScreen(navController) }
             composable("Missing_register") { RegisterScreen(navController) }
             composable("family/select") { FamilySelectScreen(navController) }
+
         }
     }
 }
