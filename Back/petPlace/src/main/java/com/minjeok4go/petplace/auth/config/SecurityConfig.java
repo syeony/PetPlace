@@ -27,7 +27,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 아래의 API 경로는 인증 없이 누구나 접근 가능
                         .requestMatchers("/api/user/signup", "/api/user/login",
-                                        "/api/user/check-userid/**", "/api/user/check-nickname/**").permitAll()
+                                        "/api/user/check-userid/**", "/api/user/check-nickname/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**").permitAll()
 //                        .anyRequest().permitAll() // 모든 요청을 임시로 허용 디버깅 해보는 용
                         // 그 외의 모든 요청은 반드시 인증 필요
                         .anyRequest().authenticated()
