@@ -51,11 +51,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
+import com.example.petplace.presentation.feature.login.LoginScreen
 
 @OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -264,4 +267,12 @@ fun FeedScreen(
             Icon(Icons.Default.Search, contentDescription = "Search")
         }
     }
+}
+@Preview(
+    showBackground = true,
+    backgroundColor = 0xFFFEF9F0
+)
+@Composable
+fun FeedScreenPreview(){
+    FeedScreen(navController = rememberNavController())
 }

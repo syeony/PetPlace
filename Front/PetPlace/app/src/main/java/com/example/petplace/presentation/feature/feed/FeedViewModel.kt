@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.presentation.feature.feed.model.Comment
 import com.example.petplace.presentation.feature.feed.model.Post
+import com.example.petplace.presentation.feature.feed.model.Reply
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -102,7 +103,6 @@ val samplePosts = listOf(
         comments = 6
     )
 )
-
 val sampleComments = listOf(
     Comment(
         postId = "1",
@@ -110,38 +110,63 @@ val sampleComments = listOf(
         profileImage = "https://randomuser.me/api/portraits/women/10.jpg",
         town = "인의동",
         text = "너무 귀엽네요!",
+        isMine = false,
+        replies = listOf(
+            Reply(
+                author = "나",
+                profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
+                town = "인의동",
+                text = "감사합니다! 😆",
+                isMine = true
+            ),
+            Reply(
+                author = "박민수",
+                profileImage = "https://randomuser.me/api/portraits/men/12.jpg",
+                town = "인의동",
+                text = "저도 귀엽다고 생각해요!",
+                isMine = false
+            )
+        )
+    ),
+    Comment(
+        postId = "1",
+        author = "나",
+        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
+        town = "인의동",
+        text = "감사해요!",
+        isMine = true
+    ),
+    Comment(
+        postId = "1",
+        author = "이수현",
+        profileImage = "https://randomuser.me/api/portraits/women/20.jpg",
+        town = "인의동",
+        text = "강아지 종이 뭐에요?",
+        isMine = false,
+        replies = listOf(
+            Reply(
+                author = "나",
+                profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
+                town = "인의동",
+                text = "말티즈에요!",
+                isMine = true
+            )
+        )
+    ),
+    Comment(
+        postId = "1",
+        author = "최유진",
+        profileImage = "https://randomuser.me/api/portraits/women/30.jpg",
+        town = "인의동",
+        text = "저희 집 강아지도 친구하고 싶어할 듯! 🐶",
         isMine = false
     ),
     Comment(
         postId = "1",
-        author = "나",
-        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
+        author = "박성민",
+        profileImage = "https://randomuser.me/api/portraits/men/15.jpg",
         town = "인의동",
-        text = "감사해요!",
-        isMine = true
-    ),
-    Comment(
-        postId = "1",
-        author = "나",
-        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
-        town = "인의동",
-        text = "감사해요!",
-        isMine = true
-    ),
-    Comment(
-        postId = "1",
-        author = "나",
-        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
-        town = "인의동",
-        text = "감사해요!",
-        isMine = true
-    ),
-    Comment(
-        postId = "1",
-        author = "나",
-        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
-        town = "인의동",
-        text = "감사해요!",
-        isMine = true
+        text = "귀엽네요 ㅎㅎ",
+        isMine = false
     )
 )
