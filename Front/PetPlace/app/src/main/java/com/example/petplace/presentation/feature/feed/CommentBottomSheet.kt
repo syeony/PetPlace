@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.data.local.feed.Comment
 import com.example.petplace.R
-import com.example.petplace.presentation.feature.feed.model.Comment
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
