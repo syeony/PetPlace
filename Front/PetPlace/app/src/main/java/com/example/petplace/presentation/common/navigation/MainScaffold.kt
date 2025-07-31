@@ -13,11 +13,12 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
+import com.example.petplace.presentation.feature.Missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
-import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.feed.BoardWriteScreen
+import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
@@ -50,7 +51,7 @@ fun MainScaffold() {
             composable("login") { LoginScreen(navController) }
             composable("join") { JoinScreen(navController) }
             composable(BottomNavItem.Feed.route) { FeedScreen(navController = navController) }
-            composable(BottomNavItem.Neighborhood.route) { NeighborhoodScreen()}
+//            composable(BottomNavItem.Neighborhood.route) { NeighborhoodScreen()}
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
             composable(BottomNavItem.MyPage.route) { MyPageScreen() }
             composable(
@@ -64,6 +65,12 @@ fun MainScaffold() {
                 )
             }
             composable("board/write") { BoardWriteScreen(navController = navController) }
+            composable(BottomNavItem.Neighborhood.route) {
+                NeighborhoodScreen(navController)
+            }
+            composable("Missing_register") { RegisterScreen() }
+
+
         }
     }
 }
