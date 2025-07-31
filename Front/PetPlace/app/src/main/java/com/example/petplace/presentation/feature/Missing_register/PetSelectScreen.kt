@@ -1,4 +1,4 @@
-package com.example.petplace.presentation.feature.Missing_register
+package com.example.petplace.presentation.feature.missing_register
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image

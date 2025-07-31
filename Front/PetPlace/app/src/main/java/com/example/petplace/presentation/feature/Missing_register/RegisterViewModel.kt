@@ -1,4 +1,4 @@
-package com.example.petplace.presentation.feature.Missing_register
+package com.example.petplace.presentation.feature.missing_register
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel

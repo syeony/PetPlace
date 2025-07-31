@@ -1,5 +1,7 @@
 package com.example.petplace.presentation.feature.Neighborhood
 
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -150,9 +152,16 @@ fun NeighborhoodScreen(
                             ) {
                                 // 클릭 핸들
                                 when (label) {
-                                    "실종펫 등록" -> navController.navigate("Missing_register")
+                                    "실종펫 등록" -> navController.navigate("missing_register")
                                     "실종펫 신고" -> navController.navigate("missing_report")
                                     "돌봄/산책"    -> navController.navigate("walk_and_care")
+                                    "입양처"   -> {
+                                        val url = "https://www.animal.go.kr/front/awtis/public/publicList.do?menuNo=1000000055"
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                        context.startActivity(intent)
+                                    }
+                                    "실종펫 리스트" -> navController.navigate("missing_list")
+                                    "동물호텔" -> navController.navigate("hotel")
                                 }
                                 scope.launch {
                                     scaffoldState.bottomSheetState.partialExpand()
