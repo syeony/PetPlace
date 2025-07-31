@@ -7,7 +7,9 @@ data class Comment(
     val town: String,
     val text: String,
     val isMine: Boolean,
-    val replies: List<Reply> = emptyList()
+    val replies: List<Reply> = emptyList(),
+    val expanded : Boolean = false
+
 )
 
 data class Reply(
