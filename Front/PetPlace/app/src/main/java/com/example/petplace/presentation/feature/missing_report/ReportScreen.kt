@@ -1,5 +1,6 @@
 package com.example.petplace.presentation.feature.missing_report
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,7 +37,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
+import com.example.petplace.presentation.common.navigation.BottomNavItem
 import com.example.petplace.presentation.feature.Missing_register.RegisterViewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.android.gms.location.LocationServices
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -43,8 +49,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-@SuppressLint("NewApi")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+@SuppressLint("NewApi", "MissingPermission")
 @Composable
 fun ReportScreen(
     navController: NavController,
@@ -53,17 +59,32 @@ fun ReportScreen(
     var description by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var selectedTime by remember { mutableStateOf(LocalTime.now()) }
-    var selectedLocation by remember { mutableStateOf("경상북도 구미시 인의동 365-5") }
+    var selectedLocation by remember { mutableStateOf("위치 정보를 가져오는 중...") }
     val imageList by viewModel.imageList.collectAsState()
-    val locations = listOf(
-        "경상북도 구미시 인의동 365-5",
-        "서울시 강남구 테헤란로 123",
-        "부산시 해운대구 마린시티 777"
-    )
-    var expanded by remember { mutableStateOf(false) }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+    val locationPermissionState = rememberPermissionState(
+        Manifest.permission.ACCESS_FINE_LOCATION
+    ) {
+        if (it) {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                location?.let {
+                    // 여기서 위도, 경도를 주소로 변환해야 합니다.
+                    // 이 예제에서는 위도, 경도를 직접 표시합니다.
+                    selectedLocation = "${it.latitude}, ${it.longitude}"
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        locationPermissionState.launchPermissionRequest()
+    }
 
     val launcherGallery =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
@@ -97,7 +118,9 @@ fun ReportScreen(
         bottomBar = {
             Button(
                 onClick = {
-                    navController.popBackStack()
+                    navController.navigate("${BottomNavItem.Neighborhood.route}?showDialog=true") {
+                        popUpTo("missing_report") { inclusive = true }   // 뒤로가기로 신고화면 안 보이게
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -258,47 +281,22 @@ fun ReportScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.fillMaxWidth()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFF3F4F6))
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                    .clickable { navController.navigate("missing_map") },
+                contentAlignment = Alignment.CenterStart
             ) {
-                OutlinedTextField(
-                    value = selectedLocation,
-                    onValueChange = {},
-                    readOnly = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Dropdown Arrow"
-                        )
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.LightGray,
-                        unfocusedBorderColor = Color.LightGray,
-                        focusedContainerColor = Color(0xFFF3F4F6),
-                        unfocusedContainerColor = Color(0xFFF3F4F6)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
+                Text(
+                    text = selectedLocation,
+                    modifier = Modifier.padding(start = 12.dp),
+                    fontSize = 14.sp,
+                    color = Color.Black
                 )
-
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    locations.forEach { location ->
-                        DropdownMenuItem(
-                            text = { Text(location) },
-                            onClick = {
-                                selectedLocation = location
-                                expanded = false
-                            }
-                        )
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -374,5 +372,11 @@ fun ReportScreen(
                 }
             }
         }
+    }
+
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+    savedStateHandle?.get<String>("selected_location")?.let {
+        selectedLocation = it
+        savedStateHandle.remove<String>("selected_location")
     }
 }
