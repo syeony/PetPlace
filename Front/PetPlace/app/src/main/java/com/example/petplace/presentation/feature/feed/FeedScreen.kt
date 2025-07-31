@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -58,7 +60,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
-import com.example.petplace.presentation.feature.login.LoginScreen
 
 @OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -78,31 +79,33 @@ fun FeedScreen(
     val hashtagTextColor = Color(0xFFF79800)
 
     Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
-        Column(modifier = modifier.padding(top = 16.dp)) {
+        Column() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(start = 16.dp, end = 16.dp)
+                    .padding(horizontal = 16.dp)      // start·end 한 줄로
             ) {
                 viewModel.allCategories.forEach { category ->
                     val selected = selectedCategories.contains(category)
                     val background = if (selected) MaterialTheme.colorScheme.primary else Color(0xFFFFFDF9)
-                    val content = if (selected) Color.White else Color(0xFF374151)
-                    val border = if (selected) null else ButtonDefaults.outlinedButtonBorder.copy(
-                        brush = androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0xFFFFE0B3), Color(0xFFFFE0B3)))
-                    )
+                    val content    = if (selected) Color.White else Color(0xFF374151)
+
                     Button(
                         onClick = { viewModel.toggleCategory(category) },
                         colors = ButtonDefaults.buttonColors(containerColor = background),
-                        border = border,
-                        modifier = Modifier.padding(end = 8.dp),
-                        shape = RoundedCornerShape(20.dp)
+                        border = if (selected) null else ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = Brush.linearGradient(listOf(Color(0xFFFFE0B3), Color(0xFFFFE0B3)))
+                        ),
+                        shape  = RoundedCornerShape(14.dp),            // ⬅️ 모서리 축소
+                        contentPadding = PaddingValues(12.dp, 4.dp),   // ⬅️ 내부 여백 축소
+                        modifier = Modifier.padding(end = 6.dp)        // ⬅️ 버튼 간 간격도 소폭 축소
                     ) {
-                        Text(text = category, color = content)
+                        Text(category, color = content, fontSize = 12.sp)   // ⬅️ 글자 크기 축소
                     }
                 }
             }
+
             Spacer(modifier = Modifier.height(8.dp))
 
             if (isSearchMode) {
@@ -147,12 +150,14 @@ fun FeedScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 val style = hashtagStyles[post.category] ?: Pair(Color.LightGray, Color.DarkGray)
+
                                 Text(
                                     post.category,
                                     color = style.second,
                                     fontSize = 12.sp,
                                     modifier = Modifier.background(color = style.first, shape = RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(text = post.author, fontWeight = FontWeight.Bold)
                             }
                         }
@@ -165,12 +170,6 @@ fun FeedScreen(
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-//                        Image(
-//                            painter = rememberAsyncImagePainter(post.imageUrl),
-//                            contentDescription = null,
-//                            modifier = Modifier.fillMaxWidth().height(300.dp),
-//                            contentScale = ContentScale.Crop
-//                        )
                         val imageCount = post.imageUrls.size
 
                         val pagerState = rememberPagerState(pageCount = {imageCount})

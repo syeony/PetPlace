@@ -1,27 +1,27 @@
+# application-local.yml
+
+# JWT 설정 (로컬 테스트용)
 jwt:
   secret: your-super-secret-key-that-is-long-and-secure-enough-to-be-safe
-  expiration_time: 3600000      # Access Token: 1시간
+  expiration_time: 1753945093     # Access Token: 1시간
   refresh_expiration_time: 604800000  # Refresh Token: 7일 (새로 추가)
 
 spring:
-  security:
-    user:
-      name: user
-      password: ssafy123
+  # 로컬 DB 접속 정보
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USER}
     password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # JPA 설정
   jpa:
     hibernate:
-      ddl-auto: update
+      # 앱 실행 시마다 테이블을 자동으로 삭제하고 다시 생성 (테스트에 유용)
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-server:
-  port: 8080
 
 logging:
   level:
