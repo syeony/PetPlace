@@ -34,7 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import com.example.petplace.presentation.feature.feed.model.Comment
+import com.example.petplace.data.local.feed.Comment
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

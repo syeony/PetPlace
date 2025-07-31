@@ -2,8 +2,8 @@ package com.example.petplace.presentation.feature.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.petplace.presentation.feature.feed.model.Comment
-import com.example.petplace.presentation.feature.feed.model.Post
+import com.example.petplace.data.local.feed.Comment
+import com.example.petplace.data.local.feed.Post
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
