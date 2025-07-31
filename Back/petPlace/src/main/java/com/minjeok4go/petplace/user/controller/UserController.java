@@ -1,35 +1,26 @@
 // src/main/java/com/minjeok4go/petplace/user/controller/UserController.java
 package com.minjeok4go.petplace.user.controller;
 
-import com.minjeok4go.petplace.auth.dto.TokenRefreshResponseDto;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import com.minjeok4go.petplace.auth.dto.TokenDto;
-import com.minjeok4go.petplace.auth.dto.TokenRefreshResponseDto;
-import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
-import com.minjeok4go.petplace.auth.service.RefreshTokenService;
-import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.dto.AutoLoginResponseDto;
 import com.minjeok4go.petplace.user.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "User API", description = "사용자 관련 API 명세서입니다.") // 1. API 그룹 설정
+@Tag(name = "User API", description = "사용자 관련 API 명세서입니다.")
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenService refreshTokenService;
-
 
     // 회원가입
     @Operation(summary = "회원가입", description = "회원가입 합니다. 아직은 MVP 정도 ,,, 나중에 본인인증, 동네인증, 카카오계정 연동 예정.")
@@ -39,13 +30,6 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body("회원가입 성공");
     }
 
-    // 로그인
-    @PostMapping("/login")
-    @Operation(summary = "로그인", description = "로그인 합니다. 추가적인 유저의 정보도 반환합니다.")
-    public ResponseEntity<TokenDto> login(@RequestBody UserLoginRequestDto requestDto) {
-        TokenDto tokenDto = userService.login(requestDto);
-        return ResponseEntity.ok(tokenDto);
-    }
     // 자동 로그인 API 추가
     @PostMapping("/auto-login")
     @Operation(summary = "자동 로그인", description = "JWT 토큰으로 자동 로그인을 수행합니다. Body 없이 토큰만으로 로그인됩니다.")
@@ -67,20 +51,17 @@ public class UserController {
         }
     }
 
-
     // 아이디 중복 체크
     @Operation(summary = "아이디 중복 체크", description = "입력한 아이디가 이미 사용 중인지 확인합니다.")
-    @ApiResponse(responseCode = "200", description = "사용 가능한 아이디") // 1. 응답 설명 수정
-    @ApiResponse(responseCode = "409", description = "이미 존재하는 아이디 (중복)") // 2. 409 응답 추가
+    @ApiResponse(responseCode = "200", description = "사용 가능한 아이디")
+    @ApiResponse(responseCode = "409", description = "이미 존재하는 아이디 (중복)")
     @PostMapping("/check-userid")
     public ResponseEntity<String> checkUserIdDuplicate(@RequestParam("user_id") String userId) {
         boolean isDuplicate = userService.checkUserIdDuplicate(userId).isDuplicate();
 
-        if (isDuplicate) { // 4. isDuplicate 값에 따라 분기
-            // 중복이면 409 Conflict 반환
+        if (isDuplicate) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 사용 중인 아이디입니다.");
         } else {
-            // 중복이 아니면 200 OK 반환
             return ResponseEntity.ok("사용 가능한 아이디입니다.");
         }
     }
@@ -99,6 +80,7 @@ public class UserController {
             return ResponseEntity.ok("사용 가능한 닉네임입니다.");
         }
     }
+
     @GetMapping("/test-auth")
     @Operation(summary = "토큰 인증 테스트", description = "JWT 토큰으로 인증된 사용자 정보를 확인합니다.")
     public ResponseEntity<String> testAuth() {
@@ -112,39 +94,5 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증 실패");
         }
     }
-
-
-    // 자동 로그인 + 토큰 갱신
-    @PostMapping("/auto-login-refresh")
-    @Operation(summary = "자동 로그인 + 토큰 갱신",
-            description = "기존 토큰으로 자동 로그인하고 새로운 토큰도 함께 발급합니다.")
-    public ResponseEntity<TokenRefreshResponseDto> autoLoginWithRefresh() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-            if (authentication != null && authentication.isAuthenticated()) {
-                String userId = authentication.getName();
-
-                // 새로운 토큰들 생성 (직접 주입받은 객체 사용)
-                String newAccessToken = jwtTokenProvider.createAccessToken(userId);
-                String newRefreshToken = jwtTokenProvider.createRefreshToken(userId);
-
-                // 새로운 Refresh Token 저장
-                refreshTokenService.saveOrUpdate(userId, newRefreshToken);
-
-                TokenRefreshResponseDto response = TokenRefreshResponseDto.success(newAccessToken, newRefreshToken);
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(TokenRefreshResponseDto.failure("인증되지 않은 사용자"));
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(TokenRefreshResponseDto.failure("자동 로그인 처리 중 오류가 발생했습니다."));
-        }
-    }
-
-
-
 }
 

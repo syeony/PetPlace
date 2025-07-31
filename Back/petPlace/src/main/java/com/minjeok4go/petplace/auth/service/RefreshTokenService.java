@@ -1,6 +1,7 @@
 package com.minjeok4go.petplace.auth.service;
 
 import com.minjeok4go.petplace.auth.domain.RefreshToken;
+import com.minjeok4go.petplace.auth.dto.TokenRefreshResponseDto;
 import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
 import com.minjeok4go.petplace.auth.repository.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
@@ -76,5 +77,30 @@ public class RefreshTokenService {
     // 특정 Refresh Token 삭제
     public void deleteByRefreshToken(String refreshToken) {
         refreshTokenRepository.deleteByRefreshToken(refreshToken);
+    }
+
+    public TokenRefreshResponseDto refreshToken(String refreshToken) {
+        // 1. Refresh Token 유효성 검증
+        if (!validateRefreshToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다.");
+        }
+
+        // 2. Refresh Token으로 사용자 조회
+        RefreshToken token = findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new IllegalArgumentException("Refresh Token을 찾을 수 없습니다."));
+
+        String userId = token.getUserId();
+
+        // 3. 새로운 Access Token과 Refresh Token 생성
+        String newAccessToken = jwtTokenProvider.createAccessToken(userId);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(userId);
+
+        // 4. 새로운 Refresh Token 저장
+        saveOrUpdate(userId, newRefreshToken);
+
+        // 5. 기존 Refresh Token 삭제
+        deleteByRefreshToken(refreshToken);
+
+        return TokenRefreshResponseDto.success(newAccessToken, newRefreshToken);
     }
 }

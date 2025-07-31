@@ -1,18 +1,14 @@
 // src/main/java/com/minjeok4go/petplace/user/service/UserService.java
 package com.minjeok4go.petplace.user.service;
 
-import com.minjeok4go.petplace.auth.dto.TokenDto;
-import com.minjeok4go.petplace.auth.service.RefreshTokenService;
 import com.minjeok4go.petplace.user.domain.User;
 import com.minjeok4go.petplace.user.dto.AutoLoginResponseDto;
 import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
-import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -24,8 +20,6 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenService refreshTokenService;
 
     // 회원가입
     public void signup(UserSignupRequestDto requestDto) {
@@ -75,37 +69,13 @@ public class UserService {
         return new CheckDuplicateResponseDto(isDuplicate, message);
     }
 
-    // 로그인
-    @Transactional
-    public TokenDto login(UserLoginRequestDto requestDto) {
-        // 1. 아이디로 사용자 조회
-        User user = userRepository.findByUserId(requestDto.getUserId())
+    // AuthService에서 호출할 사용자 조회 메서드
+    @Transactional(readOnly = true)
+    public User findByUserId(String userId) {
+        return userRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 아이디입니다."));
-
-        // 2. 비밀번호 일치 여부 확인
-        if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-        }
-
-        // 3. Access Token과 Refresh Token 생성
-        String accessToken = jwtTokenProvider.createAccessToken(user.getUserId());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
-
-        // 4. Refresh Token 저장
-        refreshTokenService.saveOrUpdate(user.getUserId(), refreshToken);
-
-
-        return new TokenDto(
-                accessToken,
-                refreshToken,
-                user.getUserId(),
-                user.getNickname(),
-                user.getUserImgSrc(),
-                user.getLevel(),
-                user.getDefaultPetId(),
-                user.getRid()
-        );
     }
+
     public AutoLoginResponseDto getAutoLoginInfo(String userId) {
         // 사용자 정보 조회
         Optional<User> userOptional = userRepository.findByUserId(userId);
