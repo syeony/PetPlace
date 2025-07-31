@@ -2,12 +2,18 @@ package com.example.petplace.presentation.feature.missing_report
 
 import android.annotation.SuppressLint
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -23,33 +29,46 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.example.petplace.R // Ensure this R points to your resources
+import coil.compose.rememberAsyncImagePainter
+import com.example.petplace.R
+import com.example.petplace.presentation.feature.Missing_register.RegisterViewModel
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
 import java.util.Locale
 
 @SuppressLint("NewApi")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: RegisterViewModel = hiltViewModel()
 ) {
     var description by remember { mutableStateOf("") }
-    var selectedDate by remember { mutableStateOf(LocalDate.of(2024, 1, 15)) }
-    var selectedTime by remember { mutableStateOf(LocalTime.of(14, 30)) }
-    var selectedLocation by remember { mutableStateOf("경상북도 구미시 인의동 365-5") } // Default value from image
+    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    var selectedTime by remember { mutableStateOf(LocalTime.now()) }
+    var selectedLocation by remember { mutableStateOf("경상북도 구미시 인의동 365-5") }
+    val imageList by viewModel.imageList.collectAsState()
     val locations = listOf(
         "경상북도 구미시 인의동 365-5",
         "서울시 강남구 테헤란로 123",
         "부산시 해운대구 마린시티 777"
     )
-    var expanded by remember { mutableStateOf(false) } // For dropdown menu
+    var expanded by remember { mutableStateOf(false) }
+
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+
+    val launcherGallery =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
+            if (!uris.isNullOrEmpty()) viewModel.addImages(uris)
+        }
 
     Scaffold(
         topBar = {
@@ -71,27 +90,20 @@ fun ReportScreen(
                     }
                 },
                 actions = {
-                    // Placeholder for "img" text if needed, otherwise can remove
-                    Text(
-                        text = "img",
-                        fontSize = 16.sp,
-                        color = Color.Transparent, // Make it transparent if not actively used
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
+                    Spacer(modifier = Modifier.width(48.dp)) // To balance the title
                 }
             )
         },
         bottomBar = {
             Button(
                 onClick = {
-                    // 작성 완료 시
                     navController.popBackStack()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary), // Orange color from image
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(text = "작성 완료", color = Color.White, fontSize = 16.sp)
@@ -117,41 +129,37 @@ fun ReportScreen(
                     modifier = Modifier
                         .size(90.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFF3F4F6)) // Light gray background
+                        .background(Color(0xFFF3F4F6))
                         .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                        .clickable { /* Handle image selection */ },
+                        .clickable {
+                            launcherGallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Image(
-                            painter = painterResource(id = R.drawable.outline_photo_camera_24), // Replace with your camera icon
+                        Icon(
+                            painter = painterResource(id = R.drawable.outline_photo_camera_24),
                             contentDescription = "Upload Image",
                             modifier = Modifier.size(36.dp),
-                            colorFilter = ColorFilter.tint(Color.Gray)
+                            tint = Color.Gray
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "1 / 5", fontSize = 12.sp, color = Color.Gray)
+                        Text(text = "${imageList.size} / 5", fontSize = 12.sp, color = Color.Gray)
                     }
                 }
-                // Placeholder images
-                Image(
-                    painter = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24), // Replace with your hamster image
-                    contentDescription = "Hamster 1",
-                    modifier = Modifier
-                        .size(90.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Gray), // Placeholder background
-                    contentScale = ContentScale.Crop
-                )
-                Image(
-                    painter = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24), // Replace with your hamster image
-                    contentDescription = "Hamster 2",
-                    modifier = Modifier
-                        .size(90.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Gray), // Placeholder background
-                    contentScale = ContentScale.Crop
-                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(imageList) { uri ->
+                        Image(
+                            painter = rememberAsyncImagePainter(uri),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(90.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .border(BorderStroke(1.dp, Color(0xFFD7D7D7)), RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -165,13 +173,12 @@ fun ReportScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // Description TextField
-            TextField(
+            OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp) // Adjust height as per design
-                    .clip(RoundedCornerShape(8.dp)),
+                    .height(140.dp),
                 placeholder = {
                     Text(
                         "목격 장소, 상황, 특징 등을 작성해주세요. 애타게 찾고 있는 집사님께 큰 도움이 됩니다.",
@@ -179,13 +186,13 @@ fun ReportScreen(
                         fontSize = 14.sp
                     )
                 },
-                colors = TextFieldDefaults.textFieldColors(
-                    containerColor = Color(0xFFF3F4F6), // Light gray background
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.LightGray,
+                    unfocusedBorderColor = Color.LightGray,
+                    focusedContainerColor = Color(0xFFF3F4F6),
+                    unfocusedContainerColor = Color(0xFFF3F4F6)
                 ),
-                singleLine = false
+                shape = RoundedCornerShape(8.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -202,7 +209,7 @@ fun ReportScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Date picker (simplified for UI, actual date picker would be more complex)
+                // Date picker Box
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -210,7 +217,7 @@ fun ReportScreen(
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color(0xFFF3F4F6))
                         .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                        .clickable { /* Open Date Picker */ },
+                        .clickable { showDatePicker = true },
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
@@ -220,7 +227,7 @@ fun ReportScreen(
                         color = Color.Black
                     )
                 }
-                // Time picker (simplified for UI, actual time picker would be more complex)
+                // Time picker Box
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -228,7 +235,7 @@ fun ReportScreen(
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color(0xFFF3F4F6))
                         .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                        .clickable { /* Open Time Picker */ },
+                        .clickable { showTimePicker = true },
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
@@ -256,27 +263,26 @@ fun ReportScreen(
                 onExpandedChange = { expanded = !expanded },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                TextField(
+                OutlinedTextField(
                     value = selectedLocation,
-                    onValueChange = {}, // Read-only for dropdown
+                    onValueChange = {},
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor() // This is important for ExposedDropdownMenuBox
-                        .clip(RoundedCornerShape(8.dp)),
+                        .menuAnchor(),
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = "Dropdown Arrow"
                         )
                     },
-                    colors = TextFieldDefaults.textFieldColors(
-                        containerColor = Color(0xFFF3F4F6),
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.LightGray,
+                        unfocusedBorderColor = Color.LightGray,
+                        focusedContainerColor = Color(0xFFF3F4F6),
+                        unfocusedContainerColor = Color(0xFFF3F4F6)
                     ),
-                    singleLine = true
+                    shape = RoundedCornerShape(8.dp)
                 )
 
                 ExposedDropdownMenu(
@@ -304,51 +310,69 @@ fun ReportScreen(
             )
         }
     }
+
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let {
+                        selectedDate = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                    }
+                    showDatePicker = false
+                }) {
+                    Text("확인")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("취소")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = selectedTime.hour,
+            initialMinute = selectedTime.minute,
+            is24Hour = false
+        )
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            modifier = Modifier.wrapContentSize(),
+        ) {
+            Surface(shape = RoundedCornerShape(16.dp)) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = "시간 선택", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TimeInput(state = timePickerState)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showTimePicker = false }) {
+                            Text("취소")
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(onClick = {
+                            selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                            showTimePicker = false
+                        }) {
+                            Text("확인")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
-
-// Preview for ReportScreen
-//@RequiresApi(Build.VERSION_CODES.O)
-//@Preview(showBackground = true, widthDp = 360)
-//@Composable
-//fun ReportScreenPreview() {
-//    ReportScreen(navController = TODO())
-//}
-
-// Dummy drawables for the preview
-// You should replace these with your actual drawable resources in your project
-// R.drawable.ic_camera_placeholder
-// R.drawable.hamster_placeholder
-// For preview to work, ensure these exist in your res/drawable folder
-/*
-Example of how you might add dummy drawables for preview if they don't exist:
-In res/drawable/ic_camera_placeholder.xml:
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="@android:color/darker_gray"
-        android:pathData="M12,12m-3.2,0a3.2,3.2 0,1 1,6.4 0a3.2,3.2 0,1 1,-6.4 0" />
-    <path
-        android:fillColor="@android:color/darker_gray"
-        android:pathData="M9,2L7.17,4L4,4c-1.1,0 -2,0.9 -2,2v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2L22,6c0,-1.1 -0.9,-2 -2,-2h-3.17L15,2L9,2zM12,17c-2.76,0 -5,-2.24 -5,-5s2.24,-5 5,-5 5,2.24 5,5 -2.24,5 -5,5z" />
-</vector>
-
-In res/drawable/hamster_placeholder.xml (simple placeholder for demonstration):
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#FFC107"
-        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M12,12m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
-    <path
-        android:fillColor="#FF5722"
-        android:pathData="M12,9.5c0.83,0 1.5,0.67 1.5,1.5s-0.67,1.5 -1.5,1.5 -1.5,-0.67 -1.5,-1.5 0.67,-1.5 1.5,-1.5z" />
-</vector>
-*/
