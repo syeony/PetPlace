@@ -3,6 +3,7 @@ package com.example.petplace.presentation.feature.Neighborhood
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petplace.R
 import com.example.petplace.data.repository.KakaoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,17 +11,32 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/* 1️⃣ 태그용 데이터 클래스 */
+data class TagItem(
+    val iconRes: Int,   // drawable 에 있는 PNG
+    val label:   String // 화면에 보일 글자
+)
+
 @HiltViewModel
 class NeighborhoodViewModel @Inject constructor(
     private val kakaoRepository: KakaoRepository
 ) : ViewModel() {
 
     /* --- 고정 데이터 --- */
-    val tags = listOf("#식당", "#카페", "#병원", "#용품샵", "#동물병원")
+//    val tags = listOf("#식당", "#카페", "#병원", "#용품샵", "#동물병원")
 
+    /* 2️⃣ 리스트 생성 */
+    val tags = listOf(
+        TagItem(R.drawable.dinner, "식당"),
+        TagItem(R.drawable.coffee,       "카페"),
+        TagItem(R.drawable.hospital,   "병원"),
+        TagItem(R.drawable.ball,       "용품샵"),
+        TagItem(R.drawable.hospital,        "동물병원")
+    )
     /* --- UI 상태 --- */
-    private val _selectedTag = MutableStateFlow("#식당")
+    private val _selectedTag = MutableStateFlow<TagItem?>(null)
     val selectedTag = _selectedTag.asStateFlow()
+    fun selectTag(tag: TagItem) { _selectedTag.value = tag }
 
     private val _showBottomSheet = MutableStateFlow(true)
     val showBottomSheet = _showBottomSheet.asStateFlow()
@@ -33,7 +49,6 @@ class NeighborhoodViewModel @Inject constructor(
     val markers = _markers.asStateFlow()
 
     /* --- 상태 변경 함수 --- */
-    fun selectTag(tag: String) { _selectedTag.value = tag }
     fun hideBottomSheet() { _showBottomSheet.value = false }
     fun setThanksDialog(visible: Boolean) { _showThanksDialog.value = visible }
 

@@ -20,6 +20,10 @@ class RegisterViewModel : ViewModel() {
     var place = MutableStateFlow("경상북도 구미시 인의동 365-5")
         private set
 
+    fun setDate(str: String)  { date.value  = str }
+    fun setTime(str: String)  { time.value  = str }
+    fun setPlace(str: String) { place.value = str }
+
     /* -------- 업데이트 메서드 -------- */
     fun setDetail(text: String) { _detail.value = text }
 

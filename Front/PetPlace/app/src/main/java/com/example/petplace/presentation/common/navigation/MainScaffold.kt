@@ -25,6 +25,7 @@ import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
+import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 
 @Composable
 fun MainScaffold() {
@@ -71,20 +72,20 @@ fun MainScaffold() {
             composable(
                 route = "${BottomNavItem.Neighborhood.route}?showDialog={showDialog}",
                 arguments = listOf(
-                    navArgument("showDialog") {
-                        type = NavType.BoolType
-                        defaultValue = false     // 기본값
-                    }
+                    navArgument("showDialog") { type = NavType.BoolType; defaultValue = false }
                 )
             ) { backStackEntry ->
                 val showDialog = backStackEntry.arguments?.getBoolean("showDialog") ?: false
-                NeighborhoodScreen(navController)   // ← 파라미터 전달
+                NeighborhoodScreen(
+                    navController = navController,
+                    initialShowDialog = showDialog
+                )
             }
-
             composable("missing_report") { ReportScreen(navController) }
             composable("missing_map") { MissingMapScreen(navController) }
             composable("Missing_register") { RegisterScreen(navController) }
             composable("family/select") { FamilySelectScreen(navController) }
+            composable("walk_and_care") { WalkAndCareScreen(navController) }
 
         }
     }

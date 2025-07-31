@@ -39,12 +39,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.petplace.R
 import com.example.petplace.presentation.feature.feed.hashtagStyles
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun WalkAndCareScreen(
+    navController: NavController,
     modifier: Modifier = Modifier,
     viewModel: WalkAndCareViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {

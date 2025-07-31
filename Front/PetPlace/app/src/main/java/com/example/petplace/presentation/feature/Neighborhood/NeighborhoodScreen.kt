@@ -4,7 +4,18 @@ import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,7 +27,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.*
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,16 +45,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.petplace.R
-import com.example.petplace.presentation.common.navigation.BottomNavItem.Chat.icon
 import com.example.petplace.util.CommonUtils
-import com.kakao.vectormap.*
+import com.kakao.vectormap.KakaoMap
+import com.kakao.vectormap.KakaoMapReadyCallback
+import com.kakao.vectormap.LatLng
+import com.kakao.vectormap.MapLifeCycleCallback
+import com.kakao.vectormap.MapView
 import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import kotlinx.coroutines.launch
-import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,11 +68,11 @@ fun NeighborhoodScreen(
     val context = LocalContext.current
     val viewModel: NeighborhoodViewModel = hiltViewModel()
 
-    // ViewModel state
-    val tags        = viewModel.tags
+    /* -------- ViewModel state -------- */
+    val tags = viewModel.tags                 // List<TagItem>
     val selectedTag by viewModel.selectedTag.collectAsState()
-    val showSheet   by viewModel.showBottomSheet.collectAsState()
-    val showThanks  by viewModel.showThanksDialog.collectAsState()
+    val showSheet by viewModel.showBottomSheet.collectAsState()
+    val showThanks by viewModel.showThanksDialog.collectAsState()
 
     // 위치 조회
     var currentLat by remember { mutableStateOf<Double?>(null) }
@@ -72,7 +93,7 @@ fun NeighborhoodScreen(
     // showSheet 플래그에 따라 expand/collapse
     LaunchedEffect(showSheet) {
         if (showSheet) scope.launch { scaffoldState.bottomSheetState.expand() }
-        else           scope.launch { scaffoldState.bottomSheetState.hide() }
+        else scope.launch { scaffoldState.bottomSheetState.partialExpand() }
     }
 
     // 최초 진입 시 Thanks Dialog
@@ -90,38 +111,24 @@ fun NeighborhoodScreen(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 32.dp,  // collapsed 상태에서 handle 높이
         sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        sheetContainerColor = Color.White,
         sheetContent = {
-            // Drag handle
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    Modifier
-                        .width(36.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(Color.Gray.copy(alpha = 0.3f))
-                )
-            }
 
             // 시트 내부 버튼들
             val buttons = listOf(
-                Triple("실종펫 등록",  R.drawable.outline_exclamation_24, Color(0xFFFFC9C5)),
-                Triple("실종펫 신고",  R.drawable.outline_search_24,      Color(0xFFD0E4FF)),
-                Triple("실종펫 리스트", R.drawable.ic_feed,                Color(0xFFFFE4C1)),
-                Triple("돌봄/산책",    R.drawable.outline_sound_detection_dog_barking_24, Color(0xFFCBF4D1)),
-                Triple("입양처",       R.drawable.outline_home_work_24,   Color(0xFFFAD3E4)),
-                Triple("동물호텔",     R.drawable.outline_home_work_24,   Color(0xFFE6D5FF))
+                Triple("실종펫 등록", R.drawable.caution, Color(0xFFFFC9C5)),
+                Triple("실종펫 신고", R.drawable.search, Color(0xFFD0E4FF)),
+                Triple("실종펫 리스트", R.drawable.checklist, Color(0xFFFFE4C1)),
+                Triple("돌봄/산책", R.drawable.walk, Color(0xFFCBF4D1)),
+                Triple("입양처", R.drawable.feelings, Color(0xFFFAD3E4)),
+                Triple("동물호텔", R.drawable.hotel, Color(0xFFE6D5FF))
             )
 
             Column(
                 Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
-                    .fillMaxHeight(2f / 3f)
+                    .fillMaxHeight(2f / 4f)
             ) {
                 Text(
                     "우리동네 한눈에 보기",
@@ -136,17 +143,19 @@ fun NeighborhoodScreen(
                             .padding(vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        row.forEach { (label, _, bgColor) ->
+                        row.forEach { (label, iconRes) ->
                             FeatureButton(
-                                label, icon, bgColor
+                                label = label,
+                                icon = iconRes         // ← 실제 아이콘 전달
                             ) {
-                                // 4) 클릭 핸들
+                                // 클릭 핸들
                                 when (label) {
                                     "실종펫 등록" -> navController.navigate("Missing_register")
                                     "실종펫 신고" -> navController.navigate("missing_report")
+                                    "돌봄/산책"    -> navController.navigate("walk_and_care")
                                 }
                                 scope.launch {
-                                    scaffoldState.bottomSheetState.hide()
+                                    scaffoldState.bottomSheetState.partialExpand()
                                     viewModel.hideBottomSheet()
                                 }
                             }
@@ -184,7 +193,12 @@ fun NeighborhoodScreen(
                                             LabelOptions.from(pos)
                                                 .setStyles(R.drawable.location_on)
                                         )
-                                        map.moveCamera(CameraUpdateFactory.newCenterPosition(pos, 15))
+                                        map.moveCamera(
+                                            CameraUpdateFactory.newCenterPosition(
+                                                pos,
+                                                15
+                                            )
+                                        )
                                     }
                                 }
                             )
@@ -195,7 +209,10 @@ fun NeighborhoodScreen(
 
                 LaunchedEffect(markers) {
                     val map = kakaoMap.value ?: return@LaunchedEffect
-                    val pos = LatLng.from(currentLat ?: return@LaunchedEffect, currentLng ?: return@LaunchedEffect)
+                    val pos = LatLng.from(
+                        currentLat ?: return@LaunchedEffect,
+                        currentLng ?: return@LaunchedEffect
+                    )
 
                     // 마커 초기화
                     map.labelManager?.layer?.removeAll()
@@ -245,27 +262,41 @@ fun NeighborhoodScreen(
                     singleLine = true
                 )
                 Spacer(Modifier.height(16.dp))
-                Row(Modifier.horizontalScroll(rememberScrollState())) {
-                    tags.forEach { tag ->
-                        val isSel = selectedTag == tag
+                /* 태그 리스트 */
+                Row(
+                    Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    tags.forEach { tagItem ->
+                        val isSelected = selectedTag == tagItem
                         Box(
                             Modifier
                                 .padding(end = 8.dp)
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(if (isSel) Color(0xFFF79800) else Color(0xFFF5F5F5))
-                                .clickable {
-                                    viewModel.selectTag(tag)
-                                    if (currentLat != null && currentLng != null) {
-                                        viewModel.searchPlaces(tag, currentLat!!, currentLng!!)
-                                    }
-                                }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .background(
+                                    if (isSelected) Color(0xFFF79800) else Color(0xFFF5F5F5)
+                                )
+                                .clickable { viewModel.selectTag(tagItem) }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
-                            Text(tag, color = if (isSel) Color.White else Color.Black)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(tagItem.iconRes),
+                                    contentDescription = tagItem.label,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = Color.Unspecified     // PNG 고유색 유지
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    tagItem.label,
+                                    color = if (isSelected) Color.White else Color.Black,
+                                    fontSize = 13.sp
+                                )
+                            }
                         }
                     }
                 }
-
             }
         }
     }

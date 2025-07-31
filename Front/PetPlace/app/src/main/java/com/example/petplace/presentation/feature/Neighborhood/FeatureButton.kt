@@ -1,17 +1,14 @@
 package com.example.petplace.presentation.feature.Neighborhood
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -26,47 +23,43 @@ import androidx.compose.ui.unit.sp
 
 private val BorderColor = Color(0xFFFFEDD5)   // #FFEDD5
 
+/* FeatureButton.kt */
+
 @Composable
 fun FeatureButton(
     label: String,
-    icon: Any,          // ImageVector or Int
-    circleColor: Color,  // 파스텔톤 배경 원 색
+    icon: Any,
+    /* circleColor 삭제 or 무시 */
     onClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .width(100.dp)
-            .border(
+            .border(                         // 외곽선 그대로
                 BorderStroke(1.dp, BorderColor),
                 shape = RoundedCornerShape(20.dp)
             )
-            .clickable { onClick() }
+            .clickable(onClick = onClick)
             .padding(vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 아이콘 원
-        Box(
-            modifier = Modifier
-                .size(50.dp)
-                .background(circleColor, CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            if (icon is ImageVector) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            } else {
-                Icon(
-                    painter = painterResource(icon as Int),
-                    contentDescription = label,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+        // ➡️ 1) 원형 Box 통째로 없애고 아이콘만 배치
+        if (icon is ImageVector) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = Color.Unspecified,
+                modifier = Modifier.size(40.dp)
+            )
+        } else {
+            Icon(
+                painter = painterResource(icon as Int),
+                contentDescription = label,
+                tint = Color.Unspecified,
+                modifier = Modifier.size(40.dp)
+            )
         }
+
         Spacer(Modifier.height(12.dp))
         Text(label, fontSize = 14.sp, color = Color(0xFF3C3C3C))
     }
