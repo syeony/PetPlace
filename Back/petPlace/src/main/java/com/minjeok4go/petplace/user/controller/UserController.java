@@ -1,10 +1,14 @@
 // src/main/java/com/minjeok4go/petplace/user/controller/UserController.java
 package com.minjeok4go.petplace.user.controller;
 
+import com.minjeok4go.petplace.auth.dto.TokenRefreshResponseDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.minjeok4go.petplace.auth.dto.TokenDto;
+import com.minjeok4go.petplace.auth.dto.TokenRefreshResponseDto;
+import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
+import com.minjeok4go.petplace.auth.service.RefreshTokenService;
 import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.dto.AutoLoginResponseDto;
@@ -23,6 +27,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public class UserController {
 
     private final UserService userService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
+
 
     // 회원가입
     @Operation(summary = "회원가입", description = "회원가입 합니다. 아직은 MVP 정도 ,,, 나중에 본인인증, 동네인증, 카카오계정 연동 예정.")
@@ -105,6 +112,38 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("인증 실패");
         }
     }
+
+
+    // 자동 로그인 + 토큰 갱신
+    @PostMapping("/auto-login-refresh")
+    @Operation(summary = "자동 로그인 + 토큰 갱신",
+            description = "기존 토큰으로 자동 로그인하고 새로운 토큰도 함께 발급합니다.")
+    public ResponseEntity<TokenRefreshResponseDto> autoLoginWithRefresh() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+            if (authentication != null && authentication.isAuthenticated()) {
+                String userId = authentication.getName();
+
+                // 새로운 토큰들 생성 (직접 주입받은 객체 사용)
+                String newAccessToken = jwtTokenProvider.createAccessToken(userId);
+                String newRefreshToken = jwtTokenProvider.createRefreshToken(userId);
+
+                // 새로운 Refresh Token 저장
+                refreshTokenService.saveOrUpdate(userId, newRefreshToken);
+
+                TokenRefreshResponseDto response = TokenRefreshResponseDto.success(newAccessToken, newRefreshToken);
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(TokenRefreshResponseDto.failure("인증되지 않은 사용자"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(TokenRefreshResponseDto.failure("자동 로그인 처리 중 오류가 발생했습니다."));
+        }
+    }
+
 
 
 }

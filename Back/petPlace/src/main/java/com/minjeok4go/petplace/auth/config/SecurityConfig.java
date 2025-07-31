@@ -32,14 +32,17 @@ public class SecurityConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능한 경로
-                        .requestMatchers("/api/user/signup", "/api/user/login",
-                                "/api/user/check-userid", "/api/user/check-nickname",
-                                "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        //자동 로그인은 토큰 인증 필요해
-                        .requestMatchers("/api/user/auto-login").authenticated()
+//                        .requestMatchers("/api/user/signup", "/api/user/login",
+//                                "/api/user/check-userid", "/api/user/check-nickname",
+//                                "/api/auth/refresh",
+//                                "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+//                        //자동 로그인은 토큰 인증 필요해
+//                        .requestMatchers("/api/user/auto-login").authenticated()
+//
+//                        // 나머지는 인증 필요
+//                        .anyRequest().authenticated()
+                        .anyRequest().permitAll() // 임시로 이렇게 변경
 
-                        // 나머지는 인증 필요
-                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

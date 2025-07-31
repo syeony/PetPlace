@@ -7,6 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class TokenDto {
     private String accessToken;
+    private String refreshToken;
     private String userId;
     private String nickname;
     private String userImgSrc;

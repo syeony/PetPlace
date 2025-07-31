@@ -3,7 +3,8 @@
 # JWT 설정 (로컬 테스트용)
 jwt:
   secret: your-super-secret-key-that-is-long-and-secure-enough-to-be-safe
-  expiration_time: 86400000
+  expiration_time: 1753945093     # Access Token: 1시간
+  refresh_expiration_time: 604800000  # Refresh Token: 7일 (새로 추가)
 
 spring:
   # 로컬 DB 접속 정보

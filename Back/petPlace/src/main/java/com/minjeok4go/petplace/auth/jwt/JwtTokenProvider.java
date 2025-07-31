@@ -16,6 +16,7 @@ import java.security.Key;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -23,34 +24,72 @@ import java.util.stream.Collectors;
 public class JwtTokenProvider {
 
     private final Key key;
-    private final long expirationTime;
+    private final long accessTokenExpirationTime;
+    private final long refreshTokenExpirationTime;
 
     // application.yml 에 정의한 값들을 가져옵니다.
     public JwtTokenProvider(@Value("${jwt.secret}") String secretKey,
-                            @Value("${jwt.expiration_time}") long expirationTime) {
+                            @Value("${jwt.expiration_time}") long accessTokenExpirationTime,
+                            @Value("${jwt.refresh_expiration_time}") long refreshTokenExpirationTime) {
         byte[] keyBytes = secretKey.getBytes();
         this.key = Keys.hmacShaKeyFor(keyBytes);
-        this.expirationTime = expirationTime;
+        this.accessTokenExpirationTime = accessTokenExpirationTime;
+        this.refreshTokenExpirationTime = refreshTokenExpirationTime;
     }
 
     // Access Token 생성
-    public String createToken(String userId) {
+    public String createAccessToken(String userId) {
         Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expirationTime);
+        Date expiryDate = new Date(now.getTime() + accessTokenExpirationTime);
 
         return Jwts.builder()
                 .setSubject(userId) // 토큰 주체로 userId 사용
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
+                .claim("type", "access") // 여기서 토큰 타입 구분
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
+    // Refresh Token 생성
+    public String createRefreshToken(String userId) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + refreshTokenExpirationTime);
+
+        return Jwts.builder()
+                .setSubject(userId)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .claim("type", "refresh") // 토큰 타입 구분
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+    // 기존 createToken 메서드는 createAccessToken으로 변경
+    public String createToken(String userId) {
+        return createAccessToken(userId);
+    }
+
+    // 토큰에서 사용자 ID 추출
+    public String getUserIdFromToken(String token) {
+        Claims claims = parseClaims(token);
+        return claims.getSubject();
+    }
+
+    // 토큰 타입 확인
+    public String getTokenType(String token) {
+        Claims claims = parseClaims(token);
+        return claims.get("type", String.class);
+    }
+
 
     // 토큰에서 인증 정보 조회
     public Authentication getAuthentication(String accessToken) {
         Claims claims = parseClaims(accessToken);
-        // 현재는 권한(Role)을 따로 관리하지 않으므로 빈 리스트를 전달합니다.
-        UserDetails userDetails = new User(claims.getSubject(), "", Arrays.asList());
+        String userId = claims.getSubject(); // 사용자 ID 추출
+
+        log.info("토큰에서 추출한 사용자 ID: {}", userId);
+
+        // UserDetails 생성 (username을 userId로 설정)
+        UserDetails userDetails = new User(userId, "", List.of());
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
@@ -74,6 +113,18 @@ public class JwtTokenProvider {
         }
         return false;
     }
+    // Refresh Token만 유효성 검증 (만료되어도 클레임 추출 가능)
+    public boolean validateRefreshToken(String refreshToken) {
+        try {
+            Claims claims = parseClaims(refreshToken);
+            String tokenType = claims.get("type", String.class);
+            return "refresh".equals(tokenType);
+        } catch (Exception e) {
+            log.error("Refresh Token 검증 실패: {}", e.getMessage());
+            return false;
+        }
+    }
+
 
     private Claims parseClaims(String accessToken) {
         try {
@@ -81,5 +132,9 @@ public class JwtTokenProvider {
         } catch (ExpiredJwtException e) {
             return e.getClaims();
         }
+    }
+    // Refresh Token 만료 시간 계산 (LocalDateTime 반환)
+    public java.time.LocalDateTime getRefreshTokenExpiryDate() {
+        return java.time.LocalDateTime.now().plusSeconds(refreshTokenExpirationTime / 1000);
     }
 }
