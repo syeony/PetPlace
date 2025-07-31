@@ -14,14 +14,15 @@ import com.example.petplace.presentation.common.theme.BackgroundSoft
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.navigationBarsPadding
 
 @Composable
 fun BottomBar(navController: NavHostController) {
     val items = listOf(
-        BottomNavItem.Home,
-        BottomNavItem.Board,
-        BottomNavItem.Map,
+        BottomNavItem.Feed,
+        BottomNavItem.Neighborhood,
         BottomNavItem.Chat,
         BottomNavItem.MyPage
     )
@@ -29,7 +30,10 @@ fun BottomBar(navController: NavHostController) {
     val currentRoute = currentBackStack?.destination?.route
 
     NavigationBar(
-        containerColor = BackgroundSoft
+        containerColor = BackgroundSoft,
+        modifier = Modifier.navigationBarsPadding() // 여기를 꼭 추가
+
+
     ) {
         items.forEach { item ->
             NavigationBarItem(
