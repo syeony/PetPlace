@@ -1,4 +1,4 @@
-package com.example.petplace.presentation.feature.feed.model
+package com.example.petplace.data.local.feed
 
 data class Comment(
     val postId: String,
@@ -7,7 +7,9 @@ data class Comment(
     val town: String,
     val text: String,
     val isMine: Boolean,
-    val replies: List<Reply> = emptyList()
+    val replies: List<Reply> = emptyList(),
+    val expanded : Boolean = false
+
 )
 
 data class Reply(

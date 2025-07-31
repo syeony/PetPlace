@@ -1,4 +1,4 @@
-package com.example.petplace.presentation.feature.feed.model
+package com.example.petplace.data.local.feed
 
 data class Post(
     val id: String,
