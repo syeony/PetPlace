@@ -58,7 +58,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
-import com.example.petplace.presentation.feature.login.LoginScreen
 
 @OptIn(ExperimentalFoundationApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -78,7 +77,7 @@ fun FeedScreen(
     val hashtagTextColor = Color(0xFFF79800)
 
     Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
-        Column(modifier = modifier.padding(top = 16.dp)) {
+        Column() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
