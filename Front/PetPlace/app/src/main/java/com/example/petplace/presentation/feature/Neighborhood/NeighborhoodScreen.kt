@@ -1,5 +1,6 @@
 package com.example.petplace.presentation.feature.Neighborhood
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -34,15 +35,17 @@ import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import kotlinx.coroutines.launch
 import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NeighborhoodScreen(
     navController: NavController,
     initialShowDialog: Boolean = false,
-    viewModel: NeighborhoodViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+//    viewModel: NeighborhoodViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val context = LocalContext.current
+    val viewModel: NeighborhoodViewModel = hiltViewModel()
 
     // ViewModel state
     val tags        = viewModel.tags
@@ -59,7 +62,9 @@ fun NeighborhoodScreen(
             currentLng = lon
         }
     }
-
+    // Composable 내부
+    val mapView = remember { mutableStateOf<MapView?>(null) }
+    val kakaoMap = remember { mutableStateOf<KakaoMap?>(null) }
     // BottomSheetScaffold state
     val scaffoldState = rememberBottomSheetScaffoldState()
     val scope = rememberCoroutineScope()
@@ -79,6 +84,7 @@ fun NeighborhoodScreen(
     if (showThanks) {
         MatchingThanksDialog { viewModel.setThanksDialog(false) }
     }
+    val markers by viewModel.markers.collectAsState()
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -157,9 +163,11 @@ fun NeighborhoodScreen(
         ) {
             // 1) Map or Loading
             if (currentLat != null && currentLng != null) {
+
                 AndroidView(
                     factory = { ctx ->
                         MapView(ctx).apply {
+                            mapView.value = this
                             start(
                                 object : MapLifeCycleCallback() {
                                     override fun onMapDestroy() {}
@@ -168,14 +176,15 @@ fun NeighborhoodScreen(
                                 },
                                 object : KakaoMapReadyCallback() {
                                     override fun onMapReady(map: KakaoMap) {
+                                        kakaoMap.value = map
+
                                         val pos = LatLng.from(currentLat!!, currentLng!!)
+                                        // 현재 위치 마커
                                         map.labelManager?.layer?.addLabel(
                                             LabelOptions.from(pos)
                                                 .setStyles(R.drawable.location_on)
                                         )
-                                        map.moveCamera(
-                                            CameraUpdateFactory.newCenterPosition(pos, 15)
-                                        )
+                                        map.moveCamera(CameraUpdateFactory.newCenterPosition(pos, 15))
                                     }
                                 }
                             )
@@ -183,6 +192,28 @@ fun NeighborhoodScreen(
                     },
                     modifier = Modifier.fillMaxSize()
                 )
+
+                LaunchedEffect(markers) {
+                    val map = kakaoMap.value ?: return@LaunchedEffect
+                    val pos = LatLng.from(currentLat ?: return@LaunchedEffect, currentLng ?: return@LaunchedEffect)
+
+                    // 마커 초기화
+                    map.labelManager?.layer?.removeAll()
+
+                    // 현재 위치 마커
+                    map.labelManager?.layer?.addLabel(
+                        LabelOptions.from(pos).setStyles(R.drawable.location_on)
+                    )
+
+                    // 태그 검색 마커
+                    markers.forEach { (lat, lng) ->
+                        Log.d("Neighborhood", "마커 좌표: $lat, $lng")
+                        map.labelManager?.layer?.addLabel(
+                            LabelOptions.from(LatLng.from(lat, lng))
+                                .setStyles(R.drawable.location_on) // 태그용 마커 아이콘
+                        )
+                    }
+                }
             } else {
                 Box(
                     Modifier.fillMaxSize(),
@@ -222,13 +253,19 @@ fun NeighborhoodScreen(
                                 .padding(end = 8.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(if (isSel) Color(0xFFF79800) else Color(0xFFF5F5F5))
-                                .clickable { viewModel.selectTag(tag) }
+                                .clickable {
+                                    viewModel.selectTag(tag)
+                                    if (currentLat != null && currentLng != null) {
+                                        viewModel.searchPlaces(tag, currentLat!!, currentLng!!)
+                                    }
+                                }
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
                             Text(tag, color = if (isSel) Color.White else Color.Black)
                         }
                     }
                 }
+
             }
         }
     }
