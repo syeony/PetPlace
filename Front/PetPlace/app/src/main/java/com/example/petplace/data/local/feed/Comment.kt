@@ -9,7 +9,6 @@ data class Comment(
     val isMine: Boolean,
     val replies: List<Reply> = emptyList(),
     val expanded : Boolean = false
-
 )
 
 data class Reply(

@@ -1,29 +1,65 @@
 package com.minjeok4go.petplace.domain.feed.model;
 
+import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
 import java.time.LocalDateTime;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.HashSet;
+import java.util.Set;
 
-import java.util.List;
-
+@Entity
+@Table(name = "feeds")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Feed {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
-    private Long uid;             // 작성자 유저 인덱스
-    @JsonProperty("user_nick")
-    private String userNick;      // 작성자 닉네임 (ERD 기준 user_nick)
-    @JsonProperty("user_img")
-    private String userImg;       // 작성자 프로필 이미지
-    private Integer rid;          // 지역 인덱스
-    private String category;      // ENUM 값 ("0", "1", "2", ...)
-    private List<Integer> tags;   // 태그 id 리스트
-    @JsonProperty("created_at")
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "user_nick", nullable = false)
+    private String userNick;
+
+    @Column(name = "user_img")
+    private String userImg;
+
+    @Column(name = "region_id", nullable = false)
+    private Long regionId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FeedCategory category;
+
+    @CreatedDate
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    private Integer like;
-    private Integer view;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "likes", nullable = false)
+    private Integer likes = 0;
+
+    @Column(name = "views", nullable = false)
+    private Integer views = 0;
+
+    @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("id ASC")
+    private Set<FeedTag> feedTags = new HashSet<>();
+
+    @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("id ASC")
+    private Set<Comment> comments = new HashSet<>();
 }

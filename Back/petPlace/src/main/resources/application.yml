@@ -1,3 +1,8 @@
+jwt:
+  secret: your-super-secret-key-that-is-long-and-secure-enough-to-be-safe
+  expiration_time: 3600000      # Access Token: 1시간
+  refresh_expiration_time: 604800000  # Refresh Token: 7일 (새로 추가)
+
 spring:
   security:
     user:
@@ -10,10 +15,16 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
 server:
   port: 8080
+
+logging:
+  level:
+    com.minjeok4go.petplace.auth: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.filter: DEBUG

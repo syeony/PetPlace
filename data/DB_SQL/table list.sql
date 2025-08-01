@@ -2,26 +2,26 @@ DROP DATABASE IF EXISTS petplace;
 CREATE DATABASE petplace;
 USE petplace;
 
--- ✅ Region Table
-CREATE TABLE `Region` (
+-- ✅ Region
+CREATE TABLE `regions` (
     `id` BIGINT NOT NULL COMMENT '지역 고유 ID (행정 표준 코드)',
-    `region_name` VARCHAR(200) NOT NULL,
+    `name` VARCHAR(200) NOT NULL,
     `parent_id` BIGINT NULL,
     `geometry` GEOMETRY NOT NULL,
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`parent_id`) REFERENCES `Region`(`id`) ON DELETE SET NULL
+    FOREIGN KEY (`parent_id`) REFERENCES `regions`(`id`) ON DELETE SET NULL
 );
 
--- ✅ User Table
-CREATE TABLE `User` (
+-- ✅ User
+CREATE TABLE `users` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `user_id` VARCHAR(20) NOT NULL,
+    `user_name` VARCHAR(20) NOT NULL,
     `password` VARCHAR(200) NOT NULL,
     `name` VARCHAR(20) NOT NULL,
     `nickname` VARCHAR(20) NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `deleted_at` DATETIME NULL,
-    `rid` BIGINT NOT NULL,
+    `region_id` BIGINT NOT NULL,
     `default_pet_id` INT NULL,
     `kakao_oauth` VARCHAR(200) NULL,
     `user_img_src` VARCHAR(500) NULL,
@@ -35,213 +35,213 @@ CREATE TABLE `User` (
     `level` INT NOT NULL DEFAULT 1,
     `experience` INT NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_user_userid (`user_id`),
+    UNIQUE KEY uq_user_user_name (`user_name`),
     UNIQUE KEY uq_user_nickname (`nickname`),
     UNIQUE KEY uq_user_phone (`phone_number`),
     CHECK (`phone_number` REGEXP '^[0-9]+$'),
-    FOREIGN KEY (`rid`) REFERENCES `Region`(`id`)
+    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
 );
 
--- ✅ Pet Table
-CREATE TABLE `Pet` (
+-- ✅ Pet
+CREATE TABLE `pets` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `uid` INT NOT NULL,
-    `pet_name` VARCHAR(20) NOT NULL,
-    `animal` ENUM(
-        'dog','cat','rabbit','hamster','guinea_pig','hedgehog','ferret',
-        'bird','turtle','fish','reptile','amphibian','other'
-    ) NOT NULL,
-    `breed` ENUM(
-        'pomeranian','maltese','poodle','chihuahua','bichon_frise',
-        'shiba_inu','golden_retriever','labrador_retriever','siberian_husky',
-        'dachshund','bulldog','cocker_spaniel','yorkshire_terrier',
-        'korean_shorthair','russian_blue','siamese','persian',
-        'scottish_fold','maine_coon','bengal','norwegian_forest',
-        'netherland_dwarf','mini_rex','lionhead',
-        'golden_hamster','dwarf_hamster','roborovski',
-        'lovebird','cockatiel','budgerigar',
-        'russian_tortoise','red_eared_slider',
-        'leopard_gecko','bearded_dragon',
-        'unknown'
-    ) NOT NULL,
-    `sex` ENUM('male','female') NOT NULL,
+    `user_id` INT NOT NULL,
+    `name` VARCHAR(20) NOT NULL,
+	`animal` ENUM(
+		'DOG','CAT','RABBIT','HAMSTER','GUINEA_PIG','HEDGEHOG','FERRET',
+		'BIRD','TURTLE','FISH','REPTILE','AMPHIBIAN','OTHER'
+	) NOT NULL,
+	`breed` ENUM(
+		'POMERANIAN','MALTESE','POODLE','CHIHUAHUA','BICHON_FRISE',
+		'SHIBA_INU','GOLDEN_RETRIEVER','LABRADOR_RETRIEVER','SIBERIAN_HUSKY',
+		'DACHSHUND','BULLDOG','COCKER_SPANIEL','YORKSHIRE_TERRIER',
+		'KOREAN_SHORTHAIR','RUSSIAN_BLUE','SIAMESE','PERSIAN',
+		'SCOTTISH_FOLD','MAINE_COON','BENGAL','NORWEGIAN_FOREST',
+		'NETHERLAND_DWARF','MINI_REX','LIONHEAD',
+		'GOLDEN_HAMSTER','DWARF_HAMSTER','ROBOROVSKI',
+		'LOVEBIRD','COCKATIEL','BUDGERIGAR',
+		'RUSSIAN_TORTOISE','RED_EARED_SLIDER',
+		'LEOPARD_GECKO','BEARDED_DRAGON',
+		'UNKNOWN'
+	) NOT NULL,
+	`sex` ENUM('MALE','FEMALE') NOT NULL,
     `birthday` DATE NOT NULL,
-    `pet_img_src` VARCHAR(500) NULL,
+    `img_src` VARCHAR(500) NULL,
     `tnr` TINYINT NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_pet_uid_name (`uid`, `pet_name`),
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE
+    UNIQUE KEY uq_pet_uid_name (`user_id`, `name`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
 -- ✅ ChatRoom
-CREATE TABLE `ChatRoom` (
+CREATE TABLE `chat_rooms` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `uid_1` INT NOT NULL,
-    `uid_2` INT NOT NULL,
+    `user_id_1` INT NOT NULL,
+    `user_id_2` INT NOT NULL,
     `last_message` VARCHAR(1000) NOT NULL DEFAULT '',
     `last_message_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_chatroom_users (`uid_1`, `uid_2`),
-    FOREIGN KEY (`uid_1`) REFERENCES `User`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`uid_2`) REFERENCES `User`(`id`) ON DELETE CASCADE
+    UNIQUE KEY uq_chatroom_users (`user_id_1`, `user_id_2`),
+    FOREIGN KEY (`user_id_1`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id_2`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
 -- ✅ Chat
-CREATE TABLE `Chat` (
+CREATE TABLE `chats` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `crid` INT NOT NULL,
-    `uid` INT NOT NULL,
+    `chat_rooms_id` INT NOT NULL,
+    `user_id` INT NOT NULL,
     `message` VARCHAR(1000) NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`crid`) REFERENCES `ChatRoom`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`chat_rooms_id`) REFERENCES `chat_rooms`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
 -- ✅ Feed
-CREATE TABLE `Feed` (
+CREATE TABLE `feeds` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `content` TEXT NOT NULL,
-    `uid` INT NOT NULL,
+    `user_id` INT NOT NULL,
     `user_nick` VARCHAR(200) NOT NULL,
     `user_img` VARCHAR(500) NULL,
-    `rid` BIGINT NOT NULL,
-    `category` ENUM('mypet', 'share', 'info', 'any', 'review') NOT NULL,
+    `region_id` BIGINT NOT NULL,
+    `category` ENUM('MYPET', 'SHARE', 'INFO', 'ANY', 'REVIEW') NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `updated_at` DATETIME NULL,
     `deleted_at` DATETIME NULL,
-    `like` INT NOT NULL DEFAULT 0,
-    `view` INT NOT NULL DEFAULT 0,
+    `likes` INT NOT NULL DEFAULT 0,
+    `views` INT NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`rid`) REFERENCES `Region`(`id`)
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
 );
 
 -- ✅ Comment
-CREATE TABLE `Comment` (
+CREATE TABLE `comments` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `cid` INT NULL,
-    `fid` INT NOT NULL,
+    `parent_comment_id` INT NULL,
+    `feed_id` INT NOT NULL,
     `content` VARCHAR(200) NOT NULL,
-    `uid` INT NOT NULL,
+    `user_id` INT NOT NULL,
     `user_nick` VARCHAR(200) NOT NULL,
     `user_img` VARCHAR(500) NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `updated_at` DATETIME NULL,
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`fid`) REFERENCES `Feed`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`cid`) REFERENCES `Comment`(`id`) ON DELETE CASCADE
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`feed_id`) REFERENCES `feeds`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`parent_comment_id`) REFERENCES `comments`(`id`) ON DELETE CASCADE
 );
 
 
 -- ✅ Care
-CREATE TABLE `Care` (
+CREATE TABLE `cares` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(200) NOT NULL,
     `content` TEXT NOT NULL,
-    `uid` INT NOT NULL,
+    `user_id` INT NOT NULL,
     `user_nick` VARCHAR(200) NOT NULL,
     `user_img` VARCHAR(500) NULL,
-    `rid` BIGINT NOT NULL,
-    `category` ENUM('walk_want', 'walk_req', 'care_want', 'care_req') NOT NULL,
+    `region_id` BIGINT NOT NULL,
+    `category` ENUM('WALK_WANT', 'WALK_REQ', 'CARE_WANT', 'CARE_REQ') NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `updated_at` DATETIME NULL,
     `deleted_at` DATETIME NULL,
-    `view` INT NOT NULL DEFAULT 0,
+    `views` INT NOT NULL DEFAULT 0,
     `date` DATETIME NOT NULL,
     `start_time` DATETIME NULL,
     `end_time` DATETIME NULL,
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`rid`) REFERENCES `Region`(`id`)
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
 );
 
 -- ✅ Hotel
-CREATE TABLE `Hotel` (
+CREATE TABLE `hotels` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `hotel_description` VARCHAR(1000) NOT NULL,
+    `description` VARCHAR(1000) NOT NULL,
     `price_per_night` INT NOT NULL,
-    `Field` ENUM('cat','dog') NOT NULL,
+    `field` ENUM('CAT','DOG') NOT NULL,
     PRIMARY KEY (`id`)
 );
 
 -- ✅ Hotel Reservation
-CREATE TABLE `Hotel_Reservation` (
+CREATE TABLE `hotel_reservations` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `uid` INT NOT NULL,
-    `hid` INT NOT NULL,
-    `pet` INT NOT NULL,
+    `user_id` INT NOT NULL,
+    `hotel_id` INT NOT NULL,
+    `pet_id` INT NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_hotel_reservation (`uid`, `hid`, `pet`),
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`hid`) REFERENCES `Hotel`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`pet`) REFERENCES `Pet`(`id`) ON DELETE CASCADE
+    UNIQUE KEY uq_hotel_reservation (`user_id`, `hotel_id`, `pet_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`pet_id`) REFERENCES `pets`(`id`) ON DELETE CASCADE
 );
 
 -- ✅ Badge
-CREATE TABLE `Badge` (
+CREATE TABLE `badges` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `badge_name` VARCHAR(20) NOT NULL,
+    `name` VARCHAR(20) NOT NULL,
     `description` VARCHAR(200) NOT NULL,
     PRIMARY KEY (`id`)
 );
 
 -- ✅ BadgeList
-CREATE TABLE `BadgeList` (
+CREATE TABLE `badge_lists` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `uid` INT NOT NULL,
-    `bid` INT NOT NULL,
+    `user_id` INT NOT NULL,
+    `bedge_id` INT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_uid_bid (`uid`, `bid`),
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`bid`) REFERENCES `Badge`(`id`) ON DELETE CASCADE
+    UNIQUE KEY uq_uid_bid (`user_id`, `bedge_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`bedge_id`) REFERENCES `badges`(`id`) ON DELETE CASCADE
 );
 
 -- ✅ Image
-CREATE TABLE `Image` (
+CREATE TABLE `images` (
     `id` INT NOT NULL AUTO_INCREMENT,
     `ref_id` INT NOT NULL,
-    `ref_type` ENUM('feed', 'care', 'hotel', 'user', 'review', 'chat') NOT NULL,
-    `img_src` VARCHAR(500) NOT NULL,
+    `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT') NOT NULL,
+    `src` VARCHAR(500) NOT NULL,
     `sort` INT NOT NULL,
     PRIMARY KEY (`id`)
 );
 
--- ✅ MessageRead
-CREATE TABLE `MessageRead` (
+-- ✅ UserChatRoom
+CREATE TABLE `user_chat_rooms` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `crid` INT NOT NULL,
-    `cid` INT NOT NULL,
-    `uid` INT NOT NULL,
-    `read_at` DATETIME NULL,
+    `chat_room_id` INT NOT NULL,  -- 채팅방 인덱스
+    `user_id` INT NOT NULL,   -- 유저 인덱스
+    `last_read_cid` INT NULL,   -- 마지막으로 읽은 메시지의 id
+    `leave_at` DATETIME NULL,   -- 방 나간 시간 (참여중이면 NULL)
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_uid_cid (`uid`, `cid`),
-    FOREIGN KEY (`crid`) REFERENCES `ChatRoom`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`cid`) REFERENCES `Chat`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE
+    UNIQUE KEY uq_crid_uid (`chat_room_id`, `user_id`),
+    FOREIGN KEY (`chat_room_id`) REFERENCES `chat_rooms`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
+
 -- ✅ Like
-CREATE TABLE `Like` (
+CREATE TABLE `likes` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `fid` INT NOT NULL,
-    `uid` INT NOT NULL,
+    `feed_id` INT NOT NULL,
+    `user_id` INT NOT NULL,
     `liked_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_uid_fid (`uid`, `fid`),
-    FOREIGN KEY (`fid`) REFERENCES `Feed`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE
+    UNIQUE KEY uq_uid_fid (`user_id`, `feed_id`),
+    FOREIGN KEY (`feed_id`) REFERENCES `feeds`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
 -- ✅ Place
-CREATE TABLE `Place` (
+CREATE TABLE `places` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `rid` BIGINT NOT NULL,
-    `place_name` VARCHAR(100) NOT NULL,
+    `region_id` BIGINT NOT NULL,
+    `name` VARCHAR(100) NOT NULL,
     `category` ENUM('HOTEL', 'HOSPITAL', 'BEAUTY', 'CAFE', 'PARK') NOT NULL,
     `address` VARCHAR(300) NOT NULL,
     `latitude` DECIMAL(10, 8) NOT NULL,
@@ -252,51 +252,53 @@ CREATE TABLE `Place` (
     `updated_at` DATETIME NULL,
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_place_name (`place_name`, `address`),
-    FOREIGN KEY (`rid`) REFERENCES `Region`(`id`)
+    UNIQUE KEY uq_place_name (`name`, `address`),
+    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
 );
 
 -- ✅ Review
-CREATE TABLE `Review` (
+CREATE TABLE `reviews` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `pid` INT NOT NULL,
-    `rid` BIGINT NOT NULL,
-    `uid` INT NOT NULL,
+    `place_id` INT NOT NULL,
+    `region_id` BIGINT NOT NULL,
+    `user_id` INT NOT NULL,
     `title` VARCHAR(100) NOT NULL,
     `content` TEXT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `updated_at` DATETIME NULL,
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_review_unique (`pid`, `uid`, `title`),
-    FOREIGN KEY (`pid`) REFERENCES `Place`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`rid`) REFERENCES `Region`(`id`)
+    UNIQUE KEY uq_review_unique (`place_id`, `user_id`, `title`),
+    FOREIGN KEY (`place_id`) REFERENCES `places`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
 );
 
 -- ✅ Tag
-CREATE TABLE `Tag` (
+CREATE TABLE `tags` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `tag_name` VARCHAR(50) NOT NULL,
+    `name` VARCHAR(50) NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_tag_name (`tag_name`)
+    UNIQUE KEY uq_tag_name (`name`)
 );
 
--- ✅ Hashtag
-CREATE TABLE `Hashtag` (
-    `fid` INT NOT NULL,
-    `tid` INT NOT NULL,
-    PRIMARY KEY (`fid`, `tid`),
-    FOREIGN KEY (`fid`) REFERENCES `Feed`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`tid`) REFERENCES `Tag`(`id`) ON DELETE CASCADE
+-- ✅ FeedTag
+CREATE TABLE `feed_tags` (
+    `feed_id` INT NOT NULL,
+    `tag_id` INT NOT NULL,
+    PRIMARY KEY (`feed_id`, `tag_id`),
+    FOREIGN KEY (`feed_id`) REFERENCES `feeds`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON DELETE CASCADE
 );
 
--- ✅ ReadMe
-CREATE TABLE `ReadMe` (
+-- ✅ Introduction
+CREATE TABLE `introduction` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `uid` INT NOT NULL,
-    `intro` VARCHAR(2000) NOT NULL DEFAULT '',
+    `user_id` INT NOT NULL,
+    `content` VARCHAR(2000) NOT NULL DEFAULT '',
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_readme_uid (`uid`),
-    FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE
+    UNIQUE KEY uq_intro_uid (`user_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
+
+commit;
