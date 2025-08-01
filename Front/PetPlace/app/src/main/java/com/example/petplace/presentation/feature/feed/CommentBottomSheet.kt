@@ -2,7 +2,6 @@ package com.example.petplace.presentation.feature.feed
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -56,6 +58,7 @@ fun CommentBottomSheet(
     comments: List<Comment>,
     onDismiss: () -> Unit
 ) {
+
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true, // 부분 확장을 건너뜀
         confirmValueChange = { true },
@@ -64,6 +67,7 @@ fun CommentBottomSheet(
     val expandedStates = remember { mutableStateListOf<Boolean>().apply {
         repeat(comments.size) { add(false) }
     } }
+    val focusRequester = remember { FocusRequester() }   // ← TextField를 지정할 포커스 요청자
     var commentText by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     LaunchedEffect(Unit) {
@@ -77,6 +81,7 @@ fun CommentBottomSheet(
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Scaffold(
+            containerColor = Color.White,
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.75f) // 화면 75% 정도 차지
@@ -93,8 +98,18 @@ fun CommentBottomSheet(
                     TextField(
                         value = commentText,
                         onValueChange = { commentText = it },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
                         placeholder = { Text("댓글을 입력하세요") },
+                        /* ───────── 색상 지정 ───────── */
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor   = Color.White,   // 포커스 O
+                            unfocusedContainerColor = Color.White,   // 포커스 X
+                            disabledContainerColor  = Color.White,   // 비활성
+                            errorContainerColor     = Color.White,   // 오류
+                            // 필요하다면 border·text 색도 여기에 추가
+                        ),
                         keyboardOptions = KeyboardOptions.Default.copy(
                             imeAction = ImeAction.Send
                         ),
@@ -114,10 +129,15 @@ fun CommentBottomSheet(
                         ),
                         singleLine = true
                     )
-//                    Spacer(modifier = Modifier.width(8.dp))
-//                    Button(onClick = { /* 전송 */ }) {
-//                        Text("전송")
-//                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        painter = painterResource(R.drawable.paper_airplane),
+                        contentDescription = "전송",
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(35.dp),
+                        tint = Color.Unspecified
+                        )
                 }
             }
         ){innerPadding ->
@@ -129,14 +149,13 @@ fun CommentBottomSheet(
             ) {
                 Text(
                     text = "댓글",
-                    fontSize = 20.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 LazyColumn(
-//                verticalArrangement = Arrangement.spacedBy(12.dp) // 아이템 간격 12dp
                 ) {
                     items(comments.size) { index ->
                         val comment = comments[index]
@@ -161,22 +180,22 @@ fun CommentBottomSheet(
                             }
 
                             // 답글 버튼
-                            if(comment.replies.isEmpty()){
-                                TextButton(
-                                    onClick = {
-
-                                    }
-                                ) {
-                                    Text("답글 달기", fontSize = 10.sp)
+                            TextButton(
+                                onClick = {
+                                    commentText = ""        // 필요하면 "@${comment.author} " 등으로 미리 채워도 ok
+                                    focusRequester.requestFocus()   // ★ 키보드 자동 팝업
                                 }
+                            ) {
+                                Text("답글 달기", fontSize = 10.sp)
                             }
-                            else{
+
+                            if(!comment.replies.isEmpty()){
                                 TextButton(
                                     onClick = {
                                         expandedStates[index] = !expandedStates[index]
                                     }
                                 ) {
-                                    Text("댓글 보기", fontSize = 10.sp)
+                                    Text("          답글 더 보기", fontSize = 10.sp)
                                 }
                             }
                             // 대댓글 표시 (토글 상태일 때만)
@@ -185,15 +204,8 @@ fun CommentBottomSheet(
                                     comment.replies.forEach { reply ->
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(start = 36.dp, top = 4.dp, bottom = 4.dp)
+                                            modifier = Modifier.padding(start = 36.dp, top = 4.dp, bottom = 20.dp)
                                         ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.ic_reply),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(20.dp),
-                                                tint = Color.Gray
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
                                             Image(
                                                 painter = rememberAsyncImagePainter(reply.profileImage),
                                                 contentDescription = null,
@@ -208,17 +220,6 @@ fun CommentBottomSheet(
                                                 }
                                                 Text(text = reply.text)
                                             }
-
-                                        }
-                                    }
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End
-                                    ) {
-                                        TextButton(
-                                            onClick = {  }
-                                        ) {
-                                            Text("답글 달기", fontSize = 10.sp)
                                         }
                                     }
                                 }
