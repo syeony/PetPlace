@@ -65,8 +65,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.0")
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
+    implementation(libs.common)
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
-    implementation("com.google.android.material:material:1.11.0")
+
 
     // Navigation (Compose용)
     implementation("androidx.navigation:navigation-compose:2.7.7")

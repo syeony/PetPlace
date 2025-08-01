@@ -179,50 +179,31 @@ INSERT INTO `ChatRoom` (`uid_1`, `uid_2`, `last_message`, `last_message_at`) VAL
 INSERT INTO `Chat` (`crid`, `uid`, `message`) VALUES
 (1, 1, '안녕, 오늘 시간 돼?');  -- Chat id=1
 
--- MessageRead 생성
-INSERT INTO `MessageRead` (`crid`, `cid`, `uid`, `read_at`) VALUES
-(1, 1, 1, NOW()),   -- 작성자(user01)는 즉시 읽음 처리
-(1, 1, 2, NOW());    -- 상대방(user02)는 아직 안 읽음
 
 -- 두 번째 메시지 (user02 답장)
 INSERT INTO `Chat` (`crid`, `uid`, `message`) VALUES
 (1, 2, '응, 저녁에 만나자!');  -- Chat id=2
 
-INSERT INTO `MessageRead` (`crid`, `cid`, `uid`, `read_at`) VALUES
-(1, 2, 2, NOW()),   -- 작성자(user02)는 즉시 읽음 처리
-(1, 2, 1, NULL);    -- user01은 아직 안 읽음
 
 -- 첫 메시지 (user02가 방 생성)
 INSERT INTO `Chat` (`crid`, `uid`, `message`) VALUES
 (2, 2, '토끼 사진 봤어?');  -- Chat id=3
 
-INSERT INTO `MessageRead` (`crid`, `cid`, `uid`, `read_at`) VALUES
-(2, 3, 2, NOW()),
-(2, 3, 3, NOW());
 
 -- 두 번째 메시지 (user03 답장)
 INSERT INTO `Chat` (`crid`, `uid`, `message`) VALUES
 (2, 3, '응! 진짜 귀엽더라 🐇');  -- Chat id=4
 
-INSERT INTO `MessageRead` (`crid`, `cid`, `uid`, `read_at`) VALUES
-(2, 4, 3, NOW()),
-(2, 4, 2, NULL);
 
 -- 첫 메시지 (user04가 방 생성)
 INSERT INTO `Chat` (`crid`, `uid`, `message`) VALUES
 (3, 4, '내일 파충류샵 갈래?');  -- Chat id=5
 
-INSERT INTO `MessageRead` (`crid`, `cid`, `uid`, `read_at`) VALUES
-(3, 5, 4, NOW()),
-(3, 5, 5, NOW());
 
 -- 두 번째 메시지 (user05 답장)
 INSERT INTO `Chat` (`crid`, `uid`, `message`) VALUES
 (3, 5, '좋아! 레오한테 먹이도 사야 해 🦎');  -- Chat id=6
 
-INSERT INTO `MessageRead` (`crid`, `cid`, `uid`, `read_at`) VALUES
-(3, 6, 5, NOW()),
-(3, 6, 4, NULL);
 
 -- 댓글 더미 데이터
 -- Feed 1 (id=1)

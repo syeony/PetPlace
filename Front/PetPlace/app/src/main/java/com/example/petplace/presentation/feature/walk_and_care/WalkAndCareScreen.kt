@@ -1,4 +1,4 @@
-package com.example.petplace.presentation.feature.feed
+package com.example.petplace.presentation.feature.walk_and_care
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
@@ -39,11 +39,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.petplace.R
+import com.example.petplace.presentation.feature.feed.hashtagStyles
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun WalkAndCareScreen(
+    navController: NavController,
     modifier: Modifier = Modifier,
     viewModel: WalkAndCareViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
@@ -69,7 +72,11 @@ fun WalkAndCareScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp) // innerPadding 제거
         ) {
-            Text("💡 구미시 인의동", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Row(){
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_location_on), contentDescription = "위치")
+                Text(" 구미시 인의동", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
