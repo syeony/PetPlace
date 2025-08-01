@@ -7,15 +7,18 @@ import com.example.petplace.data.local.feed.Post
 import com.example.petplace.data.local.feed.Reply
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 
 class BoardViewModel : ViewModel() {
     val allCategories = listOf("내새꾸자랑", "나눔", "공구", "정보", "자유")
 
-    private val _selectedCategories = MutableStateFlow<Set<String>>(emptySet())
-    val selectedCategories: StateFlow<Set<String>> = _selectedCategories
+//    private val _selectedCategories = MutableStateFlow<Set<String>>(emptySet())
+//    val selectedCategories: StateFlow<Set<String>> = _selectedCategories
+
+    /* ───────── 카테고리 선택을 “하나”만 보유 ───────── */
+    private val _selectedCategory = MutableStateFlow<String?>(null)
+    val selectedCategory: StateFlow<String?> = _selectedCategory
 
     private val _searchText = MutableStateFlow("")
     val searchText: StateFlow<String> = _searchText
@@ -30,33 +33,37 @@ class BoardViewModel : ViewModel() {
         applyFilters()
     }
 
+    /* ---------- 카테고리 토글 ---------- */
     fun toggleCategory(category: String) {
-        _selectedCategories.update { current ->
-            if (current.contains(category)) current - category else current + category
-        }
+        _selectedCategory.value =
+            if (_selectedCategory.value == category) null     // 같은 버튼 → 해제
+            else category                                     // 다른 버튼 → 교체
+
         applyFilters()
     }
 
+    /* ---------- 검색어 업데이트 ---------- */
     fun updateSearchText(text: String) {
         _searchText.value = text
         applyFilters()
     }
 
+    /* ---------- 필터링 ---------- */
     private fun applyFilters() {
         viewModelScope.launch {
-            val categories = _selectedCategories.value
-            val query = _searchText.value.lowercase()
+            val picked = _selectedCategory.value
+            val query  = _searchText.value.lowercase()
 
             _filteredPosts.value = _allPosts.value.filter { post ->
-                (categories.isEmpty() || categories.contains(post.category)) &&
+                (picked == null || post.category == picked) &&
                         (query.isBlank() || post.content.lowercase().contains(query))
             }
         }
     }
 
-    fun getCommentsForPost(postId: String): List<Comment> {
-        return _comments.value.filter { it.postId == postId }
-    }
+    /* ---------- 댓글 ---------- */
+    fun getCommentsForPost(postId: String): List<Comment> =
+        _comments.value.filter { it.postId == postId }
 }
 
 val samplePosts = listOf(
