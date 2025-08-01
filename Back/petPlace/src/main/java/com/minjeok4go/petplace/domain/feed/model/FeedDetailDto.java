@@ -1,0 +1,29 @@
+package com.minjeok4go.petplace.domain.feed.model;
+
+import lombok.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class FeedDetailDto {
+    private Long id;
+    private String content;
+    private Long userId;            // ✅ uid → userId
+    private String userNick;
+    private String userImg;
+    private Long regionId;          // ✅ rid → regionId
+    private FeedCategory category;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime deletedAt;
+    private Integer likes;          // ✅ like → likes
+    private Integer views;          // ✅ view → views
+    private List<TagDto> tags;
+    private Integer commentCount;
+    private List<CommentDto> comments;
+}
