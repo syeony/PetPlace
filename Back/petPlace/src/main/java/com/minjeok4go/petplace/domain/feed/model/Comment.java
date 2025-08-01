@@ -4,9 +4,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.BatchSize;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +43,7 @@ public class Comment {
     private String userImg;
 
     @JsonProperty("created_at")
+    @CreatedDate
     private LocalDateTime createdAt;
 
     @JsonProperty("updated_at")
@@ -50,5 +53,5 @@ public class Comment {
     private LocalDateTime deletedAt;
 
     @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private Set<Comment> replies;
+    private Set<Comment> replies = new HashSet<>();
 }

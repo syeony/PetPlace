@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
 
 import java.util.List;
 import java.util.Set;
@@ -36,7 +38,8 @@ public class Feed {
     @Enumerated(EnumType.STRING)
     private FeedCategory category;      // ENUM 값 ("0", "1", "2", ...)
 
-    @JsonProperty("created_at")
+    @Column(name = "created_at")
+    @CreatedDate
     private LocalDateTime createdAt;
 
     @JsonProperty("updated_at")
@@ -51,8 +54,19 @@ public class Feed {
     private Integer view;
 
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("id ASC")
     private Set<Hashtag> hashtags;
 
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("id ASC")
     private Set<Comment> comments;
+
+
+//    public void increaseLike() {
+//        like = like+1;
+//    }
+//
+//    public void decreaseLike() {
+//        like = like-1;
+//    }
 }
