@@ -73,7 +73,6 @@ class NeighborhoodViewModel @Inject constructor(
                         latDouble to lngDouble
                     } else null
                 }
-
                 Log.d("NeighborhoodViewModel", "검색 키워드: $keyword, 결과 마커 수: ${markerList.size}")
                 markerList.forEachIndexed { index, (markerLat, markerLng) ->
                     Log.d("NeighborhoodViewModel", "Marker #$index -> lat=$markerLat, lng=$markerLng")

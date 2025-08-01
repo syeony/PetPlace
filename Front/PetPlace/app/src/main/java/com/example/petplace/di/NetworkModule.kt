@@ -4,7 +4,6 @@ import android.util.Log
 import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.ServerApiService
 import com.example.petplace.BuildConfig
-import com.example.petplace.BuildConfig.KAKAO_REST_KEY
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

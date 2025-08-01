@@ -21,7 +21,11 @@ android {
             "KAKAO_REST_KEY",
             "\"${project.properties["KAKAO_REST_KEY"]}\""
         )
-
+        buildConfigField(
+            "String",
+            "KAKAO_NATIVE_KEY",
+            "\"${project.properties["KAKAO_NATIVE_KEY"]}\""
+        )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
