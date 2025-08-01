@@ -13,18 +13,21 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
-import com.example.petplace.presentation.feature.Missing_register.FamilySelectScreen
-import com.example.petplace.presentation.feature.Missing_register.RegisterScreen
+import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
+import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
 import com.example.petplace.presentation.feature.feed.BoardWriteScreen
 import com.example.petplace.presentation.feature.feed.FeedScreen
+import com.example.petplace.presentation.feature.hotel.HotelScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.login.LoginScreen
+import com.example.petplace.presentation.feature.missing_list.MissingListScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
+import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 
 @Composable
 fun MainScaffold() {
@@ -71,21 +74,22 @@ fun MainScaffold() {
             composable(
                 route = "${BottomNavItem.Neighborhood.route}?showDialog={showDialog}",
                 arguments = listOf(
-                    navArgument("showDialog") {
-                        type = NavType.BoolType
-                        defaultValue = false     // 기본값
-                    }
+                    navArgument("showDialog") { type = NavType.BoolType; defaultValue = false }
                 )
             ) { backStackEntry ->
                 val showDialog = backStackEntry.arguments?.getBoolean("showDialog") ?: false
-                NeighborhoodScreen(navController)   // ← 파라미터 전달
+                NeighborhoodScreen(
+                    navController = navController,
+                    initialShowDialog = showDialog
+                )
             }
-
             composable("missing_report") { ReportScreen(navController) }
             composable("missing_map") { MissingMapScreen(navController) }
-            composable("Missing_register") { RegisterScreen(navController) }
+            composable("missing_register") { RegisterScreen(navController) }
             composable("family/select") { FamilySelectScreen(navController) }
-
+            composable("walk_and_care") { WalkAndCareScreen(navController) }
+            composable("missing_list"){ MissingListScreen(navController) }
+            composable("hotel"){HotelScreen(navController)}
         }
     }
 }
