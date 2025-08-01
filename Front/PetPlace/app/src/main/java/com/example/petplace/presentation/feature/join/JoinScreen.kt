@@ -9,8 +9,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +34,7 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.canhub.cropper.*
 import com.example.petplace.R
+import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.BackgroundSoft
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -47,22 +50,21 @@ fun JoinScreen(navController: NavController) {
     val context = LocalContext.current
 
     // ViewModel + 동네 이름 상태
-    val vm: JoinViewModel = hiltViewModel()
-    val rawRegionName by vm.regionName.collectAsState(initial = null)
+    val viewModel: JoinViewModel = hiltViewModel()
+    val rawRegionName by viewModel.regionName.collectAsState(initial = null)
     val regionNameDisplay = rawRegionName ?: "불러오는 중…"
 
     // 위치 권한
     val locationPerm = rememberMultiplePermissionsState(
-        listOf(Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION)
+        listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
     )
     LaunchedEffect(Unit) { locationPerm.launchMultiplePermissionRequest() }
 
     // 프로필 & 폼 상태
     var croppedUri by remember { mutableStateOf<Uri?>(null) }
-    var userId by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var nickname by remember { mutableStateOf("") }
     var agreeAll by remember { mutableStateOf(false) }
     var agreeService by remember { mutableStateOf(false) }
     var agreePrivacy by remember { mutableStateOf(false) }
@@ -81,7 +83,7 @@ fun JoinScreen(navController: NavController) {
     val pickLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             val opts = CropImageContractOptions(it, CropImageOptions()).apply {
-                setAspectRatio(1,1)
+                setAspectRatio(1, 1)
                 setCropShape(CropImageView.CropShape.RECTANGLE)
                 setGuidelines(CropImageView.Guidelines.ON)
             }
@@ -89,200 +91,176 @@ fun JoinScreen(navController: NavController) {
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // 프로필
-        Box(modifier = Modifier.size(120.dp)) {
-            Surface(
-                modifier = Modifier.size(120.dp),
-                shape = CircleShape,
-                color = Color(0xFFE0E0E0)
+    // ✅ Scaffold로 감싸서 버튼 하단 고정
+    Scaffold(
+        bottomBar = {
+            Button(
+                onClick = { /* 회원가입 처리 */ },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
             ) {
-                if (croppedUri != null) {
-                    AsyncImage(
-                        model = croppedUri,
-                        contentDescription = "프로필",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
+                Text("회원가입", color = Color.White)
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // 프로필
+            Box(modifier = Modifier.size(120.dp), contentAlignment = Alignment.Center) {
+                Surface(
+                    modifier = Modifier.size(120.dp),
+                    shape = CircleShape,
+                    color = Color(0xFFE0E0E0)
+                ) {
+                    if (croppedUri != null) {
+                        AsyncImage(
+                            model = croppedUri,
+                            contentDescription = "프로필",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_mypage),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize().padding(30.dp),
+                            tint = Color.Gray
+                        )
+                    }
+                }
+                Surface(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 8.dp, y = 8.dp)
+                        .clickable { pickLauncher.launch("image/*") },
+                    shape = CircleShape,
+                    color = PrimaryColor,
+                    shadowElevation = 4.dp
+                ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_mypage),
+                        painter = painterResource(R.drawable.ic_gallery),
                         contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(30.dp),
-                        tint = Color.Gray
+                        modifier = Modifier.padding(6.dp),
+                        tint = Color.White
                     )
                 }
             }
-            Surface(
-                modifier = Modifier
-                    .size(36.dp)
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 8.dp, y = 8.dp)
-                    .clickable { pickLauncher.launch("image/*") },
-                shape = CircleShape,
-                color = PrimaryColor,
-                shadowElevation = 4.dp
+
+            // 아이디 + 중복확인
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_gallery),
-                    contentDescription = null,
-                    modifier = Modifier.padding(6.dp),
-                    tint = Color.White
+                OutlinedTextField(
+                    value = viewModel.userId.value,
+                    onValueChange = { viewModel.onUserIdChange(it)},
+                    label = { Text("아이디") },
+                    modifier = Modifier.weight(2f),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
                 )
+                Button(
+                    modifier = Modifier.weight(1f).fillMaxHeight().padding(top = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    onClick = { /* 중복확인 */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                ) {
+                    Text("중복확인", color = Color.White, style = AppTypography.labelMedium)
+                }
             }
-        }
 
-        // 아이디 + 중복확인
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+            // 비밀번호
             OutlinedTextField(
-                value = userId,
-                onValueChange = { userId = it },
-                label = { Text("아이디") },
-                modifier = Modifier.weight(1f),
-                colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
-            )
-            Button(
-                onClick = { /* 중복확인 */ },
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-            ) {
-                Text("중복확인", color = Color.White)
-            }
-        }
-
-        // 비밀번호
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("비밀번호") },
-            modifier = Modifier.fillMaxWidth(),
-            colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
-        )
-
-        // 닉네임 + 중복확인
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedTextField(
-                value = nickname,
-                onValueChange = { nickname = it },
-                label = { Text("닉네임") },
-                modifier = Modifier.weight(1f),
-                colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
-            )
-            Button(
-                onClick = { /* 닉네임 확인 */ },
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-            ) {
-                Text("중복확인", color = Color.White)
-            }
-        }
-
-        // 현재 위치 인증 카드
-        if (confirmedRegion == null) {
-            Card(
+                value =  viewModel.password.value,
+                onValueChange = { viewModel.onUserIdChange(it) },
+                label = { Text("비밀번호") },
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+                colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
+            )
+            OutlinedTextField(
+                value = viewModel.password.value,
+                onValueChange = { viewModel.onPasswordChange(it) },
+                label = { Text("비밀번호 확인") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
+            )
+
+            // 닉네임 + 중복확인
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_location_on),
-                            contentDescription = null,
-                            tint = PrimaryColor
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column {
-                            Text("현재 위치로 인증", fontWeight = FontWeight.Medium)
-                            Text("GPS를 통해 동네를 인증합니다", fontSize = 12.sp, color = Color.Gray)
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Button(onClick = {
+                OutlinedTextField(
+                    value =  viewModel.nickname.value,
+                    onValueChange = { viewModel.onNicknameChange(it)},
+                    label = { Text("닉네임") },
+                    modifier = Modifier.weight(2f),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
+                )
+                Button(
+                    modifier = Modifier.weight(1f).fillMaxHeight().padding(top = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    onClick = { /* 중복확인 */ },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+                ) {
+                    Text("중복확인", color = Color.White, style = AppTypography.labelMedium)
+                }
+            }
+
+            // 현재 위치 인증 카드
+            if (confirmedRegion == null) {
+                LocationCard(
+                    title = "현재 위치로 인증",
+                    subTitle = "GPS를 통해 동네를 인증합니다",
+                    buttonText = "현재 위치 인증하기",
+                    onClick = {
                         if (locationPerm.allPermissionsGranted) {
                             getCurrentLocation(context) { lat, lng ->
                                 currentLat = lat
                                 currentLng = lng
-                                vm.fetchRegionByCoord(lat, lng)
+                                viewModel.fetchRegionByCoord(lat, lng)
                                 showMapDialog = true
                             }
                         } else {
                             Toast.makeText(context, "위치 권한이 필요합니다", Toast.LENGTH_SHORT).show()
                             locationPerm.launchMultiplePermissionRequest()
                         }
-                    }) {
-                        Text("현재 위치 인증하기")
                     }
-                }
+                )
+            } else {
+                LocationCard(
+                    title = confirmedRegion!!,
+                    subTitle = "",
+                    buttonText = "현재 위치 인증 완료",
+                    onClick = {}
+                )
             }
-        } else {
-            // 인증 완료 후
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_location_on),
-                            contentDescription = null,
-                            tint = PrimaryColor
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = confirmedRegion!!,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 24.sp
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Button(onClick = {}) {
-                        Text("현재 위치 인증 완료")
-                    }
-                }
-            }
-        }
 
-        // 약관
-        Column {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Checkbox(checked = agreeAll, onCheckedChange = {
-                    agreeAll = it
-                    agreeService = it
-                    agreePrivacy = it
-                    agreeMarketing = it
-                })
-                Text("전체 동의", modifier = Modifier.weight(1f))
+            // 약관
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Checkbox(checked = agreeAll, onCheckedChange = {
+                        agreeAll = it
+                        agreeService = it
+                        agreePrivacy = it
+                        agreeMarketing = it
+                    })
+                    Text("전체 동의", modifier = Modifier.weight(1f))
+                }
+                Divider(color = Color.LightGray, thickness = 1.dp)
+                AgreementRow(agreeService, { agreeService = it }, "[필수] 서비스 이용약관")
+                AgreementRow(agreePrivacy, { agreePrivacy = it }, "[필수] 개인정보 처리방침")
+                AgreementRow(agreeMarketing, { agreeMarketing = it }, "[선택] 마케팅 정보 수신")
             }
-            Divider(color = Color.LightGray, thickness = 1.dp)
-            AgreementRow(agreeService, { agreeService = it }, "[필수] 서비스 이용약관")
-            AgreementRow(agreePrivacy, { agreePrivacy = it }, "[필수] 개인정보 처리방침")
-            AgreementRow(agreeMarketing, { agreeMarketing = it }, "[선택] 마케팅 정보 수신")
-        }
-
-        // 회원가입 버튼
-        Button(
-            onClick = { /* 회원가입 처리 */ },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-        ) {
-            Text("회원가입", color = Color.White)
         }
     }
 
@@ -290,22 +268,16 @@ fun JoinScreen(navController: NavController) {
     if (showMapDialog) {
         Dialog(onDismissRequest = { showMapDialog = false }) {
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.7f),
+                modifier = Modifier.fillMaxWidth().fillMaxHeight(0.7f),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(Modifier.fillMaxSize()) {
-                    // ① 동네 이름
                     Text(
                         text = regionNameDisplay,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center
                     )
-                    // ② 지도
                     AndroidView(
                         factory = { ctx ->
                             MapView(ctx).apply {
@@ -319,42 +291,28 @@ fun JoinScreen(navController: NavController) {
                                         override fun onMapReady(map: KakaoMap) {
                                             val pos = LatLng.from(currentLat, currentLng)
                                             map.labelManager?.layer?.addLabel(
-                                                LabelOptions.from(pos)
-                                                    .setStyles(R.drawable.location_on)
+                                                LabelOptions.from(pos).setStyles(R.drawable.location_on)
                                             )
-                                            map.moveCamera(
-                                                CameraUpdateFactory.newCenterPosition(pos, 15)
-                                            )
+                                            map.moveCamera(CameraUpdateFactory.newCenterPosition(pos, 15))
                                         }
                                     }
                                 )
                             }
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
+                        modifier = Modifier.weight(1f).fillMaxWidth()
                     )
-                    // ③ 취소 / 확인
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
                     ) {
-                        OutlinedButton(onClick = { showMapDialog = false }) {
-                            Text("취소")
-                        }
-                        // Confirm 버튼은 regionName != null 일 때만 enabled
+                        OutlinedButton(onClick = { showMapDialog = false }) { Text("취소") }
                         Button(
                             onClick = {
                                 showMapDialog = false
-                                // rawRegionName 이 non-null 일 때만 설정
                                 rawRegionName?.let { confirmedRegion = it }
                             },
                             enabled = (rawRegionName != null)
-                        ) {
-                            Text("확인")
-                        }
+                        ) { Text("확인") }
                     }
                 }
             }
@@ -363,31 +321,41 @@ fun JoinScreen(navController: NavController) {
 }
 
 @SuppressLint("MissingPermission")
-private fun getCurrentLocation(
-    context: Context,
-    onLocationReceived: (Double, Double) -> Unit
-) {
-    LocationServices
-        .getFusedLocationProviderClient(context)
+private fun getCurrentLocation(context: Context, onLocationReceived: (Double, Double) -> Unit) {
+    LocationServices.getFusedLocationProviderClient(context)
         .lastLocation
-        .addOnSuccessListener {
-            it?.let { onLocationReceived(it.latitude, it.longitude) }
-        }
+        .addOnSuccessListener { it?.let { onLocationReceived(it.latitude, it.longitude) } }
 }
 
 @Composable
-private fun AgreementRow(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    title: String
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+private fun AgreementRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, title: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Checkbox(checked, onCheckedChange)
         Text(title, modifier = Modifier.weight(1f))
         Text("보기", color = Color.Blue, modifier = Modifier.clickable { /* 상세보기 */ })
+    }
+}
+
+@Composable
+private fun LocationCard(title: String, subTitle: String, buttonText: String, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(painter = painterResource(R.drawable.ic_location_on), contentDescription = null, tint = PrimaryColor)
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Text(title, fontWeight = FontWeight.Medium)
+                    if (subTitle.isNotEmpty()) {
+                        Text(subTitle, fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = onClick) { Text(buttonText) }
+        }
     }
 }
 
