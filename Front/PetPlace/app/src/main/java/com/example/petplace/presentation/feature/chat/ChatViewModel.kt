@@ -3,6 +3,7 @@ package com.example.petplace.presentation.feature.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.data.local.chat.ChatMessage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +44,13 @@ class ChatViewModel : ViewModel() {
             val newMessage = ChatMessage(messageInput.value, true)
             _messages.value = _messages.value + newMessage
             _messageInput.value = ""
+
+            // Dummy response after a delay
+            viewModelScope.launch {
+                delay(1000)
+                val responseMessage = ChatMessage("네, 알겠습니다!", false)
+                _messages.value = _messages.value + responseMessage
+            }
         }
     }
 
