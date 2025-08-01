@@ -27,11 +27,11 @@ class NeighborhoodViewModel @Inject constructor(
 
     /* 2️⃣ 리스트 생성 */
     val tags = listOf(
-        TagItem(R.drawable.dinner, "식당"),
-        TagItem(R.drawable.coffee,       "카페"),
-        TagItem(R.drawable.hospital,   "병원"),
-        TagItem(R.drawable.ball,       "용품샵"),
-        TagItem(R.drawable.hospital,        "동물병원")
+        TagItem(R.drawable.dinner, "애견동반식당"),
+        TagItem(R.drawable.coffee,       "애견동반카페"),
+        TagItem(R.drawable.hospital,   "동물병원"),
+        TagItem(R.drawable.ball,       "반려동물용품샵"),
+        TagItem(R.drawable.hotel,        "동물호텔")
     )
     /* --- UI 상태 --- */
     private val _selectedTag = MutableStateFlow<TagItem?>(null)
@@ -55,12 +55,22 @@ class NeighborhoodViewModel @Inject constructor(
     fun searchPlaces(keyword: String, lat: Double, lng: Double) {
         viewModelScope.launch {
             try {
-                val safeKeyword = keyword.replace("#", "")
+                var safeKeyword = keyword.replace("#", "")
+//                if (keyword.equals("병원")){
+//                    safeKeyword = "동물병원"
+//                }else{
+//                    safeKeyword = "애견" + keyword
+//                }
+//        TagItem(R.drawable.dinner, "애견동반식당"),
+//        TagItem(R.drawable.coffee,       "애견동반카페"),
+//        TagItem(R.drawable.hospital,   "동물병원"),
+//        TagItem(R.drawable.ball,       "반려동물용품샵"),
+//        TagItem(R.drawable.hospital,        "동물호텔")
                 val places = kakaoRepository.searchPlaces(
                     keyword = safeKeyword,
                     x = lng,
                     y = lat,
-                    radius = 1000
+                    radius = 10000
                 )
 
 
