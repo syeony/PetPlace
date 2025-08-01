@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class HashTagDto {
-    private Long fid;
-    private Long tid;
+public class FeedTagDto {
+    private Long feedId;  // ✅ fid → feedId
+    private Long tagId;   // ✅ tid → tagId
 }

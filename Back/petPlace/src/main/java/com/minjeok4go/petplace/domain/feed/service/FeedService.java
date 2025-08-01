@@ -3,48 +3,47 @@ package com.minjeok4go.petplace.domain.feed.service;
 import com.minjeok4go.petplace.domain.feed.model.*;
 import com.minjeok4go.petplace.domain.feed.repository.FeedRepository;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
-
 public class FeedService {
+
     private final FeedRepository feedRepository;
+
     @Transactional(readOnly = true)
     public FeedDetailDto getFeedDetail(Long feedId) {
 
         Feed feed = feedRepository.findById(feedId)
                 .orElseThrow(() -> new RuntimeException("Feed not found"));
 
-        // Tag 매핑
-        List<TagDto> tagDtos = feed.getHashtags().stream()
-                .map(h -> new TagDto(h.getTag().getId(), h.getTag().getTagName()))
+        // ✅ Tag 매핑 (feedTags → TagDto)
+        List<TagDto> tagDtos = feed.getFeedTags().stream()
+                .map(ft -> new TagDto(ft.getTag().getId(), ft.getTag().getName()))
                 .toList();
 
-        // 상위 댓글만 필터링 (대댓글 제외)
+        // ✅ 상위 댓글만 필터링 (parentComment == null)
         List<CommentDto> commentDtos = feed.getComments().stream()
-                .filter(c -> c.getComment() == null)
+                .filter(c -> c.getParentComment() == null)
                 .map(this::mapCommentWithReplies)
                 .toList();
 
         return FeedDetailDto.builder()
                 .id(feed.getId())
                 .content(feed.getContent())
-                .uid(feed.getUid())
+                .userId(feed.getUserId())            // ✅ uid → userId
                 .userNick(feed.getUserNick())
                 .userImg(feed.getUserImg())
-                .rid(feed.getRid())
+                .regionId(feed.getRegionId())        // ✅ rid → regionId
                 .category(feed.getCategory())
                 .createdAt(feed.getCreatedAt())
                 .updatedAt(feed.getUpdatedAt())
                 .deletedAt(feed.getDeletedAt())
-                .like(feed.getLike())
-                .view(feed.getView())
+                .likes(feed.getLikes())              // ✅ like → likes
+                .views(feed.getViews())              // ✅ view → views
                 .tags(tagDtos)
                 .commentCount(feed.getComments().size())
                 .comments(commentDtos)
@@ -58,11 +57,15 @@ public class FeedService {
 
         return CommentDto.builder()
                 .id(comment.getId())
+                .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null) // ✅ cid → parentCommentId
+                .feedId(comment.getFeed().getId())       // ✅ fid → feedId
                 .content(comment.getContent())
-                .uid(comment.getUid())
+                .userId(comment.getUserId())             // ✅ uid → userId
                 .userNick(comment.getUserNick())
                 .userImg(comment.getUserImg())
                 .createdAt(comment.getCreatedAt())
+                .updatedAt(comment.getUpdatedAt())
+                .deletedAt(comment.getDeletedAt())
                 .replies(replyDtos)
                 .build();
     }

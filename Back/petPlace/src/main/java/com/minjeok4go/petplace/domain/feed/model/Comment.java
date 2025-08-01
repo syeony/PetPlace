@@ -3,55 +3,55 @@ package com.minjeok4go.petplace.domain.feed.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.BatchSize;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name = "Comment")
+@Table(name = "comments")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Comment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cid")
-    private Comment comment;
+    @JoinColumn(name = "parent_comment_id")
+    private Comment parentComment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fid")
+    @JoinColumn(name = "feed_id", nullable = false)
     private Feed feed;
 
     private String content;
 
-    private Long uid;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @JsonProperty("user_nick")
+    @Column(name = "user_nick", nullable = false)
     private String userNick;
 
-    @JsonProperty("user_img")
+    @Column(name = "user_img")
     private String userImg;
 
-    @JsonProperty("created_at")
     @CreatedDate
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @JsonProperty("updated_at")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @JsonProperty("deleted-at")
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // ✅ 대댓글 리스트 (양방향)
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<Comment> replies = new HashSet<>();
 }

@@ -11,11 +11,12 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Builder
 public class CommentDto {
+
     private Long id;
-    private Long cid;
-    private Long fid;
+    private Long parentCommentId;   // ✅ cid → parent_comment_id
+    private Long feedId;            // ✅ fid → feed_id
     private String content;
-    private Long uid;
+    private Long userId;            // ✅ uid → user_id
     private String userNick;
     private String userImg;
     private LocalDateTime createdAt;
@@ -26,8 +27,10 @@ public class CommentDto {
     public static CommentDto from(Comment comment) {
         return CommentDto.builder()
                 .id(comment.getId())
+                .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
+                .feedId(comment.getFeed().getId())
                 .content(comment.getContent())
-                .uid(comment.getUid())
+                .userId(comment.getUserId())
                 .userNick(comment.getUserNick())
                 .userImg(comment.getUserImg())
                 .createdAt(comment.getCreatedAt())
@@ -38,9 +41,4 @@ public class CommentDto {
                         .collect(Collectors.toList()))
                 .build();
     }
-
-//    public CommentDto(Comment comment) {
-//        this.id = comment.getId();
-//    }
-
 }

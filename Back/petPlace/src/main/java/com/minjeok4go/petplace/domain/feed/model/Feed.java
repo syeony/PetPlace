@@ -2,22 +2,20 @@ package com.minjeok4go.petplace.domain.feed.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.CreatedDate;
-
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "Feed")
+@Table(name = "feeds")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class Feed {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,48 +23,43 @@ public class Feed {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    private Long uid;             // 작성자 유저 인덱스
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @JsonProperty("user_nick")
-    private String userNick;      // 작성자 닉네임 (ERD 기준 user_nick)
+    @Column(name = "user_nick", nullable = false)
+    private String userNick;
 
-    @JsonProperty("user_img")
-    private String userImg;       // 작성자 프로필 이미지
+    @Column(name = "user_img")
+    private String userImg;
 
-    private Long rid;          // 지역 인덱스
+    @Column(name = "region_id", nullable = false)
+    private Long regionId;
 
     @Enumerated(EnumType.STRING)
-    private FeedCategory category;      // ENUM 값 ("0", "1", "2", ...)
+    @Column(nullable = false)
+    private FeedCategory category;
 
-    @Column(name = "created_at")
     @CreatedDate
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @JsonProperty("updated_at")
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @JsonProperty("deleted_at")
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @Column(name = "`like`")
-    private Integer like;
+    @Column(name = "likes", nullable = false)
+    private Integer likes = 0;
 
-    private Integer view;
-
-    @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @OrderBy("id ASC")
-    private Set<Hashtag> hashtags;
+    @Column(name = "views", nullable = false)
+    private Integer views = 0;
 
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
-    private Set<Comment> comments;
+    private Set<FeedTag> feedTags = new HashSet<>();
 
-
-//    public void increaseLike() {
-//        like = like+1;
-//    }
-//
-//    public void decreaseLike() {
-//        like = like-1;
-//    }
+    @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("id ASC")
+    private Set<Comment> comments = new HashSet<>();
 }

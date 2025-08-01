@@ -4,23 +4,24 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "Hashtag")
+@Table(name = "feed_tags")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Hashtag {
+public class FeedTag {
+
     @EmbeddedId
-    private HashtagId id = new HashtagId();
+    private FeedTagId id = new FeedTagId();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("fid")  // HashtagId의 fid와 매핑
-    @JoinColumn(name = "fid")
+    @MapsId("feedId")  // FeedTagId의 feedId와 매핑
+    @JoinColumn(name = "feed_id")
     private Feed feed;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @MapsId("tid")  // HashtagId의 tid와 매핑
-    @JoinColumn(name = "tid")
+    @MapsId("tagId")  // FeedTagId의 tagId와 매핑
+    @JoinColumn(name = "tag_id")
     private Tag tag;
 }

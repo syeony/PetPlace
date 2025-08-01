@@ -11,10 +11,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface FeedRepository extends JpaRepository<Feed, Long> {
-    // Feed + Tag + Comment를 Fetch Join으로 가져오기
+
+//     ✅ Feed + Tag + Comment를 Fetch Join으로 가져오기
 //    @Query("SELECT DISTINCT f FROM Feed f " +
-//            "LEFT JOIN FETCH f.hashtags h " +
-//            "LEFT JOIN FETCH h.tag " +
+//            "LEFT JOIN FETCH f.feedTags ft " +
+//            "LEFT JOIN FETCH ft.tag " +
 //            "LEFT JOIN FETCH f.comments c " +
 //            "LEFT JOIN FETCH c.replies " +
 //            "WHERE f.id = :feedId")
@@ -22,8 +23,9 @@ public interface FeedRepository extends JpaRepository<Feed, Long> {
 
     List<Feed> findByCategory(FeedCategory category);
 
-    @EntityGraph(attributePaths = {"hashtags.tag"})
-    List<Feed> findDistinctByHashtags_Tag_Id(Long tagId);
+    // ✅ feedTags로 경로 변경
+    @EntityGraph(attributePaths = {"feedTags.tag"})
+    List<Feed> findDistinctByFeedTags_Tag_Id(Long tagId);
 
     List<Feed> findByUserNick(String userNick);
 }

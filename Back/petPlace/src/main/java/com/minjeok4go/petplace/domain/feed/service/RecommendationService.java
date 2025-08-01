@@ -60,9 +60,9 @@ public class RecommendationService {
 
     private double calcContentScore(Long userId, Feed feed) {
         List<Long> userFavTags = List.of(1L, 3L, 7L);
-        Set<Long> feedTags = feed.getHashtags()
+        Set<Long> feedTags = feed.getFeedTags()
                 .stream()
-                .map(ht -> ht.getTag().getId())
+                .map(ft -> ft.getTag().getId())
                 .collect(Collectors.toSet());
 
         long matchCount = userFavTags.stream().filter(feedTags::contains).count();
@@ -78,9 +78,9 @@ public class RecommendationService {
 
     private double calcCollaborativeScore(Long userId, Feed feed) {
         List<Long> likedTags = List.of(2L, 3L, 6L);
-        Set<Long> feedTags = feed.getHashtags()
+        Set<Long> feedTags = feed.getFeedTags()
                 .stream()
-                .map(ht -> ht.getTag().getId())
+                .map(ft -> ft.getTag().getId())
                 .collect(Collectors.toSet());
 
         long matchCount = likedTags.stream().filter(feedTags::contains).count();
@@ -91,8 +91,8 @@ public class RecommendationService {
         int maxView = 500;
         int maxLike = 30;
 
-        double viewScore = (double) feed.getView() / maxView;
-        double likeScore = (double) feed.getLike() / maxLike;
+        double viewScore = (double) feed.getViews() / maxView;   // ✅ getView() → getViews()
+        double likeScore = (double) feed.getLikes() / maxLike;   // ✅ getLike() → getLikes()
 
         return 0.7 * likeScore + 0.3 * viewScore;
     }

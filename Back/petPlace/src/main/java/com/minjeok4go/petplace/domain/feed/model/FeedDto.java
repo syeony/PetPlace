@@ -13,18 +13,18 @@ import java.util.stream.Collectors;
 public class FeedDto {
     private Long id;
     private String content;
-    private Long uid;
+    private Long userId;            // ✅ uid → userId
     private String userNick;
     private String userImg;
-    private Long rid;
+    private Long regionId;          // ✅ rid → regionId
     private String category;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
-    private Integer like;
-    private Integer view;
-    private Double score;  // ✅ 추천 점수 추가
-    private List<TagDto> tags;  // ✅ 태그 객체 리스트로 변경
+    private Integer likes;          // ✅ like → likes
+    private Integer views;          // ✅ view → views
+    private Double score;           // ✅ 추천 점수
+    private List<TagDto> tags;      // ✅ FeedTag → TagDto 변환
     private List<CommentDto> comments;
     private Integer commentCount;
 
@@ -32,19 +32,19 @@ public class FeedDto {
         return FeedDto.builder()
                 .id(feed.getId())
                 .content(feed.getContent())
-                .uid(feed.getUid())
+                .userId(feed.getUserId())
                 .userNick(feed.getUserNick())
                 .userImg(feed.getUserImg())
-                .rid(feed.getRid())
+                .regionId(feed.getRegionId())
                 .category(feed.getCategory().name())
                 .createdAt(feed.getCreatedAt())
                 .updatedAt(feed.getUpdatedAt())
                 .deletedAt(feed.getDeletedAt())
-                .like(feed.getLike())
-                .view(feed.getView())
-                .score(score)  // ✅ 추천 점수 설정
-                .tags(feed.getHashtags().stream()
-                        .map(h -> new TagDto(h.getTag().getId(), h.getTag().getTagName()))
+                .likes(feed.getLikes())
+                .views(feed.getViews())
+                .score(score)
+                .tags(feed.getFeedTags().stream()
+                        .map(ft -> new TagDto(ft.getTag().getId(), ft.getTag().getName()))
                         .distinct()
                         .collect(Collectors.toList()))
                 .comments(feed.getComments().stream()

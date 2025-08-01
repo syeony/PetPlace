@@ -9,5 +9,5 @@ import lombok.*;
 @Builder
 public class TagDto {
     private Long id;
-    private String tagName;
+    private String name;  // ✅ tagName → name
 }

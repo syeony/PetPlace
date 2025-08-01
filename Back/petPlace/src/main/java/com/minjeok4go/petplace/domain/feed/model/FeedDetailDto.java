@@ -13,16 +13,16 @@ import java.util.List;
 public class FeedDetailDto {
     private Long id;
     private String content;
-    private Long uid;
+    private Long userId;            // ✅ uid → userId
     private String userNick;
     private String userImg;
-    private Long rid;
+    private Long regionId;          // ✅ rid → regionId
     private FeedCategory category;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
-    private Integer like;
-    private Integer view;
+    private Integer likes;          // ✅ like → likes
+    private Integer views;          // ✅ view → views
     private List<TagDto> tags;
     private Integer commentCount;
     private List<CommentDto> comments;
