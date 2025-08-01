@@ -211,19 +211,19 @@ CREATE TABLE `Image` (
     PRIMARY KEY (`id`)
 );
 
--- ✅ MessageRead
-CREATE TABLE `MessageRead` (
+-- ✅ UserChatRoom
+CREATE TABLE `UserChatRoom` (
     `id` INT NOT NULL AUTO_INCREMENT,
-    `crid` INT NOT NULL,
-    `cid` INT NOT NULL,
-    `uid` INT NOT NULL,
-    `read_at` DATETIME NULL,
+    `crid` INT NOT NULL,  -- 채팅방 인덱스
+    `uid` INT NOT NULL,   -- 유저 인덱스
+    `last_read_cid` INT NULL,   -- 마지막으로 읽은 메시지의 id
+    `leave_at` DATETIME NULL,   -- 방 나간 시간 (참여중이면 NULL)
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_uid_cid (`uid`, `cid`),
+    UNIQUE KEY uq_crid_uid (`crid`, `uid`),
     FOREIGN KEY (`crid`) REFERENCES `ChatRoom`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`cid`) REFERENCES `Chat`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`uid`) REFERENCES `User`(`id`) ON DELETE CASCADE
 );
+
 
 -- ✅ Like
 CREATE TABLE `Like` (
