@@ -18,8 +18,8 @@ public class FeedController {
     private final RecommendationService recommendationService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<FeedDetailDto> getFeed(@PathVariable Long id) {
-        return ResponseEntity.ok(feedService.getFeedDetail(id));
+    public FeedDetailDto getFeed(@PathVariable Long id) {
+        return feedService.getFeedDetail(id);
     }
 
     // 추천 피드 리스트 API

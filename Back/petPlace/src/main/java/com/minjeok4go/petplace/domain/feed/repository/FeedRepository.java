@@ -12,13 +12,13 @@ import java.util.Optional;
 
 public interface FeedRepository extends JpaRepository<Feed, Long> {
     // Feed + Tag + Comment를 Fetch Join으로 가져오기
-    @Query("SELECT DISTINCT f FROM Feed f " +
-            "LEFT JOIN FETCH f.hashtags h " +
-            "LEFT JOIN FETCH h.tag " +
-            "LEFT JOIN FETCH f.comments c " +
-            "LEFT JOIN FETCH c.replies " +
-            "WHERE f.id = :feedId")
-    Optional<Feed> findFeedWithTagsAndComments(@Param("feedId") Long feedId);
+//    @Query("SELECT DISTINCT f FROM Feed f " +
+//            "LEFT JOIN FETCH f.hashtags h " +
+//            "LEFT JOIN FETCH h.tag " +
+//            "LEFT JOIN FETCH f.comments c " +
+//            "LEFT JOIN FETCH c.replies " +
+//            "WHERE f.id = :feedId")
+//    Optional<Feed> findFeedWithTagsAndComments(@Param("feedId") Long feedId);
 
     List<Feed> findByCategory(FeedCategory category);
 

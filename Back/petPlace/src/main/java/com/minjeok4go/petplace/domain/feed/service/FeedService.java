@@ -18,7 +18,7 @@ public class FeedService {
     @Transactional(readOnly = true)
     public FeedDetailDto getFeedDetail(Long feedId) {
 
-        Feed feed = feedRepository.findFeedWithTagsAndComments(feedId)
+        Feed feed = feedRepository.findById(feedId)
                 .orElseThrow(() -> new RuntimeException("Feed not found"));
 
         // Tag 매핑
