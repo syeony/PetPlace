@@ -21,3 +21,5 @@ public class Tag {
     @Column(name = "tag_name", unique = true, nullable = false)
     private String tagName;
 }
+
+//@Table(name = "Tag", uniqueConstraints = {@UniqueConstraint(columnNames = {"id", "tag_name"})})

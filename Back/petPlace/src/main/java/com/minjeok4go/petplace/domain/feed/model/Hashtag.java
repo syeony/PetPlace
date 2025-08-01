@@ -24,4 +24,3 @@ public class Hashtag {
     @JoinColumn(name = "tid")
     private Tag tag;
 }
-

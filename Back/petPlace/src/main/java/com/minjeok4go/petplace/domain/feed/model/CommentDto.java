@@ -39,4 +39,8 @@ public class CommentDto {
                 .build();
     }
 
+//    public CommentDto(Comment comment) {
+//        this.id = comment.getId();
+//    }
+
 }
