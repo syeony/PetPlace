@@ -28,8 +28,9 @@ data class FeedDto(
     val userId:      Long,
     val userNick:    String,
     val userImg:     String?,        // nullable ⇒ 서버가 null 내려줄 수 있음
+    val contentImg:  List<String>? = emptyList(),       // 민이가 준 샘플데이터에 없어서 내가 임시로 추가
     val regionId:    Int,
-    val category:    String,         // "MYPET", "INFO" …
+    val category:    String,
     val createdAt:   String,
     val updatedAt:   String? = null,
     val deletedAt:   String? = null,

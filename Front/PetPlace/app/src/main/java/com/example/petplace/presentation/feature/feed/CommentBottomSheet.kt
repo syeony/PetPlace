@@ -49,177 +49,152 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
-import com.example.petplace.data.local.feed.Comment
+import com.example.petplace.data.local.feed.CommentDto
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommentBottomSheet(
-    comments: List<Comment>,
+    comments: List<CommentDto>,
     onDismiss: () -> Unit
 ) {
-
+    /* ───────── bottom sheet state ───────── */
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true, // 부분 확장을 건너뜀
-        confirmValueChange = { true },
+        skipPartiallyExpanded = true,
+        confirmValueChange = { true }
     )
-    //채팅 펼치기
-    val expandedStates = remember { mutableStateListOf<Boolean>().apply {
-        repeat(comments.size) { add(false) }
-    } }
-    val focusRequester = remember { FocusRequester() }   // ← TextField를 지정할 포커스 요청자
-    var commentText by remember { mutableStateOf("") }
-    val focusManager = LocalFocusManager.current
-    LaunchedEffect(Unit) {
-        sheetState.show() // 강제로 Expanded 상태로
+
+    /* 답글 더보기 토글 상태 → 최상위 댓글 수만큼 */
+    val expandedStates = remember {
+        mutableStateListOf<Boolean>().apply { repeat(comments.size) { add(false) } }
     }
+
+    /* 입력창 & 포커싱 */
+    var commentText   by remember { mutableStateOf("") }
+    val focusManager   = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
+
+    /* 첫 표시 때 바로 Expanded */
+    LaunchedEffect(Unit) { sheetState.show() }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.White,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        sheetState       = sheetState,
+        containerColor   = Color.White,
+        shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Scaffold(
             containerColor = Color.White,
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.75f) // 화면 75% 정도 차지
-                .navigationBarsPadding(), // 하단 시스템바까지 패딩
-
+                .fillMaxHeight(0.75f)
+                .navigationBarsPadding(),
+            /* ───────── bottom bar : 댓글 입력 ───────── */
             bottomBar = {
                 Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(8.dp)
                 ) {
-
                     TextField(
                         value = commentText,
                         onValueChange = { commentText = it },
-                        modifier = Modifier
+                        placeholder   = { Text("댓글을 입력하세요") },
+                        singleLine    = true,
+                        modifier      = Modifier
                             .weight(1f)
                             .focusRequester(focusRequester),
-                        placeholder = { Text("댓글을 입력하세요") },
-                        /* ───────── 색상 지정 ───────── */
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor   = Color.White,   // 포커스 O
-                            unfocusedContainerColor = Color.White,   // 포커스 X
-                            disabledContainerColor  = Color.White,   // 비활성
-                            errorContainerColor     = Color.White,   // 오류
-                            // 필요하다면 border·text 색도 여기에 추가
+                            focusedContainerColor   = Color.White,
+                            unfocusedContainerColor = Color.White
                         ),
-                        keyboardOptions = KeyboardOptions.Default.copy(
-                            imeAction = ImeAction.Send
-                        ),
-                        keyboardActions = KeyboardActions(
+                        keyboardOptions  = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions  = KeyboardActions(
                             onSend = {
                                 if (commentText.isNotBlank()) {
-                                    // 전송 로직
+                                    /* 실제 전송 로직 자리에 println 만 */
                                     println("전송: $commentText")
-
-                                    // 입력 초기화
                                     commentText = ""
-
-                                    // 키보드 내리기
                                     focusManager.clearFocus()
                                 }
                             }
-                        ),
-                        singleLine = true
+                        )
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(Modifier.width(8.dp))
                     Icon(
                         painter = painterResource(R.drawable.paper_airplane),
                         contentDescription = "전송",
                         modifier = Modifier
-                            .padding(end = 12.dp)
-                            .size(35.dp),
+                            .size(35.dp)
+                            .padding(end = 12.dp),
                         tint = Color.Unspecified
-                        )
+                    )
                 }
             }
-        ){innerPadding ->
+        ) { inner ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(inner)
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "댓글",
+                    "댓글",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                LazyColumn(
-                ) {
-                    items(comments.size) { index ->
-                        val comment = comments[index]
+                Spacer(Modifier.height(10.dp))
 
-                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                LazyColumn {
+                    items(comments.size) { idx ->
+                        val comment = comments[idx]
+
+                        /* ---------- 최상위 댓글 ---------- */
+                        Column(Modifier.padding(vertical = 8.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(comment.profileImage),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(35.dp).clip(CircleShape)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                ProfileImage(comment.userImg)
+                                Spacer(Modifier.width(8.dp))
                                 Column {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(text = comment.author, fontWeight = FontWeight.Bold)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(text = comment.town, fontSize = 12.sp, color = Color.Gray)
-                                    }
-                                    Text(text = comment.text)
+                                    Text(comment.userNick, fontWeight = FontWeight.Bold)
+                                    Text(comment.content)
                                 }
-                                Spacer(modifier = Modifier.weight(1f))
                             }
 
-                            // 답글 버튼
+                            /* 답글 버튼 → 입력창 포커스 */
                             TextButton(
                                 onClick = {
-                                    commentText = ""        // 필요하면 "@${comment.author} " 등으로 미리 채워도 ok
-                                    focusRequester.requestFocus()   // ★ 키보드 자동 팝업
+                                    commentText = ""
+                                    focusRequester.requestFocus()
                                 }
-                            ) {
-                                Text("답글 달기", fontSize = 10.sp)
+                            ) { Text("답글 달기", fontSize = 10.sp) }
+
+                            /* 답글 더보기 버튼 */
+                            if (comment.replies.isNotEmpty()) {
+                                TextButton(onClick = { expandedStates[idx] = !expandedStates[idx] }) {
+                                    Text(
+                                        if (expandedStates[idx]) "          답글 숨기기"
+                                        else                     "          답글 더 보기",
+                                        fontSize = 10.sp
+                                    )
+                                }
                             }
 
-                            if(!comment.replies.isEmpty()){
-                                TextButton(
-                                    onClick = {
-                                        expandedStates[index] = !expandedStates[index]
-                                    }
-                                ) {
-                                    Text("          답글 더 보기", fontSize = 10.sp)
-                                }
-                            }
-                            // 대댓글 표시 (토글 상태일 때만)
-                            if (expandedStates[index]) {
-                                Column {
-                                    comment.replies.forEach { reply ->
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(start = 36.dp, top = 4.dp, bottom = 20.dp)
-                                        ) {
-                                            Image(
-                                                painter = rememberAsyncImagePainter(reply.profileImage),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(30.dp).clip(CircleShape)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text(text = reply.author, fontWeight = FontWeight.Bold)
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text(text = reply.town, fontSize = 12.sp, color = Color.Gray)
-                                                }
-                                                Text(text = reply.text)
-                                            }
+                            /* ---------- 대댓글 영역 ---------- */
+                            if (expandedStates[idx]) {
+                                comment.replies.forEach { reply ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .padding(start = 36.dp, top = 4.dp, bottom = 20.dp)
+                                    ) {
+                                        ProfileImage(reply.userImg)
+                                        Spacer(Modifier.width(8.dp))
+                                        Column {
+                                            Text(reply.userNick, fontWeight = FontWeight.Bold)
+                                            Text(reply.content)
                                         }
                                     }
                                 }
@@ -227,9 +202,7 @@ fun CommentBottomSheet(
                         }
                     }
                 }
-
             }
         }
-
     }
 }

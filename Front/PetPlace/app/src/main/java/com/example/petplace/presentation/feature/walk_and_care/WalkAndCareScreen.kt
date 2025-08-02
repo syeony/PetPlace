@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.petplace.R
-import com.example.petplace.presentation.feature.feed.hashtagStyles
+import com.example.petplace.presentation.feature.feed.categoryStyles
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -135,7 +135,7 @@ fun PostCard(post: Post) {
     ) {
         Row(modifier = Modifier.padding(16.dp)) {
             Column(modifier = Modifier.weight(1f)) {
-                val style = hashtagStyles[post.category] ?: Pair(Color.LightGray, Color.DarkGray)
+                val style = categoryStyles[post.category] ?: Pair(Color.LightGray, Color.DarkGray)
 
                 Text(
                     post.category,
