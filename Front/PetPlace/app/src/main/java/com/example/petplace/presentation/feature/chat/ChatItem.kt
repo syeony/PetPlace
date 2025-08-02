@@ -14,6 +14,7 @@ import com.example.petplace.data.local.chat.ChatRoom
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
@@ -23,90 +24,76 @@ import com.example.petplace.R
 
 @Composable
 fun ChatItem(chat: ChatRoom, onClick: () -> Unit) {
-    Card(
+    Row(
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        onClick = onClick
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        Image(
+            painter = painterResource(id = chat.profileImageUrl!!),
+            contentDescription = "Profile Image",
             modifier = Modifier
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 프로필 이미지 (기본 아이콘 사용)
-            Image(
-                painter = painterResource(id = chat.profileImageUrl!!), // 대체 이미지 필요
-                contentDescription = "Profile Image",
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-            )
+                .size(56.dp)
+                .clip(CircleShape)
+        )
 
-            Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = chat.name,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = chat.region,
-                        color = Color.Gray,
-                        fontSize = 10.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(text = chat.time, color = Color.Gray, fontSize = 12.sp)
-                }
-
-                Spacer(modifier = Modifier.height(2.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.Top
-                ) {
-                    // 1. 메시지 텍스트
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = chat.lastMessage,
-                            color = Color.Gray,
-                            fontSize = 14.sp,
-                            maxLines = 2, // 또는 Int.MAX_VALUE
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    // 2. 뱃지
-                    if (chat.unreadCount > 0) {
-                        Box(
-                            modifier = Modifier
-                                .padding(start = 8.dp, top = 4.dp)
-                                .size(20.dp)
-                                .background(Color.Red, shape = CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = chat.unreadCount.toString(),
-                                color = Color.White,
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                }
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = chat.name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = chat.region,
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            //
+            Text(
+                text = chat.lastMessage,
+                color = Color.Gray,
+                fontSize = 14.sp,
+                maxLines = 1
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.align(Alignment.Top)
+        ) {
+            Text(
+                text = chat.time,
+                color = Color.Gray,
+                fontSize = 12.sp
+            )
+
+            if (chat.unreadCount > 0) {
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .background(Color.Red, shape = CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = chat.unreadCount.toString(),
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }

@@ -3,7 +3,7 @@ package com.minjeok4go.petplace.domain.feed.model;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -13,30 +13,44 @@ import java.util.List;
 public class FeedDto {
     private Long id;
     private String content;
+    private Long userId;            // ✅ uid → userId
     private String userNick;
     private String userImg;
-    private Integer rid;
+    private Long regionId;          // ✅ rid → regionId
     private String category;
-    private List<Integer> tags;
     private LocalDateTime createdAt;
-    private Integer like;
-    private Integer view;
-    private Double score; //  추천 점수 (선택 사항) (프런트에 추천 강도 표시, 추천 순서 정렬 등 필요할 때 사용하기 위해 추가)
+    private LocalDateTime updatedAt;
+    private LocalDateTime deletedAt;
+    private Integer likes;          // ✅ like → likes
+    private Integer views;          // ✅ view → views
+    private Double score;           // ✅ 추천 점수
+    private List<TagDto> tags;      // ✅ FeedTag → TagDto 변환
+    private List<CommentDto> comments;
+    private Integer commentCount;
 
-    // Feed → FeedDto 변환 메서드 서비스 / 컨특롤러에서 쉽게 DTO로 변환하기 위해 쓰는 패턴 (정적 변환 메서드)
     public static FeedDto from(Feed feed, Double score) {
         return FeedDto.builder()
                 .id(feed.getId())
                 .content(feed.getContent())
+                .userId(feed.getUserId())
                 .userNick(feed.getUserNick())
                 .userImg(feed.getUserImg())
-                .rid(feed.getRid())
-                .category(feed.getCategory())
-                .tags(feed.getTags())
+                .regionId(feed.getRegionId())
+                .category(feed.getCategory().name())
                 .createdAt(feed.getCreatedAt())
-                .like(feed.getLike())
-                .view(feed.getView())
+                .updatedAt(feed.getUpdatedAt())
+                .deletedAt(feed.getDeletedAt())
+                .likes(feed.getLikes())
+                .views(feed.getViews())
                 .score(score)
+                .tags(feed.getFeedTags().stream()
+                        .map(ft -> new TagDto(ft.getTag().getId(), ft.getTag().getName()))
+                        .distinct()
+                        .collect(Collectors.toList()))
+                .comments(feed.getComments().stream()
+                        .map(CommentDto::from)
+                        .collect(Collectors.toList()))
+                .commentCount(feed.getComments().size())
                 .build();
     }
 }
