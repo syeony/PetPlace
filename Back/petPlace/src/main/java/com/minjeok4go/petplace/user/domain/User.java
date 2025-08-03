@@ -47,7 +47,7 @@ public class User {
     @Column
     private LocalDateTime deletedAt;
 
-    @Column(name = "region_id", nullable = false)
+    @Column(name = "region_id") // nullable = true로 변경 (테스트용)
     private Long regionId; // ⭐️ 나중에 Region 엔티티와 @ManyToOne 관계로 변경될 수 있습니다.
 
     @Column(name = "default_pet_id")

@@ -39,7 +39,7 @@ public class UserService {
                 .password(encodedPassword) // 암호화된 비밀번호 저장
                 .name(requestDto.getName())
                 .nickname(requestDto.getNickname())
-                .regionId(requestDto.getRegionId())
+                .regionId(requestDto.getRegionId() != null ? requestDto.getRegionId() : 1L) // 기본값 설정
                 .ci(requestDto.getCi())
                 .phoneNumber(requestDto.getPhoneNumber())
                 .gender(requestDto.getGender())
