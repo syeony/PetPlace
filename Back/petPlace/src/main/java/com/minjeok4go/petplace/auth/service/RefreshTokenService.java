@@ -21,7 +21,7 @@ public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
-    // Refresh Token 저장 또는 업데이트
+    // Refresh Token 저장 또는 업데이트 (userId는 실제로 userName을 저장)
     public void saveOrUpdate(String userId, String refreshToken) {
         LocalDateTime expiresAt = jwtTokenProvider.getRefreshTokenExpiryDate();
 
@@ -69,7 +69,7 @@ public class RefreshTokenService {
         return jwtTokenProvider.validateRefreshToken(refreshToken);
     }
 
-    // 사용자의 모든 Refresh Token 삭제 (로그아웃)
+    // 사용자의 모든 Refresh Token 삭제 (로그아웃) - userId는 실제로 userName
     public void deleteByUserId(String userId) {
         refreshTokenRepository.deleteByUserId(userId);
     }

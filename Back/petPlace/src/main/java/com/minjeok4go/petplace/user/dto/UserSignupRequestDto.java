@@ -10,11 +10,11 @@ import java.time.LocalDate;
 @Getter
 @NoArgsConstructor
 public class UserSignupRequestDto {
-    private String userId;
+    private String userName;
     private String password;
     private String name;
     private String nickname;
-    private Long rid;
+    private Long regionId;
     private String ci;
     private String phoneNumber;
     private String gender;

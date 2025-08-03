@@ -33,12 +33,12 @@ public class JwtTokenProvider {
     }
 
     // ✅ Access Token 생성 (Enum 적용)
-    public String createAccessToken(String userId) {
+    public String createAccessToken(String userName) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + accessTokenExpirationTime);
 
         return Jwts.builder()
-                .setSubject(userId)
+                .setSubject(userName)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .claim("type", TokenType.ACCESS.toString())  // ✅ Enum 사용
@@ -47,12 +47,12 @@ public class JwtTokenProvider {
     }
 
     // ✅ Refresh Token 생성 (Enum 적용)
-    public String createRefreshToken(String userId) {
+    public String createRefreshToken(String userName) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + refreshTokenExpirationTime);
 
         return Jwts.builder()
-                .setSubject(userId)
+                .setSubject(userName)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .claim("type", TokenType.REFRESH.toString())  // ✅ Enum 사용
@@ -60,11 +60,11 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String createToken(String userId) {
-        return createAccessToken(userId);
+    public String createToken(String userName) {
+        return createAccessToken(userName);
     }
 
-    public String getUserIdFromToken(String token) {
+    public String getUserNameFromToken(String token) {
         Claims claims = parseClaims(token);
         return claims.getSubject();
     }
@@ -76,11 +76,11 @@ public class JwtTokenProvider {
 
     public Authentication getAuthentication(String accessToken) {
         Claims claims = parseClaims(accessToken);
-        String userId = claims.getSubject();
+        String userName = claims.getSubject();
 
-        log.debug("토큰에서 추출한 사용자 ID: {}", userId);
+        log.debug("토큰에서 추출한 사용자 ID: {}", userName);
 
-        UserDetails userDetails = new User(userId, "", List.of());
+        UserDetails userDetails = new User(userName, "", List.of());
         return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 

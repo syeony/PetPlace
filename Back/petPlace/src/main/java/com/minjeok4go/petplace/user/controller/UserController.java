@@ -33,9 +33,9 @@ public class UserController {
     @Operation(summary = "아이디 중복 체크", description = "입력한 아이디가 이미 사용 중인지 확인합니다.")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "사용 가능한 아이디")
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 존재하는 아이디 (중복)")
-    @PostMapping("/check-userid")
-    public ResponseEntity<ApiResponse<Void>> checkUserIdDuplicate(@RequestParam("user_id") String userId) {
-        boolean isDuplicate = userService.checkUserIdDuplicate(userId).getDuplicate();
+    @PostMapping("/check-username")
+    public ResponseEntity<ApiResponse<Void>> checkUserNameDuplicate(@RequestParam("user_name") String userName) {
+        boolean isDuplicate = userService.checkUserNameDuplicate(userName).getDuplicate();
 
         if (isDuplicate) {
             return ResponseEntity.status(HttpStatus.CONFLICT)

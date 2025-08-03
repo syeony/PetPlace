@@ -22,10 +22,10 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT
-    private Long id;
+    private Integer id;
 
-    @Column(nullable = false, unique = true, length = 20)
-    private String userId;
+    @Column(name = "user_name", nullable = false, unique = true, length = 20)
+    private String userName;
 
     @Column(nullable = false, length = 200)
     private String password;
@@ -47,11 +47,11 @@ public class User {
     @Column
     private LocalDateTime deletedAt;
 
-    @Column(nullable = false)
-    private Long rid; // ⭐️ 나중에 Region 엔티티와 @ManyToOne 관계로 변경될 수 있습니다.
+    @Column(name = "region_id", nullable = false)
+    private Long regionId; // ⭐️ 나중에 Region 엔티티와 @ManyToOne 관계로 변경될 수 있습니다.
 
-    @Column
-    private Long defaultPetId; // ⭐️ 나중에 Pet 엔티티와 @OneToOne 관계로 변경될 수 있습니다.
+    @Column(name = "default_pet_id")
+    private Integer defaultPetId; // ⭐️ 나중에 Pet 엔티티와 @OneToOne 관계로 변경될 수 있습니다.
 
     @Column(length = 200)
     private String kakaoOauth;
@@ -62,8 +62,8 @@ public class User {
     @Column(nullable = false)
     private BigDecimal petSmell;
 
-    @Column
-    private Long defaultBadgeId; // ⭐️ 나중에 Badge 엔티티와 관계로 변경될 수 있습니다.
+    @Column(name = "default_badge_id")
+    private Integer defaultBadgeId; // ⭐️ 나중에 Badge 엔티티와 관계로 변경될 수 있습니다.
 
     @Column(nullable = false, unique = true, length = 88)
     private String ci;
@@ -88,12 +88,12 @@ public class User {
 
     // 회원가입 시 필요한 정보를 받는 빌더
     @Builder
-    public User(String userId, String password, String name, String nickname, Long rid, String ci, String phoneNumber, String gender, LocalDate birthday) {
-        this.userId = userId;
+    public User(String userName, String password, String name, String nickname, Long regionId, String ci, String phoneNumber, String gender, LocalDate birthday) {
+        this.userName = userName;
         this.password = password;
         this.name = name;
         this.nickname = nickname;
-        this.rid = rid;
+        this.regionId = regionId;
         this.ci = ci;
         this.phoneNumber = phoneNumber;
         this.gender = gender;
