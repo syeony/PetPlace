@@ -38,7 +38,7 @@ public class AuthService {
         refreshTokenService.saveOrUpdate(user.getUserId(), refreshToken);
 
         // 5. 토큰 및 사용자 정보 반환
-        return new TokenDto(
+        return TokenDto.of(
                 accessToken,
                 refreshToken,
                 user.getUserId(),

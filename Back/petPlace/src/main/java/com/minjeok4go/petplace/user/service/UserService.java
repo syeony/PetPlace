@@ -2,7 +2,6 @@
 package com.minjeok4go.petplace.user.service;
 
 import com.minjeok4go.petplace.user.domain.User;
-import com.minjeok4go.petplace.user.dto.AutoLoginResponseDto;
 import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.repository.UserRepository;
@@ -10,8 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -76,16 +73,5 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 아이디입니다."));
     }
 
-    public AutoLoginResponseDto getAutoLoginInfo(String userId) {
-        // 사용자 정보 조회
-        Optional<User> userOptional = userRepository.findByUserId(userId);
-
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            return AutoLoginResponseDto.success(user.getUserId(), user.getNickname());
-        } else {
-            throw new RuntimeException("사용자를 찾을 수 없습니다: " + userId);
-        }
-    }
 
 }

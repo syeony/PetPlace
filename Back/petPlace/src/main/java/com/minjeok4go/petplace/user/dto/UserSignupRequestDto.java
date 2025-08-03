@@ -2,12 +2,13 @@
 package com.minjeok4go.petplace.user.dto;
 
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
+
 
 import java.time.LocalDate;
 
 @Getter
-@Setter
+@NoArgsConstructor
 public class UserSignupRequestDto {
     private String userId;
     private String password;

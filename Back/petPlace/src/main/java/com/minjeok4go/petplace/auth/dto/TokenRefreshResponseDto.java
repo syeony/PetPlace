@@ -1,33 +1,30 @@
 package com.minjeok4go.petplace.auth.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class TokenRefreshResponseDto {
     private String accessToken;
     private String refreshToken;
     private String message;
     private boolean success;
-
+    //Builder에서 생성자 사용으로 변경 함
     public static TokenRefreshResponseDto success(String accessToken, String refreshToken) {
-        return TokenRefreshResponseDto.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .message("토큰 갱신 성공")
-                .success(true)
-                .build();
+        return new TokenRefreshResponseDto(  // 생성자 사용
+                accessToken,
+                refreshToken,
+                "토큰 갱신 성공",
+                true
+        );
     }
 
     public static TokenRefreshResponseDto failure(String message) {
-        return TokenRefreshResponseDto.builder()
-                .message(message)
-                .success(false)
-                .build();
+        return new TokenRefreshResponseDto(null, null, message, false);
     }
+
 }

@@ -1,4 +1,3 @@
-// src/main/java/com/minjeok4go/petplace/user/domain/User.java
 package com.minjeok4go.petplace.user.domain;
 
 import jakarta.persistence.*;
@@ -6,14 +5,17 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "User") // 데이터베이스의 'User' 테이블과 매핑됩니다.
+@Table(name = "Users") // 데이터베이스의 'User' 테이블과 매핑됩니다.
+@EntityListeners(AuditingEntityListener.class) // ✅ JPA Auditing 추가
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA는 기본 생성자가 필요합니다.
 public class User {
@@ -34,9 +36,13 @@ public class User {
     @Column(nullable = false, unique = true, length = 20)
     private String nickname;
 
-    @CreationTimestamp // INSERT 시 현재 시간을 자동으로 저장합니다.
+    @CreatedDate // ✅ 생성 시간 자동 저장
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @LastModifiedDate // ✅ 수정 시간 자동 저장
+    @Column
+    private LocalDateTime updatedAt;
 
     @Column
     private LocalDateTime deletedAt;
