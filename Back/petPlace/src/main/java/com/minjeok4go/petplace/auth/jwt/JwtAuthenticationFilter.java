@@ -38,7 +38,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/swagger-resources",
             "/webjars",
             "/favicon.ico",
-            "/error"
+            "/error",
+            "/api/chat",
+            "/ws",
+            "/ws/chat"
     );
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
