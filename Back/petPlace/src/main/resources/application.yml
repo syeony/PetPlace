@@ -26,5 +26,4 @@ server:
 logging:
   level:
     com.minjeok4go.petplace.auth: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web.filter: DEBUG
+    root: INFO
