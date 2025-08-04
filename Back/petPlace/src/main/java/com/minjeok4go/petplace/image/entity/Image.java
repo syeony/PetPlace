@@ -4,6 +4,9 @@ import com.minjeok4go.petplace.common.constant.ImageType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedDate;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "images")
@@ -19,11 +22,23 @@ public class Image {
     private Long refId;
 
     @Column(name = "ref_type", nullable = false)
+    @Enumerated(EnumType.STRING)
     private ImageType refType;
 
     @Column(name = "src", nullable = false)
-    private String imageSrc;
+    private String src;
 
     @Column(name = "sort", nullable = false)
-    private String ImageSort;
+    private Integer sort;
+
+    @Column(name = "created_at", nullable = false)
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    public Image(Long refId, ImageType refType, String src, Integer sort) {
+        this.refId = refId;
+        this.refType = refType;
+        this.src = src;
+        this.sort = sort;
+    }
 }
