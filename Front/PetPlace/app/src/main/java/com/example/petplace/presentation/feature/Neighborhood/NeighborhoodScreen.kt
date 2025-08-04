@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +45,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -71,6 +74,52 @@ fun NeighborhoodScreen(
 ) {
     val context = LocalContext.current
     val viewModel: NeighborhoodViewModel = hiltViewModel()
+    val showAdoptConfirm by viewModel.showAdoptConfirm.collectAsState()
+
+    //입양처 다이얼로그 확인창
+    if (showAdoptConfirm) {
+        AlertDialog(
+            onDismissRequest = { viewModel.setShowAdoptConfirm(false) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.notification),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(60.dp)
+                )
+            },
+            title = { Text("알림", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+            text = { Text("유기보호동물 보호소 홈페이지로 이동합니다.\n 가족이 되어주세요.",
+                fontSize   = 14.sp,
+                lineHeight = 20.sp,
+                color      = Color.Gray,
+                textAlign  = TextAlign.Center) },
+            confirmButton = {
+                Text(
+                    "확인",
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .clickable {
+                            val url = "https://www.animal.go.kr/front/awtis/public/publicList.do?menuNo=1000000055"
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            context.startActivity(intent)
+                            viewModel.setShowAdoptConfirm(false)
+                        },
+                    color = Color(0xFFF79800)
+                )
+            },
+            dismissButton = {
+                Text(
+                    "취소",
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .clickable { viewModel.setShowAdoptConfirm(false) },
+                    color = Color.Gray
+                )
+            },
+            containerColor = Color.White
+        )
+    }
 
     /* -------- ViewModel state -------- */
     val tags = viewModel.tags                 // List<TagItem>
@@ -158,10 +207,8 @@ fun NeighborhoodScreen(
                                     "실종펫 등록" -> navController.navigate("missing_register")
                                     "실종펫 신고" -> navController.navigate("missing_report")
                                     "돌봄/산책"    -> navController.navigate("walk_and_care")
-                                    "입양처"   -> {
-                                        val url = "https://www.animal.go.kr/front/awtis/public/publicList.do?menuNo=1000000055"
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                        context.startActivity(intent)
+                                    "입양처" -> {
+                                        viewModel.setShowAdoptConfirm(true)
                                     }
                                     "실종펫 리스트" -> navController.navigate("missing_list")
                                     "동물호텔" -> navController.navigate("hotel")

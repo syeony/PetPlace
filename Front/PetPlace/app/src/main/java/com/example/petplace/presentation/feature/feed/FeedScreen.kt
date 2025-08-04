@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -85,6 +85,82 @@ fun FeedScreen(
             .background(bgColor)
     ) {
         Column {
+            //헤더
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 왼쪽: 로고 + 텍스트
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.pp_logo), // 업로드한 이미지 리소스
+                        contentDescription = "Pet Place Logo",
+                        modifier = Modifier.size(50.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = "Pet Place",
+                            fontSize = 20.sp,
+                            color = Color(0xFF1E293B) // 짙은 남색 계열
+                        )
+                        Text(
+                            text = "우리동네 펫 커뮤니티",
+                            fontSize = 14.sp,
+                            color = Color(0xFF475569)
+                        )
+                    }
+                }
+
+                // 오른쪽: 검색 + 알림 아이콘
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { isSearchMode = !isSearchMode }) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "검색",
+                            tint = Color(0xFF1E293B),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    IconButton(onClick = { /* 알림 버튼 동작 추가 가능 */ }) {
+                        Icon(
+                            painter = painterResource(R.drawable.outline_notifications_24),
+                            contentDescription = "알림",
+                            tint = Color(0xFF1E293B),
+                            modifier = Modifier.size(25.dp)
+                        )
+                    }
+                }
+            }
+
+            /* 검색창 (토글) */
+            if (isSearchMode) {
+                OutlinedTextField(
+                    value = searchText,
+                    onValueChange = viewModel::updateSearchText,
+                    placeholder = { Text("검색어를 입력하세요", fontSize = 12.sp) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(44.dp), // 높이 조정,
+                    singleLine = true,
+                    shape = RoundedCornerShape(40.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = hashtagColor,
+                        unfocusedBorderColor = hashtagColor,
+                        cursorColor          = hashtagColor,
+                        focusedContainerColor   = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
+                )
+            }
+
             /* 카테고리 선택 바 */
             Row(
                 modifier = Modifier
@@ -113,27 +189,6 @@ fun FeedScreen(
             }
 
             Spacer(Modifier.height(8.dp))
-
-            /* 검색창 (토글) */
-            if (isSearchMode) {
-                OutlinedTextField(
-                    value = searchText,
-                    onValueChange = viewModel::updateSearchText,
-                    placeholder = { Text("검색어를 입력하세요") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    singleLine = true,
-                    shape = RoundedCornerShape(40.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor   = hashtagColor,
-                        unfocusedBorderColor = hashtagColor,
-                        cursorColor          = hashtagColor,
-                        focusedContainerColor   = Color.White,
-                        unfocusedContainerColor = Color.White
-                    )
-                )
-            }
 
             /* 피드 리스트 */
             LazyColumn {
@@ -167,15 +222,15 @@ fun FeedScreen(
                 .padding(16.dp)
         ) { Icon(Icons.Default.Add, contentDescription = "글쓰기") }
 
-        FloatingActionButton(
-            onClick = { isSearchMode = !isSearchMode },
-            containerColor = Color(0xFFF79800),
-            contentColor   = Color.White,
-            shape = CircleShape,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = (-16).dp, y = 72.dp)
-        ) { Icon(Icons.Default.Search, contentDescription = "검색") }
+//        FloatingActionButton(
+//            onClick = { isSearchMode = !isSearchMode },
+//            containerColor = Color(0xFFF79800),
+//            contentColor   = Color.White,
+//            shape = CircleShape,
+//            modifier = Modifier
+//                .align(Alignment.TopEnd)
+//                .offset(x = (-16).dp, y = 72.dp)
+//        ) { Icon(Icons.Default.Search, contentDescription = "검색") }
     }
 }
 
@@ -239,7 +294,7 @@ private fun FeedItem(
         Spacer(Modifier.height(8.dp))
 
         /* ───── 이미지 영역 ───── */
-        if (feed.contentImg.isNullOrEmpty()) {
+        if (feed.images.isNullOrEmpty()) {
             // 이미지가 없으면 플레이스홀더 1장
             Image(
                 painter        = painterResource(R.drawable.pp_logo),
@@ -251,7 +306,7 @@ private fun FeedItem(
             )
         } else {
             // 이미지가 있으면 Pager + 인디케이터
-            val pagerState = rememberPagerState(pageCount = { feed.contentImg!!.size })
+            val pagerState = rememberPagerState(pageCount = { feed.images!!.size })
 
             Box(
                 modifier = Modifier
@@ -262,9 +317,9 @@ private fun FeedItem(
                     state   = pagerState,
                     modifier = Modifier.fillMaxSize()
                 ) { page ->
-                    val img: ImgDto = feed.contentImg!![page]
+                    val img: ImgDto = feed.images!![page]
                     Image(
-                        painter = rememberAsyncImagePainter(img.link),
+                        painter = rememberAsyncImagePainter(img.src),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -272,7 +327,7 @@ private fun FeedItem(
                 }
 
                 Text(
-                    text = "${pagerState.currentPage + 1}/${feed.contentImg!!.size}",
+                    text = "${pagerState.currentPage + 1}/${feed.images!!.size}",
                     fontSize = 12.sp,
                     color = Color.White,
                     modifier = Modifier

@@ -111,8 +111,8 @@ private val tagCat      = TagDto(2,  "고양이")
 
 // 임시 피드 콘텐츠 사진
 private val tempImg = listOf(
-    ImgDto(1,"https://lh4.googleusercontent.com/proxy/d9kCctaZDANtXrlzOCIfN9dV8y0d0wD75pIdJ7RVeebztPErjpoy-oskh3PGWrm8jHuDDhNjMCzzD4PJ1RPFF4HRZckQcCEQfxyMWPQ-"),
-    ImgDto(2,"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/640px-Felis_catus-cat_on_snow.jpg"))
+    ImgDto("https://lh4.googleusercontent.com/proxy/d9kCctaZDANtXrlzOCIfN9dV8y0d0wD75pIdJ7RVeebztPErjpoy-oskh3PGWrm8jHuDDhNjMCzzD4PJ1RPFF4HRZckQcCEQfxyMWPQ-",1),
+    ImgDto("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/640px-Felis_catus-cat_on_snow.jpg",2))
 
 /* 댓글 샘플 (feed 1번) */
 private val feed1Comments = listOf(
@@ -153,12 +153,12 @@ val dummyFeeds = listOf(
         tags = listOf(tagDog, tagWalk, tagSnack),
         commentCount = feed1Comments.size,
         comments = feed1Comments,
-        contentImg = tempImg
+        images = tempImg
     ),
     FeedDto(
         id = 4, content = "오늘 초코가 새로운 장난감을 좋아했어요!",
         userId = userChulsoo.first, userNick = userChulsoo.second, userImg = userChulsoo.third,
-        regionId = 1001, category = "MYPET", createdAt = TS,
+        regionId = 1001, category = "INFO", createdAt = TS,
         tags = listOf(tagDog, tagCute)
     ),
     FeedDto(
@@ -170,19 +170,19 @@ val dummyFeeds = listOf(
     FeedDto(
         id = 21, content = "토토가 오늘 첫 산책을 나갔어요 🐇",
         userId = userMinsu.first, userNick = userMinsu.second, userImg = userMinsu.third,
-        regionId = 1003, category = "MYPET", createdAt = TS,
+        regionId = 1003, category = "나눔", createdAt = TS,
         tags = listOf(tagRabbit, tagGoods)
     ),
     FeedDto(
         id = 26, content = "토토가 너무 귀여워서 사진 찍었어요 📸",
         userId = userMinsu.first, userNick = userMinsu.second, userImg = userMinsu.third,
-        regionId = 1003, category = "MYPET", createdAt = TS,
+        regionId = 1003, category = "공구", createdAt = TS,
         tags = listOf(tagRabbit, tagReview)
     ),
     FeedDto(
         id = 28, content = "오늘 토토가 제 손을 핥았어요 🥰",
         userId = userMinsu.first, userNick = userMinsu.second, userImg = userMinsu.third,
-        regionId = 1003, category = "MYPET", createdAt = TS,
+        regionId = 1003, category = "자유", createdAt = TS,
         tags = listOf(tagRabbit, tagPhoto)
     ),
     FeedDto(
