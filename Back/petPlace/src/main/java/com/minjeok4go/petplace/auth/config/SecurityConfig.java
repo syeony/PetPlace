@@ -36,13 +36,17 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능한 경로
                         .requestMatchers(
-                                "/api/user/signup", 
+                                "/api/user/signup",
                                 "/api/auth/login",
-                                "/api/user/check-userid", 
+                                "/api/user/check-userid",
                                 "/api/user/check-nickname",
                                 "/api/auth/refresh",
-                                "/swagger-ui/**", 
-                                "/v3/api-docs/**"
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml",
+                                "/swagger-resources/**",
+                                "/webjars/**"
                         ).permitAll()
 
                         // 나머지는 인증 필요
