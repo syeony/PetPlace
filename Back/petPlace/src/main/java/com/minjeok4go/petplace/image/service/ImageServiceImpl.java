@@ -29,7 +29,7 @@ public class ImageServiceImpl implements ImageService {
     @Transactional(readOnly = true)
     public List<ImageResponse> getImages(ImageType refType, Long refId) {
         return imageRepository
-                .findByRefTypeAndRefIdOrdOrderBySortAsc(refType, refId)
+                .findByRefTypeAndRefIdOrderBySortAsc(refType, refId)
                 .stream()
                 .map(img -> new ImageResponse(img.getSrc(), img.getSort()))
                 .collect(Collectors.toList());

@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ImageRepository extends JpaRepository<Image, Long> {
-    List<Image> findByRefTypeAndRefIdOrdOrderBySortAsc(ImageType refType, Long refId);
+    List<Image> findByRefTypeAndRefIdOrderBySortAsc(ImageType refType, Long refId);
 }
