@@ -1,10 +1,8 @@
 package com.minjeok4go.petplace.feed.dto;
 
 import com.minjeok4go.petplace.comment.dto.CommentDto;
-import com.minjeok4go.petplace.common.constant.FeedCategory;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -13,21 +11,22 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FeedDetailDto {
+public class FeedListResponse {
     private Long id;
     private String content;
     private Long userId;
     private String userNick;
     private String userImg;
     private Long regionId;
-    private FeedCategory category;
+    private String category;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
     private Integer likes;
     private Integer views;
-    private List<TagDto> tags;
+    private Double score;
+    private List<TagResponse> tags;
     private List<ImageResponse> images;
-    private Integer commentCount;
     private List<CommentDto> comments;
+    private Integer commentCount;
 }

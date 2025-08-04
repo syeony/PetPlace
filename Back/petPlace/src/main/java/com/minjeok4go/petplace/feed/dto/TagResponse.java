@@ -7,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TagDto {
+public class TagResponse {
     private Long id;
-    private String name;  // ✅ tagName → name
+    private String name;
 }
