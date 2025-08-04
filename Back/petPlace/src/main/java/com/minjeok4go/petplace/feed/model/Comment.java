@@ -1,4 +1,4 @@
-package com.minjeok4go.petplace.domain.feed.model;
+package com.minjeok4go.petplace.feed.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;

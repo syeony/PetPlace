@@ -1,7 +1,7 @@
-package com.minjeok4go.petplace.domain.feed.service;
+package com.minjeok4go.petplace.feed.service;
 
-import com.minjeok4go.petplace.domain.feed.model.*;
-import com.minjeok4go.petplace.domain.feed.repository.FeedRepository;
+import com.minjeok4go.petplace.feed.model.*;
+import com.minjeok4go.petplace.feed.repository.FeedRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

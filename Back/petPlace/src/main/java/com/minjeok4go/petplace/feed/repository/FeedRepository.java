@@ -1,7 +1,7 @@
-package com.minjeok4go.petplace.domain.feed.repository;
+package com.minjeok4go.petplace.feed.repository;
 
-import com.minjeok4go.petplace.domain.feed.model.Feed;
-import com.minjeok4go.petplace.domain.feed.model.FeedCategory;
+import com.minjeok4go.petplace.feed.model.Feed;
+import com.minjeok4go.petplace.feed.model.FeedCategory;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

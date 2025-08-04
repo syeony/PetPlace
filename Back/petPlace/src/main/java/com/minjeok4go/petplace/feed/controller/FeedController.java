@@ -1,9 +1,9 @@
-package com.minjeok4go.petplace.domain.feed.controller;
+package com.minjeok4go.petplace.feed.controller;
 
-import com.minjeok4go.petplace.domain.feed.model.FeedDetailDto;
-import com.minjeok4go.petplace.domain.feed.model.FeedDto;
-import com.minjeok4go.petplace.domain.feed.service.FeedService;
-import com.minjeok4go.petplace.domain.feed.service.RecommendationService;
+import com.minjeok4go.petplace.feed.model.FeedDetailDto;
+import com.minjeok4go.petplace.feed.model.FeedDto;
+import com.minjeok4go.petplace.feed.service.FeedService;
+import com.minjeok4go.petplace.feed.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
