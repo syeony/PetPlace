@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 public class FeedDto {
     private Long id;
     private String content;
-    private Long userId;            // ✅ uid → userId
+    private Integer userId;            // ✅ uid → userId (타입 수정: Long → Integer)
     private String userNick;
     private String userImg;
     private Long regionId;          // ✅ rid → regionId

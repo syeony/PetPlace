@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.auth.config;
 
+import com.minjeok4go.petplace.auth.filter.RequestLoggingFilter;
 import com.minjeok4go.petplace.auth.jwt.JwtAuthenticationEntryPoint;
 import com.minjeok4go.petplace.auth.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final RequestLoggingFilter requestLoggingFilter;  // 추가
+
 
 
     @Bean
@@ -32,18 +35,20 @@ public class SecurityConfig {
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         // 인증 없이 접근 가능한 경로
-//                        .requestMatchers("/api/user/signup", "/api/user/login",
-//                                "/api/user/check-userid", "/api/user/check-nickname",
-//                                "/api/auth/refresh",
-//                                "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-//                        //자동 로그인은 토큰 인증 필요해
-//                        .requestMatchers("/api/user/auto-login").authenticated()
-//
-//                        // 나머지는 인증 필요
-//                        .anyRequest().authenticated()
-                        .anyRequest().permitAll() // 임시로 이렇게 변경
+                        .requestMatchers(
+                                "/api/user/signup", 
+                                "/api/auth/login",
+                                "/api/user/check-userid", 
+                                "/api/user/check-nickname",
+                                "/api/auth/refresh",
+                                "/swagger-ui/**", 
+                                "/v3/api-docs/**"
+                        ).permitAll()
 
+                        // 나머지는 인증 필요
+                        .anyRequest().authenticated()
                 )
+                .addFilterBefore(requestLoggingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

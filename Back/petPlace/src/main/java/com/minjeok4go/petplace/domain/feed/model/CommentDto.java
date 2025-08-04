@@ -16,7 +16,7 @@ public class CommentDto {
     private Long parentCommentId;   // ✅ cid → parent_comment_id
     private Long feedId;            // ✅ fid → feed_id
     private String content;
-    private Long userId;            // ✅ uid → user_id
+    private Integer userId;            // ✅ uid → user_id (타입 수정: Long → Integer)
     private String userNick;
     private String userImg;
     private LocalDateTime createdAt;
