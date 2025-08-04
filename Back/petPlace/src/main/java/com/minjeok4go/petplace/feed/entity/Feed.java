@@ -5,6 +5,8 @@ import com.minjeok4go.petplace.common.constant.FeedCategory;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,6 +18,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class Feed {
 
     @Id
@@ -51,16 +54,20 @@ public class Feed {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @Column(name = "likes", nullable = false)
+    @Builder.Default
+    @Column(nullable = false)
     private Integer likes = 0;
 
-    @Column(name = "views", nullable = false)
+    @Builder.Default
+    @Column(nullable = false)
     private Integer views = 0;
 
+    @Builder.Default
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
     private Set<FeedTag> feedTags = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
     private Set<Comment> comments = new HashSet<>();
