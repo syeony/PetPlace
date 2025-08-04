@@ -1,11 +1,16 @@
 package com.example.petplace.presentation.common.navigation
 
+import android.annotation.SuppressLint
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -24,13 +29,18 @@ import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.hotel.AnimalSelectScreen
 import com.example.petplace.presentation.feature.hotel.DateSelectionScreen
 import com.example.petplace.presentation.feature.hotel.HotelListScreen
+import com.example.petplace.presentation.feature.hotel.HotelSharedViewModel
 import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.missing_list.MissingListScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
+import androidx.lifecycle.ViewModel
+import androidx.navigation.navigation
 
+@RequiresApi(Build.VERSION_CODES.O)
+@SuppressLint("UnrememberedGetBackStackEntry")
 @Composable
 fun MainScaffold() {
     val navController = rememberNavController()
@@ -91,9 +101,32 @@ fun MainScaffold() {
             composable("family/select") { FamilySelectScreen(navController) }
             composable("walk_and_care") { WalkAndCareScreen(navController) }
             composable("missing_list"){ MissingListScreen(navController) }
-            composable("hotel"){AnimalSelectScreen(navController)}
-            composable("DateSelectionScreen"){DateSelectionScreen(navController)}
-            composable("HotelListScreen"){ HotelListScreen(navController) }
+//            composable("hotel"){AnimalSelectScreen(navController)}
+//            composable("DateSelectionScreen"){DateSelectionScreen(navController)}
+//            composable("HotelListScreen"){ HotelListScreen(navController) }
+            navigation(startDestination = "hotel/animal", route = "hotel_graph") {
+                composable("hotel/animal") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                    AnimalSelectScreen(navController, viewModel)
+                }
+                composable("hotel/date") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                    DateSelectionScreen(navController, viewModel)
+                }
+                composable("hotel/list") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                    HotelListScreen(navController, viewModel)
+                }
+            }
 
         }
     }

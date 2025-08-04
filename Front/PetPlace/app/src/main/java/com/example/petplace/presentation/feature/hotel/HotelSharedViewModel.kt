@@ -37,7 +37,10 @@ class HotelSharedViewModel @Inject constructor() : ViewModel() {
     fun selectAnimal(animal: String) {
         _reservationState.value = _reservationState.value.copy(selectedAnimal = animal)
     }
-
+    init {
+        android.util.Log.d("HotelVM", "HotelSharedViewModel 생성됨")
+        android.util.Log.d("HotelVM", "초기 상태: ${_reservationState.value}")
+    }
     fun increaseAnimalCount() {
         val current = _reservationState.value.animalCount ?: 1
         _reservationState.value = _reservationState.value.copy(

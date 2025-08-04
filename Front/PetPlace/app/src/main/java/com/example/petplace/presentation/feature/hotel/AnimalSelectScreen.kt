@@ -1,6 +1,5 @@
 package com.example.petplace.presentation.feature.hotel
 
-import android.content.res.Resources.Theme
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -19,22 +18,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.BackgroundColor
-import com.example.petplace.presentation.common.theme.PrimarySoft
-import com.example.petplace.presentation.feature.join.JoinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnimalSelectScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: HotelSharedViewModel
 ) {
     var selected by remember { mutableStateOf<String?>(null) }
-    val viewModel: HotelSharedViewModel = hiltViewModel()
     Scaffold(topBar = {
         CenterAlignedTopAppBar(
             title = { Text("펫호텔")},
@@ -70,7 +65,7 @@ fun AnimalSelectScreen(
                 onClick = {
                     selected = "강아지"
                     viewModel.selectAnimal(selected!!)
-                    navController.navigate("DateSelectionScreen")
+                    navController.navigate("hotel/date")
 
                 },
 
@@ -86,7 +81,7 @@ fun AnimalSelectScreen(
                 onClick = {
                     selected = "고양이"
                     viewModel.selectAnimal(selected!!)
-                    navController.navigate("DateSelectionScreen")
+                    navController.navigate("hotel/date")
                 }
             )
         }

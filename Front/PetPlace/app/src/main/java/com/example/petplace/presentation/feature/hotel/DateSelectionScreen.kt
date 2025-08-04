@@ -2,6 +2,7 @@ package com.example.petplace.presentation.feature.hotel
 
 import android.annotation.SuppressLint
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlin.math.log
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @RequiresApi(Build.VERSION_CODES.O)
@@ -39,8 +41,9 @@ import java.time.YearMonth
 @Composable
 fun DateSelectionScreen(
     navController: NavController,
-    viewModel: HotelSharedViewModel = hiltViewModel()
+    viewModel: HotelSharedViewModel
 ) {
+
     val currentMonth = YearMonth.now()
     val startMonth = currentMonth
     val endMonth = currentMonth.plusMonths(6)
@@ -49,7 +52,7 @@ fun DateSelectionScreen(
     val reservationState by viewModel.reservationState.collectAsState()
     var startDate by remember { mutableStateOf<LocalDate?>(null) }
     var endDate by remember { mutableStateOf<LocalDate?>(null) }
-
+    Log.d("animal" , "고른 동물 :${reservationState.selectedAnimal}")
     // 날짜 변경될 때마다 ViewModel에 반영
     LaunchedEffect(startDate, endDate) {
         viewModel.selectDate(
@@ -167,6 +170,10 @@ fun DateSelectionScreen(
                                             day.date
                                         }
                                     }
+                                    viewModel.selectDate(
+                                        startDate?.toString().orEmpty(),
+                                        endDate?.toString().orEmpty()
+                                    )
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -285,7 +292,18 @@ fun DateSelectionScreen(
             Spacer(modifier = Modifier.weight(1f))
             Button(
                 onClick = {
-                    navController.navigate("HotelListScreen")
+                    if (startDate == null) {
+                        startDate = today
+                    }
+                    if (endDate == null) {
+                        endDate = startDate
+                    }
+                    viewModel.selectDate(
+                        startDate?.toString().orEmpty(),
+                        endDate?.toString().orEmpty()
+                    )
+                    Log.d("당시","${startDate}  ${endDate}")
+                    navController.navigate("hotel/list")
                 },
                 modifier = Modifier
                     .fillMaxWidth()
