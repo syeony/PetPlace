@@ -150,7 +150,7 @@ fun FeedScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                         .height(44.dp), // 높이 조정,
                     singleLine = true,
-                    shape = RoundedCornerShape(40.dp),
+                    shape = RoundedCornerShape(45.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor   = hashtagColor,
                         unfocusedBorderColor = hashtagColor,

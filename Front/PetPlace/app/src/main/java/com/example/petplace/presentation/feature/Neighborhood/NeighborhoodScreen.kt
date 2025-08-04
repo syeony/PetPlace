@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -270,7 +270,7 @@ fun NeighborhoodScreen(
                 )
                 val style by remember {
                     mutableStateOf(
-                        LabelStyles.from(LabelStyle.from(R.drawable.location_on))
+                        LabelStyles.from(LabelStyle.from(R.drawable.marker_resized_48x48))
                     )
                 }
                 LaunchedEffect(markers) {
@@ -307,10 +307,13 @@ fun NeighborhoodScreen(
                     value = "",
                     onValueChange = {},
                     placeholder = { Text("애견 동반 장소를 검색하세요") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFFF79800)) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(30.dp)),
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(color = Color.White)
+                        .border(1.dp, Color(0xFFF79800),
+                            shape = RoundedCornerShape(30.dp)),
                     colors = TextFieldDefaults.textFieldColors(
                         containerColor = Color(0xFFF5F5F5),
                         focusedIndicatorColor = Color.Transparent,
@@ -318,12 +321,12 @@ fun NeighborhoodScreen(
                     ),
                     singleLine = true
                 )
-                Spacer(Modifier.height(16.dp))
+
                 /* 태그 리스트 */
                 Row(
                     Modifier
                         .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(vertical = 8.dp)
                 ) {
                     tags.forEach { tagItem ->
                         val isSelected = selectedTag == tagItem
@@ -332,7 +335,12 @@ fun NeighborhoodScreen(
                                 .padding(end = 8.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(
-                                    if (isSelected) Color(0xFFF79800) else Color(0xFFF5F5F5)
+                                    color = if (isSelected) Color(0xFFF79800) else Color.White
+                                )
+                                .border(
+                                    width = if (isSelected) 0.dp else 1.dp,
+                                    color = if (isSelected) Color.Transparent else Color(0xFFF79800),
+                                    shape = RoundedCornerShape(20.dp)
                                 )
                                 .clickable { viewModel.selectTag(tagItem)
                                     currentLng?.let {
