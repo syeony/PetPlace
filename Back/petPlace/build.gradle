@@ -42,7 +42,7 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'             // 개발용 자동 재시작, 핫스왑 등
 
     // --- API 문서화(Swagger/OpenAPI) ---
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'    // Swagger 문서 자동 생성
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'// Swagger 문서 자동 생성
 
     // --- JSON 파싱(Jackson) ---
     implementation 'com.fasterxml.jackson.core:jackson-databind'
