@@ -53,9 +53,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
+import com.example.petplace.data.local.feed.ImgDto
 import com.example.petplace.data.local.feed.TagDto
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -63,7 +65,7 @@ import com.example.petplace.data.local.feed.TagDto
 fun FeedScreen(
     navController: NavController,
     modifier:   Modifier = Modifier,
-    viewModel:  BoardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel:  BoardViewModel = hiltViewModel()
 ) {
     /* ---------- state ---------- */
     val selectedCategory by viewModel.selectedCategory.collectAsState()
@@ -260,8 +262,9 @@ private fun FeedItem(
                     state   = pagerState,
                     modifier = Modifier.fillMaxSize()
                 ) { page ->
+                    val img: ImgDto = feed.contentImg!![page]
                     Image(
-                        painter = rememberAsyncImagePainter(feed.contentImg!![page]),
+                        painter = rememberAsyncImagePainter(img.link),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

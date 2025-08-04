@@ -14,13 +14,19 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
 import com.example.petplace.data.local.feed.CommentDto
 import com.example.petplace.data.local.feed.FeedDto
+import com.example.petplace.data.local.feed.ImgDto
 import com.example.petplace.data.local.feed.TagDto
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class BoardViewModel : ViewModel() {
+@HiltViewModel
+class BoardViewModel @Inject constructor(
+
+): ViewModel() {
 
     /* 화면에 보여줄 카테고리(말풍선) */
     val allCategories = listOf("MYPET", "INFO", "나눔", "공구", "자유")
@@ -104,8 +110,9 @@ private val tagFoodRv   = TagDto(12, "사료후기")
 private val tagCat      = TagDto(2,  "고양이")
 
 // 임시 피드 콘텐츠 사진
-private val tempImg = listOf("https://lh4.googleusercontent.com/proxy/d9kCctaZDANtXrlzOCIfN9dV8y0d0wD75pIdJ7RVeebztPErjpoy-oskh3PGWrm8jHuDDhNjMCzzD4PJ1RPFF4HRZckQcCEQfxyMWPQ-",
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/640px-Felis_catus-cat_on_snow.jpg")
+private val tempImg = listOf(
+    ImgDto(1,"https://lh4.googleusercontent.com/proxy/d9kCctaZDANtXrlzOCIfN9dV8y0d0wD75pIdJ7RVeebztPErjpoy-oskh3PGWrm8jHuDDhNjMCzzD4PJ1RPFF4HRZckQcCEQfxyMWPQ-"),
+    ImgDto(2,"https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/640px-Felis_catus-cat_on_snow.jpg"))
 
 /* 댓글 샘플 (feed 1번) */
 private val feed1Comments = listOf(
