@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.auth.service;
 
-import com.minjeok4go.petplace.auth.domain.RefreshToken;
+import com.minjeok4go.petplace.auth.entity.RefreshToken;
 import com.minjeok4go.petplace.auth.dto.TokenRefreshResponseDto;
 import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
 import com.minjeok4go.petplace.auth.repository.RefreshTokenRepository;

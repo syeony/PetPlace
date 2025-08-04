@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.user.repository;
 
-import com.minjeok4go.petplace.user.domain.User;
+import com.minjeok4go.petplace.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

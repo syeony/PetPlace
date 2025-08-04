@@ -3,7 +3,7 @@ package com.minjeok4go.petplace.auth.service;
 
 import com.minjeok4go.petplace.auth.dto.TokenDto;
 import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
-import com.minjeok4go.petplace.user.domain.User;
+import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
 import com.minjeok4go.petplace.user.service.UserService;
 import lombok.RequiredArgsConstructor;

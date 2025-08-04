@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.auth.repository;
 
-import com.minjeok4go.petplace.auth.domain.RefreshToken;
+import com.minjeok4go.petplace.auth.entity.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,4 +1,4 @@
-package com.minjeok4go.petplace.auth.domain;
+package com.minjeok4go.petplace.auth.entity;
 // 데이터베이스에 Refresh Token 저장용으로 만들었음
 
 import jakarta.persistence.*;
