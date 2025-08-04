@@ -13,5 +13,6 @@ data class ChatRoom(
 
 data class ChatMessage(
     val content: String,
-    val isFromMe: Boolean
+    val isFromMe: Boolean,
+    val timestamp: String = ""
 )
