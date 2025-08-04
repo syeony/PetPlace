@@ -312,7 +312,7 @@ fun NeighborhoodScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(30.dp))
                         .background(color = Color.White)
-                        .border(1.dp, Color(0xFFF79800),
+                        .border(1.dp, Color(0xFFFFC981),
                             shape = RoundedCornerShape(30.dp)),
                     colors = TextFieldDefaults.textFieldColors(
                         containerColor = Color(0xFFF5F5F5),
@@ -339,7 +339,7 @@ fun NeighborhoodScreen(
                                 )
                                 .border(
                                     width = if (isSelected) 0.dp else 1.dp,
-                                    color = if (isSelected) Color.Transparent else Color(0xFFF79800),
+                                    color = if (isSelected) Color.Transparent else Color(0xFFFFC981),
                                     shape = RoundedCornerShape(20.dp)
                                 )
                                 .clickable { viewModel.selectTag(tagItem)
