@@ -23,18 +23,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
 
-    // SecurityConfig와 동일한 공개 경로 목록
+    // 🔥 SecurityConfig와 동일한 공개 경로 목록 - 더 포괄적으로 설정
     private static final List<String> PUBLIC_URLS = Arrays.asList(
+            // 사용자 API
             "/api/user/signup",
             "/api/user/check-username", 
             "/api/user/check-nickname",
+            // 인증 API
             "/api/auth/login",
             "/api/auth/refresh",
+            // Swagger 관련 - 모든 패턴 포함
             "/swagger-ui",
             "/v3/api-docs",
             "/swagger-resources",
             "/webjars",
-            "/favicon.ico"
+            "/favicon.ico",
+            "/error"
     );
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
@@ -108,6 +112,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 log.debug("startsWith 매칭: {}", publicUrl);
                 return true;
             }
+        }
+
+        // 🔥 추가: 특정 swagger 파일들 개별 허용
+        if (requestURI.contains("swagger") || 
+            requestURI.contains("api-docs") || 
+            requestURI.contains("webjars")) {
+            log.debug("Swagger 관련 경로 허용: {}", requestURI);
+            return true;
         }
 
         return false;
