@@ -4,11 +4,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 
 @Composable
-fun HotelScreen(
+fun HotelListScreen(
     navController: NavController,
-    modifier: Modifier = Modifier
 ) {
-    Text(text = "동물호텔 화면입니다.", modifier = modifier)
+    Text(text = "호텔리스트 화면입니다.")
 }
