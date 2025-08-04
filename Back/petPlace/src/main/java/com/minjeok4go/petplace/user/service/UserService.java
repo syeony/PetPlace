@@ -1,7 +1,7 @@
 // src/main/java/com/minjeok4go/petplace/user/service/UserService.java
 package com.minjeok4go.petplace.user.service;
 
-import com.minjeok4go.petplace.user.domain.User;
+import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.repository.UserRepository;

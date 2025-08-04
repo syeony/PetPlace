@@ -71,7 +71,7 @@ public class AuthController {
 
             if (authentication != null && authentication.isAuthenticated()) {
                 String userName = authentication.getName();
-                refreshTokenService.deleteByUserId(userName);  // RefreshToken의 userId는 userName을 저장
+                refreshTokenService.deleteByUserName(userName);  // RefreshToken의 userId는 userName을 저장
                 return ResponseEntity.ok(ApiResponse.success("로그아웃 성공"));
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
