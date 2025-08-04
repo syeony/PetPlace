@@ -23,6 +23,12 @@ spring:
 
 server:
   port: 8080
+portone:
+  api-key: ${PORTONE_API_KEY}
+  secret-key: ${PORTONE_SECRET_KEY}
+  store-id: ${PORTONE_STORE_ID}
+  channel-key: channel-key-680df6ca-d2e7-4c93-9a7c-bae25c42e559
+  base-url: https://api.iamport.kr
 
 logging:
   level:
