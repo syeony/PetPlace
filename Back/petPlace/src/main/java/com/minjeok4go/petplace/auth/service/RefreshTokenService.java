@@ -21,24 +21,26 @@ public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
-    // Refresh Token 저장 또는 업데이트 (userId는 실제로 userName을 저장)
-    public void saveOrUpdate(String userId, String refreshToken) {
+    // Refresh Token 저장 또는 업데이트
+    public void saveOrUpdate(String userName, String refreshToken) {
         LocalDateTime expiresAt = jwtTokenProvider.getRefreshTokenExpiryDate();
 
-        Optional<RefreshToken> existingToken = refreshTokenRepository.findByUserId(userId);
+        Optional<RefreshToken> existingToken = refreshTokenRepository.findByUserName(userName);
 
         if (existingToken.isPresent()) {
             // 기존 토큰 업데이트
-            existingToken.get().updateToken(refreshToken, expiresAt);
-            existingToken.get();
+            RefreshToken token = existingToken.get();
+            token.updateToken(refreshToken, expiresAt);
+            log.debug("기존 Refresh Token 업데이트 완료 - UserName: {}", userName);
         } else {
             // 새 토큰 저장
             RefreshToken newRefreshToken = RefreshToken.builder()
-                    .userId(userId)
+                    .userName(userName)
                     .refreshToken(refreshToken)
                     .expiresAt(expiresAt)
                     .build();
             refreshTokenRepository.save(newRefreshToken);
+            log.debug("새 Refresh Token 저장 완료 - UserName: {}", userName);
         }
     }
 
@@ -60,7 +62,7 @@ public class RefreshTokenService {
 
         RefreshToken token = tokenOptional.get();
         if (token.isExpired()) {
-            log.warn("Refresh Token이 만료됨: {}", refreshToken);
+            log.warn("Refresh Token이 만료됨 - UserName: {}", token.getUserName());
             // 만료된 토큰 삭제
             refreshTokenRepository.delete(token);
             return false;
@@ -69,19 +71,21 @@ public class RefreshTokenService {
         return jwtTokenProvider.validateRefreshToken(refreshToken);
     }
 
-    // 사용자의 모든 Refresh Token 삭제 (로그아웃) - userId는 실제로 userName
-    public void deleteByUserId(String userId) {
-        refreshTokenRepository.deleteByUserId(userId);
+    // 사용자의 모든 Refresh Token 삭제 (로그아웃)
+    public void deleteByUserName(String userName) {
+        refreshTokenRepository.deleteByUserName(userName);
+        log.debug("사용자의 모든 Refresh Token 삭제 완료 - UserName: {}", userName);
     }
 
     // 특정 Refresh Token 삭제
     public void deleteByRefreshToken(String refreshToken) {
         refreshTokenRepository.deleteByRefreshToken(refreshToken);
+        log.debug("특정 Refresh Token 삭제 완료");
     }
 
-    // ✅ 강화된 토큰 갱신 메서드
+    // ✅ 강화된 토큰 갱신 메서드 (토큰 로테이션 보안 강화)
     public TokenRefreshResponseDto refreshToken(String refreshToken) {
-        log.info("토큰 갱신 요청 시작");
+        log.debug("토큰 갱신 요청 시작");
 
         // 1. 원자적 토큰 검증 및 즉시 삭제 (Race Condition 방지)
         RefreshToken token = findAndDeleteRefreshToken(refreshToken);
@@ -93,41 +97,41 @@ public class RefreshTokenService {
 
         // 2. 만료 검증
         if (token.isExpired()) {
-            log.warn("만료된 Refresh Token 사용 시도 - UserId: {}", token.getUserId());
+            log.warn("만료된 Refresh Token 사용 시도 - UserName: {}", token.getUserName());
             throw new IllegalArgumentException("만료된 Refresh Token입니다.");
         }
 
         // 3. JWT 토큰 자체 유효성 검증
         if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
-            log.warn("JWT 검증 실패한 Refresh Token - UserId: {}", token.getUserId());
+            log.warn("JWT 검증 실패한 Refresh Token - UserName: {}", token.getUserName());
             // 보안 위협 감지: 해당 사용자의 모든 토큰 무효화
-            deleteByUserId(token.getUserId());
+            deleteByUserName(token.getUserName());
             throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다. 보안을 위해 모든 세션이 종료되었습니다.");
         }
 
-        String userId = token.getUserId();
-        log.info("토큰 갱신 진행 - UserId: {}", userId);
+        String userName = token.getUserName();
+        log.debug("토큰 갱신 진행 - UserName: {}", userName);
 
         try {
             // 4. 새로운 토큰 쌍 생성
-            String newAccessToken = jwtTokenProvider.createAccessToken(userId);
-            String newRefreshToken = jwtTokenProvider.createRefreshToken(userId);
+            String newAccessToken = jwtTokenProvider.createAccessToken(userName);
+            String newRefreshToken = jwtTokenProvider.createRefreshToken(userName);
 
             // 5. 새로운 Refresh Token 저장
-            saveOrUpdate(userId, newRefreshToken);
+            saveOrUpdate(userName, newRefreshToken);
 
-            log.info("토큰 갱신 성공 - UserId: {}", userId);
+            log.debug("토큰 갱신 성공 - UserName: {}", userName);
             return TokenRefreshResponseDto.success(newAccessToken, newRefreshToken);
 
         } catch (Exception e) {
-            log.error("토큰 갱신 중 오류 발생 - UserId: {}, Error: {}", userId, e.getMessage());
+            log.error("토큰 갱신 중 오류 발생 - UserName: {}, Error: {}", userName, e.getMessage());
             // 오류 발생 시 보안을 위해 해당 사용자의 모든 토큰 삭제
-            deleteByUserId(userId);
+            deleteByUserName(userName);
             throw new RuntimeException("토큰 갱신 중 오류가 발생했습니다. 다시 로그인해주세요.", e);
         }
     }
 
-    // 원자적 토큰 조회 및 삭제
+    // 원자적 토큰 조회 및 삭제 (토큰 로테이션의 핵심)
     @Transactional
     protected RefreshToken findAndDeleteRefreshToken(String refreshToken) {
         Optional<RefreshToken> tokenOptional = refreshTokenRepository.findByRefreshToken(refreshToken);
@@ -136,7 +140,7 @@ public class RefreshTokenService {
             RefreshToken token = tokenOptional.get();
             // 즉시 삭제로 재사용 방지 (토큰 로테이션의 핵심)
             refreshTokenRepository.delete(token);
-            log.debug("Refresh Token 사용 후 즉시 삭제 완료");
+            log.debug("Refresh Token 사용 후 즉시 삭제 완료 - UserName: {}", token.getUserName());
             return token;
         }
 
