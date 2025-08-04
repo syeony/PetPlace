@@ -47,7 +47,15 @@ public class SecurityConfig {
                                 new AntPathRequestMatcher("/swagger-resources/**"),
                                 new AntPathRequestMatcher("/webjars/**"),
                                 new AntPathRequestMatcher("/favicon.ico"),
-                                new AntPathRequestMatcher("/error")
+                                new AntPathRequestMatcher("/error"),
+
+                                // 채팅 기능 API 전체 허용
+                                new AntPathRequestMatcher("/api/chat/**"),
+                                // 여기에 추가!
+                                new AntPathRequestMatcher("/ws/**"),      // SockJS endpoint
+                                new AntPathRequestMatcher("/ws/chat/**")
+
+
                         ).permitAll()
 
                         // 나머지는 인증 필요
