@@ -2,6 +2,7 @@ package com.minjeok4go.petplace.feed.dto;
 
 import com.minjeok4go.petplace.comment.dto.CommentDto;
 import com.minjeok4go.petplace.common.constant.FeedCategory;
+import com.minjeok4go.petplace.image.dto.ImageResponse;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -15,17 +16,18 @@ import java.util.List;
 public class FeedDetailDto {
     private Long id;
     private String content;
-    private Integer userId;            // ✅ uid → userId (타입 수정: Long → Integer)
+    private Integer userId;
     private String userNick;
     private String userImg;
-    private Long regionId;          // ✅ rid → regionId
+    private Long regionId;
     private FeedCategory category;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
-    private Integer likes;          // ✅ like → likes
-    private Integer views;          // ✅ view → views
+    private Integer likes;
+    private Integer views;
     private List<TagDto> tags;
+    private List<ImageResponse> images;
     private Integer commentCount;
     private List<CommentDto> comments;
 }
