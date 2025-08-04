@@ -40,10 +40,6 @@ public class User {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate // ✅ 수정 시간 자동 저장
-    @Column
-    private LocalDateTime updatedAt;
-
     @Column
     private LocalDateTime deletedAt;
 
