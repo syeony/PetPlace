@@ -48,12 +48,11 @@ public class UserChatRoomService {
     public int getUnreadCount(Integer userId, Integer chatRoomId) {
         UserChatRoom ucr = ucrRepo.findByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new IllegalStateException("UserChatRoom not found"));
-        // 마지막 읽은 메시지 ID가 없으면 0으로 간주
         long lastRead = ucr.getLastReadCid() != null ? ucr.getLastReadCid() : 0L;
-        // chatRepo 에는 아래 쿼리 메서드가 필요합니다:
-        // int countByChatRoomIdAndIdGreaterThan(Long chatRoomId, Long id);
-        return chatRepo.countByChatRoom_IdAndIdGreaterThan(chatRoomId, lastRead);
+        // 내가 보낸 메시지는 카운트하지 않는다!
+        return chatRepo.countByChatRoom_IdAndIdGreaterThanAndUser_IdNot(chatRoomId, lastRead, userId);
     }
+
     @Transactional
     public void joinChatRoom(Integer userId, Integer chatRoomId) {
         if (ucrRepo.findByUserIdAndChatRoomId(userId, chatRoomId).isEmpty()) {

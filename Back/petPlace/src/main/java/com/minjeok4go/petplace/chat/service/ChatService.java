@@ -22,6 +22,7 @@ public class ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final UserRepository userRepository;
     private final ImageRepository imageRepository;
+    private final UserChatRoomService userChatRoomService;
 
     // 채팅 저장 및 DTO 반환 (chatId 포함)
     public ChatMessageDTO saveAndReturnMessage(ChatMessageDTO dto) {
@@ -33,6 +34,9 @@ public class ChatService {
             chat.setCreatedAt(dto.getCreatedAt() != null ? dto.getCreatedAt() : LocalDateTime.now());
 
             Chat saved = chatRepository.save(chat);
+            // 내 메세지는 바로읽음 처리
+            userChatRoomService.updateLastRead(dto.getUserId(), dto.getChatRoomId(), saved.getId().intValue());
+
             System.out.println(">>> 저장된 Chat ID: " + saved.getId());
 
             ChatRoom chatRoom = saved.getChatRoom();

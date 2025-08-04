@@ -12,5 +12,5 @@ public interface ChatRepository extends JpaRepository<Chat, Integer> { //
     List<Chat> findAllByChatRoomId(@Param("chatRoomId") Integer chatRoomId);
 
     List<Chat> findByChatRoom_IdOrderByCreatedAtAsc(Integer chatRoomId);
-    int countByChatRoom_IdAndIdGreaterThan(Integer chatRoomId, Long id);
+    int countByChatRoom_IdAndIdGreaterThanAndUser_IdNot(Integer chatRoomId, Long id, Integer userId);
 }

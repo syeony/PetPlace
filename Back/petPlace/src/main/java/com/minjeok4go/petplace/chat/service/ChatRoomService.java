@@ -19,11 +19,14 @@ public class ChatRoomService {
     private final ChatRoomRepository chatRoomRepository;
     private final UserRepository userRepository;
     private final UserChatRoomRepository ucrRepo;
+    private final UserChatRoomService userChatRoomService;
 
-    public ChatRoomService(ChatRoomRepository chatRoomRepository, UserRepository userRepository, UserChatRoomRepository ucrRepo) {
+
+    public ChatRoomService(ChatRoomRepository chatRoomRepository, UserRepository userRepository, UserChatRoomRepository ucrRepo, UserChatRoomService userChatRoomService) {
         this.chatRoomRepository = chatRoomRepository;
         this.userRepository = userRepository;
         this.ucrRepo = ucrRepo;
+        this.userChatRoomService = userChatRoomService;
     }
 
     public ChatRoomDTO createChatRoom(Integer userId1, Integer userId2) {
@@ -36,6 +39,9 @@ public class ChatRoomService {
                         .or(() -> chatRoomRepository.findByUser2AndUser1(user1, user2));
         if (existingRoom.isPresent()) {
             ChatRoom cr = existingRoom.get();
+            // **이미 방이 있으면, joinChatRoom도 해주면 좋음**
+            userChatRoomService.joinChatRoom(userId1, cr.getId());
+            userChatRoomService.joinChatRoom(userId2, cr.getId());
             return new ChatRoomDTO(cr.getId(), userId1, userId2, cr.getLastMessage(), cr.getLastMessageAt());
         }
 
@@ -46,8 +52,13 @@ public class ChatRoomService {
         chatRoom.setLastMessage("");
         ChatRoom saved = chatRoomRepository.save(chatRoom);
 
+        // **방 생성과 동시에 두 유저 join 처리**
+        userChatRoomService.joinChatRoom(userId1, saved.getId());
+        userChatRoomService.joinChatRoom(userId2, saved.getId());
+
         return new ChatRoomDTO(saved.getId(), userId1, userId2, "", null);
     }
+
 
     public List<ChatRoomDTO> getChatRoomsByUser(Integer userId) {
         List<ChatRoom> rooms = chatRoomRepository.findByUserId(userId);
