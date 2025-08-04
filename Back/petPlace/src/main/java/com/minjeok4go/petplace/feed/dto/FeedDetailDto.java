@@ -16,7 +16,7 @@ import java.util.List;
 public class FeedDetailDto {
     private Long id;
     private String content;
-    private Integer userId;
+    private Long userId;
     private String userNick;
     private String userImg;
     private Long regionId;
