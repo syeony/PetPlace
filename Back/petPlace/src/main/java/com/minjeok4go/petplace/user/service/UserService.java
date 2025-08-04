@@ -2,7 +2,6 @@
 package com.minjeok4go.petplace.user.service;
 
 import com.minjeok4go.petplace.user.domain.User;
-import com.minjeok4go.petplace.user.dto.AutoLoginResponseDto;
 import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.repository.UserRepository;
@@ -10,8 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +21,7 @@ public class UserService {
     // 회원가입
     public void signup(UserSignupRequestDto requestDto) {
         // 1. 아이디 중복 확인
-        if (userRepository.existsByUserId(requestDto.getUserId())) {
+        if (userRepository.existsByUserName(requestDto.getUserName())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
         }
         
@@ -38,11 +35,11 @@ public class UserService {
 
         // 3. 사용자 정보로 User 엔티티 생성
         User user = User.builder()
-                .userId(requestDto.getUserId())
+                .userName(requestDto.getUserName())
                 .password(encodedPassword) // 암호화된 비밀번호 저장
                 .name(requestDto.getName())
                 .nickname(requestDto.getNickname())
-                .rid(requestDto.getRid())
+                .regionId(requestDto.getRegionId() != null ? requestDto.getRegionId() : 1L) // 기본값 설정
                 .ci(requestDto.getCi())
                 .phoneNumber(requestDto.getPhoneNumber())
                 .gender(requestDto.getGender())
@@ -55,8 +52,8 @@ public class UserService {
 
     // 아이디 중복 체크
     @Transactional(readOnly = true)
-    public CheckDuplicateResponseDto checkUserIdDuplicate(String userId) {
-        boolean isDuplicate = userRepository.existsByUserId(userId);
+    public CheckDuplicateResponseDto checkUserNameDuplicate(String userName) {
+        boolean isDuplicate = userRepository.existsByUserName(userName);
         String message = isDuplicate ? "이미 사용 중인 아이디입니다." : "사용 가능한 아이디입니다.";
         return new CheckDuplicateResponseDto(isDuplicate, message);
     }
@@ -71,21 +68,10 @@ public class UserService {
 
     // AuthService에서 호출할 사용자 조회 메서드
     @Transactional(readOnly = true)
-    public User findByUserId(String userId) {
-        return userRepository.findByUserId(userId)
+    public User findByUserName(String userName) {
+        return userRepository.findByUserName(userName)
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 아이디입니다."));
     }
 
-    public AutoLoginResponseDto getAutoLoginInfo(String userId) {
-        // 사용자 정보 조회
-        Optional<User> userOptional = userRepository.findByUserId(userId);
-
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            return AutoLoginResponseDto.success(user.getUserId(), user.getNickname());
-        } else {
-            throw new RuntimeException("사용자를 찾을 수 없습니다: " + userId);
-        }
-    }
 
 }

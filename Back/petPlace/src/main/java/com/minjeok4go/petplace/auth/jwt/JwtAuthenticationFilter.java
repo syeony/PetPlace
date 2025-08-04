@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-
 import java.io.IOException;
 
 @Slf4j
@@ -25,21 +24,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = resolveToken(request);
-        String requestURI = request.getRequestURI();
 
-        log.info("=== JWT 필터 실행 ===");
-        log.info("요청 URI: {}", requestURI);
-        log.info("토큰 존재 여부: {}", token != null);
+        // ✅ 개선 1: debug 레벨로 변경 (개발 환경에서만 출력)
+        log.debug("JWT 필터 실행 - 토큰 존재: {}", token != null);
 
         if (token != null) {
-            log.info("토큰 내용: {}", token.substring(0, Math.min(token.length(), 20)) + "...");
             boolean isValid = jwtTokenProvider.validateToken(token);
-            log.info("토큰 유효성: {}", isValid);
+            log.debug("토큰 유효성 검증 결과: {}", isValid);
 
             if (isValid) {
                 Authentication authentication = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.info("인증 성공: {}", authentication.getName());
+                log.debug("JWT 인증 성공: {}", authentication.getName());
+            } else {
+                // ✅ 개선 2: 실패 시에만 warn 레벨로 로깅 (보안 중요)
+                log.warn("유효하지 않은 JWT 토큰으로 접근 시도");
             }
         }
 
@@ -53,5 +52,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
-
 }
