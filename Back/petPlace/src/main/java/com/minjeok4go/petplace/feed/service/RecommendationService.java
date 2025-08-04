@@ -2,8 +2,8 @@ package com.minjeok4go.petplace.feed.service;
 
 import com.minjeok4go.petplace.comment.dto.CommentDto;
 import com.minjeok4go.petplace.common.constant.ImageType;
-import com.minjeok4go.petplace.feed.dto.FeedDto;
-import com.minjeok4go.petplace.feed.dto.TagDto;
+import com.minjeok4go.petplace.feed.dto.FeedListResponse;
+import com.minjeok4go.petplace.feed.dto.TagResponse;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.repository.FeedRepository;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
@@ -23,12 +23,12 @@ public class RecommendationService {
     private final ImageRepository imageRepository;
 
     @Transactional(readOnly = true)
-    public List<FeedDto> getRecommendedFeeds(Long userId, int page, int size) {
+    public List<FeedListResponse> getRecommendedFeeds(Long userId, int page, int size) {
         boolean isColdStart = checkColdStart(userId);
 
         List<Feed> allFeeds = feedRepository.findAll();
 
-        List<FeedDto> scoredFeedDtos = allFeeds.stream()
+        List<FeedListResponse> scoredFeedDtos = allFeeds.stream()
                 .map(feed -> {
                     double contentScore = calcContentScore(userId, feed);
                     double cfScore = isColdStart ? 0.0 : calcCollaborativeScore(userId, feed);
@@ -43,8 +43,8 @@ public class RecommendationService {
 
                     // --- DTO 조립 시작 ---
                     // 1) TagDto 리스트
-                    List<TagDto> tags = feed.getFeedTags().stream()
-                            .map(ft -> new TagDto(ft.getTag().getId(), ft.getTag().getName()))
+                    List<TagResponse> tags = feed.getFeedTags().stream()
+                            .map(ft -> new TagResponse(ft.getTag().getId(), ft.getTag().getName()))
                             .distinct()
                             .collect(Collectors.toList());
 
@@ -61,7 +61,7 @@ public class RecommendationService {
                             .collect(Collectors.toList());
 
                     // 4) 최종 FeedDto 빌드
-                    return FeedDto.builder()
+                    return FeedListResponse.builder()
                             .id(feed.getId())
                             .content(feed.getContent())
                             .userId(feed.getUserId())
@@ -82,7 +82,7 @@ public class RecommendationService {
                             .build();
                     // --- DTO 조립 끝 ---
                 })
-                .sorted(Comparator.comparingDouble(FeedDto::getScore).reversed())
+                .sorted(Comparator.comparingDouble(FeedListResponse::getScore).reversed())
                 .collect(Collectors.toList());
 
         // 페이지네이션 적용

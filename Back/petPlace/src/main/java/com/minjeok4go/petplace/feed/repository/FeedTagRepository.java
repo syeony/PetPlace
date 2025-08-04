@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface FeedTagRepository extends JpaRepository<FeedTag, Long> {
     List<FeedTag> findByFeedId(Long feedId);
+    List<FeedTag> findByTagId(Long tagId);
 }
