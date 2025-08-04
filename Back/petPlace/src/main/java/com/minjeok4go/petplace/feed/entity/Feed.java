@@ -71,4 +71,20 @@ public class Feed {
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
     private Set<Comment> comments = new HashSet<>();
+
+    public void update() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void increaseLikes() {
+        this.likes+=1;
+    }
+
+    public void decreaseLikes() {
+        this.likes-=1;
+    }
 }

@@ -3,11 +3,19 @@ package com.minjeok4go.petplace.feed.service;
 import com.minjeok4go.petplace.comment.dto.CommentDto;
 import com.minjeok4go.petplace.comment.entity.Comment;
 import com.minjeok4go.petplace.common.constant.ImageType;
-import com.minjeok4go.petplace.feed.dto.FeedDetailDto;
-import com.minjeok4go.petplace.feed.dto.TagDto;
+import com.minjeok4go.petplace.feed.dto.CreateFeedRequest;
+import com.minjeok4go.petplace.feed.dto.DeleteFeedResponse;
+import com.minjeok4go.petplace.feed.dto.FeedDetailResponse;
+import com.minjeok4go.petplace.feed.dto.TagResponse;
 import com.minjeok4go.petplace.feed.entity.Feed;
+import com.minjeok4go.petplace.feed.entity.FeedTag;
+import com.minjeok4go.petplace.feed.entity.Tag;
 import com.minjeok4go.petplace.feed.repository.FeedRepository;
+import com.minjeok4go.petplace.feed.repository.FeedTagRepository;
+import com.minjeok4go.petplace.feed.repository.TagRepository;
+import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
+import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,16 +29,18 @@ import java.util.stream.Collectors;
 public class FeedService {
 
     private final FeedRepository feedRepository;
+    private final FeedTagRepository feedTagRepository;
+    private final TagRepository tagRepository;
     private final ImageRepository imageRepository;
 
     @Transactional(readOnly = true)
-    public FeedDetailDto getFeedDetail(Long feedId) {
+    public FeedDetailResponse getFeedDetail(Long feedId) {
 
         Feed feed = feedRepository.findById(feedId)
                 .orElseThrow(() -> new RuntimeException("Feed not found"));
 
-        List<TagDto> tagDtos = feed.getFeedTags().stream()
-                .map(ft -> new TagDto(ft.getTag().getId(), ft.getTag().getName()))
+        List<TagResponse> tagDtos = feed.getFeedTags().stream()
+                .map(ft -> new TagResponse(ft.getTag().getId(), ft.getTag().getName()))
                 .toList();
 
         List<CommentDto> commentDtos = feed.getComments().stream()
@@ -44,7 +54,7 @@ public class FeedService {
                 .map(img -> new ImageResponse(img.getSrc(), img.getSort()))
                 .collect(Collectors.toList());
 
-        return FeedDetailDto.builder()
+        return FeedDetailResponse.builder()
                 .id(feed.getId())
                 .content(feed.getContent())
                 .userId(feed.getUserId())
@@ -84,5 +94,104 @@ public class FeedService {
                 .deletedAt(comment.getDeletedAt())
                 .replies(replyDtos)
                 .build();
+    }
+    @Transactional
+    public FeedDetailResponse createFeed(CreateFeedRequest req) {
+        // 1) 피드 저장 (insert)
+        Feed feed = Feed.builder()
+                .content(req.getContent())
+                .userId(req.getUserId())
+                .userNick(req.getUserNick())
+                .regionId(req.getRegionId())
+                .category(req.getCategory())
+                .build();
+        feed = feedRepository.save(feed);
+
+        // 2) FeedTag / Image 삽입
+        saveRelations(feed, req);
+
+        return getFeedDetail(feed.getId());
+    }
+
+    @Transactional
+    public FeedDetailResponse updateFeed(Long id, CreateFeedRequest req) {
+        // 1) 기존 피드 조회 & 수정
+        Feed feed = feedRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Feed not found"));
+        feed.setContent(req.getContent());
+        feed.setUserNick(req.getUserNick());
+        feed.setRegionId(req.getRegionId());
+        feed.setCategory(req.getCategory());
+        feed.update();
+        feed = feedRepository.save(feed);
+
+        // 2) FeedTag / Image 삽입
+        saveRelations(feed, req);
+
+        return getFeedDetail(id);
+    }
+
+    public DeleteFeedResponse deleteFeed(Long id) {
+
+        Feed feed = feedRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Feed not found"));
+
+        feed.delete();
+
+        return new DeleteFeedResponse(id);
+    }
+
+    private void saveRelations(Feed feed, CreateFeedRequest req) {
+        Long feedId = feed.getId();
+
+        // --- tags
+        if (req.getTagIds() != null && !req.getTagIds().isEmpty()) {
+            // 1) 요청된 태그 리스트에서 중복 제거
+            List<Long> requested = req.getTagIds().stream()
+                    .distinct()
+                    .toList();
+
+            // 2) DB에 이미 저장된 tagId 목록 조회
+            List<Long> existing = feedTagRepository.findByFeedId(feedId).stream()
+                    .map(ft -> ft.getTag().getId())
+                    .toList();
+
+            // 3) 새로 추가할 tagId = requested – existing
+            List<Long> toAdd = requested.stream()
+                    .filter(id -> !existing.contains(id))
+                    .toList();
+
+            // 4) 나머지에 대해서만 insert
+            List<FeedTag> feedTags = toAdd.stream()
+                    .map(tagId -> {
+                        Tag tag = tagRepository.findById(tagId)
+                                .orElseThrow(() -> new IllegalArgumentException("Invalid tag ID: " + tagId));
+                        return new FeedTag(feed, tag);
+                    })
+                    .toList();
+            feedTagRepository.saveAll(feedTags);
+        }
+
+        // --- images
+        if (req.getImages() != null && !req.getImages().isEmpty()) {
+            // 요청된 이미지 src+sort 조합 중복 제거
+            List<ImageRequest> requested = req.getImages().stream()
+                    .distinct()
+                    .toList();
+
+            // 이미 DB에 저장된 이미지들의 (src, sort) 키 조회
+            List<Image> existImgs = imageRepository.findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feedId);
+            List<String> existKeys = existImgs.stream()
+                    .map(img -> img.getSrc() + "#" + img.getSort())
+                    .toList();
+
+            // toAdd 는 존재하지 않는 키만
+            List<Image> toAdd = requested.stream()
+                    .filter(ir -> !existKeys.contains(ir.getSrc() + "#" + ir.getSort()))
+                    .map(ir -> new Image(feedId, ImageType.FEED, ir.getSrc(), ir.getSort()))
+                    .toList();
+
+            imageRepository.saveAll(toAdd);
+        }
     }
 }
