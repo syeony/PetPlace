@@ -11,7 +11,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -22,9 +21,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-    private final RequestLoggingFilter requestLoggingFilter;  // 추가
-
-
+    private final RequestLoggingFilter requestLoggingFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -34,26 +31,28 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        // 인증 없이 접근 가능한 경로
+                        // 🔥 인증 없이 접근 가능한 경로 (JWT 필터와 동일하게 설정)
                         .requestMatchers(
                                 "/api/user/signup",
-                                "/api/auth/login",
-                                "/api/user/check-userid",
+                                "/api/user/check-username", 
                                 "/api/user/check-nickname",
+                                "/api/auth/login",
                                 "/api/auth/refresh",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/v3/api-docs.yaml",
                                 "/swagger-resources/**",
-                                "/webjars/**"
+                                "/webjars/**",
+                                "/favicon.ico"
                         ).permitAll()
 
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
+                // 🔥 필터 순서 조정: RequestLoggingFilter -> JwtAuthenticationFilter
                 .addFilterBefore(requestLoggingFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterAfter(jwtAuthenticationFilter, RequestLoggingFilter.class);
 
         return http.build();
     }
