@@ -1,26 +1,35 @@
-package com.minjeok4go.petplace.feed.model;
+package com.minjeok4go.petplace.comment.entity;
 
+import com.minjeok4go.petplace.feed.entity.Feed;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
+
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "feeds")
+@Table(name = "comments")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Feed {
+public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private Comment parentComment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "feed_id", nullable = false)
+    private Feed feed;
+
     private String content;
 
     @Column(name = "user_id", nullable = false)
@@ -32,13 +41,6 @@ public class Feed {
     @Column(name = "user_img")
     private String userImg;
 
-    @Column(name = "region_id", nullable = false)
-    private Long regionId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private FeedCategory category;
-
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -49,17 +51,7 @@ public class Feed {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @Column(name = "likes", nullable = false)
-    private Integer likes = 0;
-
-    @Column(name = "views", nullable = false)
-    private Integer views = 0;
-
-    @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @OrderBy("id ASC")
-    private Set<FeedTag> feedTags = new HashSet<>();
-
-    @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @OrderBy("id ASC")
-    private Set<Comment> comments = new HashSet<>();
+    // ✅ 대댓글 리스트 (양방향)
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<Comment> replies = new HashSet<>();
 }

@@ -1,4 +1,4 @@
-package com.minjeok4go.petplace.feed.model;
+package com.minjeok4go.petplace.feed.dto;
 
 import lombok.*;
 

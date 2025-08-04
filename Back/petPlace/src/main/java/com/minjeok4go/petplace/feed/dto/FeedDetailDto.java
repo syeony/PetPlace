@@ -1,5 +1,7 @@
-package com.minjeok4go.petplace.feed.model;
+package com.minjeok4go.petplace.feed.dto;
 
+import com.minjeok4go.petplace.comment.dto.CommentDto;
+import com.minjeok4go.petplace.common.constant.FeedCategory;
 import lombok.*;
 
 import java.time.LocalDateTime;

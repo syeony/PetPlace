@@ -1,6 +1,10 @@
 package com.minjeok4go.petplace.feed.service;
 
-import com.minjeok4go.petplace.feed.model.*;
+import com.minjeok4go.petplace.comment.dto.CommentDto;
+import com.minjeok4go.petplace.comment.entity.Comment;
+import com.minjeok4go.petplace.feed.dto.TagDto;
+import com.minjeok4go.petplace.feed.entity.Feed;
+import com.minjeok4go.petplace.feed.dto.FeedDetailDto;
 import com.minjeok4go.petplace.feed.repository.FeedRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

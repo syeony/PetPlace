@@ -1,7 +1,7 @@
 package com.minjeok4go.petplace.feed.controller;
 
-import com.minjeok4go.petplace.feed.model.FeedDetailDto;
-import com.minjeok4go.petplace.feed.model.FeedDto;
+import com.minjeok4go.petplace.feed.dto.FeedDetailDto;
+import com.minjeok4go.petplace.feed.dto.FeedDto;
 import com.minjeok4go.petplace.feed.service.FeedService;
 import com.minjeok4go.petplace.feed.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
