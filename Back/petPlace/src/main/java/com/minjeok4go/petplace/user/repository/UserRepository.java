@@ -24,4 +24,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     // nickname 존재 여부 확인 (중복 체크용)
     boolean existsByNickname(String nickname);
 
+    // 본인인증 관련 추가 메서드들
+    boolean existsByCi(String ci);
+    boolean existsByPhoneNumber(String phoneNumber);
+    Optional<User> findByCi(String ci);
+
 }
