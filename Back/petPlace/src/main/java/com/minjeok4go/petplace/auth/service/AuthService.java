@@ -23,7 +23,7 @@ public class AuthService {
 
     public TokenDto login(UserLoginRequestDto requestDto) {
         // 1. 아이디로 사용자 조회 (UserService 위임)
-        User user = userService.findByUserId(requestDto.getUserId());
+        User user = userService.findByUserName(requestDto.getUserName());
 
         // 2. 비밀번호 일치 여부 확인
         if (!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
@@ -31,22 +31,22 @@ public class AuthService {
         }
 
         // 3. Access Token과 Refresh Token 생성
-        String accessToken = jwtTokenProvider.createAccessToken(user.getUserId());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserId());
+        String accessToken = jwtTokenProvider.createAccessToken(user.getUserName());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserName());
 
-        // 4. Refresh Token 저장
-        refreshTokenService.saveOrUpdate(user.getUserId(), refreshToken);
+        // 4. Refresh Token 저장 (RefreshToken의 userId는 user_name을 참조)
+        refreshTokenService.saveOrUpdate(user.getUserName(), refreshToken);
 
         // 5. 토큰 및 사용자 정보 반환
-        return new TokenDto(
+        return TokenDto.of(
                 accessToken,
                 refreshToken,
-                user.getUserId(),
+                user.getUserName(),
                 user.getNickname(),
                 user.getUserImgSrc(),
                 user.getLevel(),
                 user.getDefaultPetId(),
-                user.getRid()
+                user.getRegionId()
         );
     }
 }
