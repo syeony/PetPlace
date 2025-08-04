@@ -1,8 +1,12 @@
-package com.minjeok4go.petplace.domain.feed.model;
+package com.minjeok4go.petplace.feed.entity;
 
+import com.minjeok4go.petplace.comment.entity.Comment;
+import com.minjeok4go.petplace.common.constant.FeedCategory;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -14,6 +18,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class Feed {
 
     @Id
@@ -24,7 +29,7 @@ public class Feed {
     private String content;
 
     @Column(name = "user_id", nullable = false)
-    private Integer userId;  // users.id는 INT 타입
+    private Long userId;  // users.id는 INT 타입
 
     @Column(name = "user_nick", nullable = false)
     private String userNick;
@@ -49,17 +54,37 @@ public class Feed {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    @Column(name = "likes", nullable = false)
+    @Builder.Default
+    @Column(nullable = false)
     private Integer likes = 0;
 
-    @Column(name = "views", nullable = false)
+    @Builder.Default
+    @Column(nullable = false)
     private Integer views = 0;
 
+    @Builder.Default
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
     private Set<FeedTag> feedTags = new HashSet<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
     private Set<Comment> comments = new HashSet<>();
+
+    public void update() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void delete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public void increaseLikes() {
+        this.likes+=1;
+    }
+
+    public void decreaseLikes() {
+        this.likes-=1;
+    }
 }

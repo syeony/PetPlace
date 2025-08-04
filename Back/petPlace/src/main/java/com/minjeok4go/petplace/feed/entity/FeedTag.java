@@ -1,4 +1,4 @@
-package com.minjeok4go.petplace.domain.feed.model;
+package com.minjeok4go.petplace.feed.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,4 +24,9 @@ public class FeedTag {
     @MapsId("tagId")  // FeedTagId의 tagId와 매핑
     @JoinColumn(name = "tag_id")
     private Tag tag;
+
+    public FeedTag(Feed feed, Tag tag) {
+        this.feed = feed;
+        this.tag = tag;
+    }
 }

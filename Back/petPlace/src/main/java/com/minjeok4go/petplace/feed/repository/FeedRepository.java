@@ -1,14 +1,11 @@
-package com.minjeok4go.petplace.domain.feed.repository;
+package com.minjeok4go.petplace.feed.repository;
 
-import com.minjeok4go.petplace.domain.feed.model.Feed;
-import com.minjeok4go.petplace.domain.feed.model.FeedCategory;
+import com.minjeok4go.petplace.feed.entity.Feed;
+import com.minjeok4go.petplace.common.constant.FeedCategory;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface FeedRepository extends JpaRepository<Feed, Long> {
 

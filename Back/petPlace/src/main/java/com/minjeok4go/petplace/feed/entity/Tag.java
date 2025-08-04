@@ -1,4 +1,4 @@
-package com.minjeok4go.petplace.domain.feed.model;
+package com.minjeok4go.petplace.feed.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

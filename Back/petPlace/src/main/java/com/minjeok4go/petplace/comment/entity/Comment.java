@@ -1,6 +1,6 @@
-package com.minjeok4go.petplace.domain.feed.model;
+package com.minjeok4go.petplace.comment.entity;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.minjeok4go.petplace.feed.entity.Feed;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

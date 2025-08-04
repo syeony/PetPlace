@@ -50,7 +50,7 @@ CREATE TABLE `refresh_tokens` (
     `expires_at` DATETIME NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_name`) ON DELETE CASCADE,
     INDEX idx_user_id (`user_id`),
     INDEX idx_refresh_token (`refresh_token`)
 );
@@ -222,6 +222,7 @@ CREATE TABLE `images` (
     `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT') NOT NULL,
     `src` VARCHAR(500) NOT NULL,
     `sort` INT NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`)
 );
 
