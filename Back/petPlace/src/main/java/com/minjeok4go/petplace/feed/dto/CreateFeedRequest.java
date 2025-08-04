@@ -1,0 +1,41 @@
+package com.minjeok4go.petplace.feed.dto;
+
+import com.minjeok4go.petplace.common.constant.FeedCategory;
+import com.minjeok4go.petplace.image.dto.ImageRequest;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateFeedRequest {
+
+    @NotBlank
+    private String content;
+
+    @NotNull
+    private Long userId;
+
+    @NotNull
+    private String userNick;
+
+    @NotNull
+    private Long regionId;
+
+    @NotNull
+    private FeedCategory category;
+
+    @Builder.Default
+    private List<Long> tagIds = new ArrayList<>();
+
+    @Builder.Default
+    private List<ImageRequest> images = new ArrayList<>();
+}
