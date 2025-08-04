@@ -222,6 +222,7 @@ CREATE TABLE `images` (
     `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT') NOT NULL,
     `src` VARCHAR(500) NOT NULL,
     `sort` INT NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`)
 );
 
