@@ -1,7 +1,7 @@
 jwt:
-  secret: your-super-secret-key-that-is-long-and-secure-enough-to-be-safe
-  expiration_time: 3600000      # Access Token: 1시간
-  refresh_expiration_time: 604800000  # Refresh Token: 7일 (새로 추가)
+  secret: ${JWT_SECRET_KEY}
+  access-token-expiry: 3600000      # Access Token: 1시간
+  refresh-token-expiry: 604800000   # Refresh Token: 7일
 
 spring:
   security:
@@ -20,8 +20,16 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
 server:
   port: 8080
+
+portone:
+  api-key: ${PORTONE_API_KEY}
+  secret-key: ${PORTONE_SECRET_KEY}
+  store-id: ${PORTONE_STORE_ID}
+  channel-key: channel-key-680df6ca-d2e7-4c93-9a7c-bae25c42e559
+  base-url: https://api.iamport.kr
 
 logging:
   level:

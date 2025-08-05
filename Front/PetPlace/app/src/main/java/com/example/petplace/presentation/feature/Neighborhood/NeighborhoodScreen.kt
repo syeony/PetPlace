@@ -211,7 +211,7 @@ fun NeighborhoodScreen(
                                         viewModel.setShowAdoptConfirm(true)
                                     }
                                     "실종펫 리스트" -> navController.navigate("missing_list")
-                                    "동물호텔" -> navController.navigate("hotel")
+                                    "동물호텔" -> navController.navigate("hotel_graph")
                                 }
                                 scope.launch {
                                     scaffoldState.bottomSheetState.partialExpand()

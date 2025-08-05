@@ -91,7 +91,6 @@ fun JoinScreen(navController: NavController) {
         }
     }
 
-    // ✅ Scaffold로 감싸서 버튼 하단 고정
     Scaffold(
         bottomBar = {
             Button(
@@ -275,7 +274,7 @@ fun JoinScreen(navController: NavController) {
                     Text(
                         text = regionNameDisplay,
                         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = AppTypography.titleMedium,
                         textAlign = TextAlign.Center
                     )
                     AndroidView(

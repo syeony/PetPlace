@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("com.google.dagger.hilt.android") version "2.48"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     kotlin("kapt")
 }
 
@@ -70,7 +70,13 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
     implementation(libs.common)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.ui.graphics)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
 
     // Navigation (Compose용)
@@ -89,6 +95,7 @@ dependencies {
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
+    debugImplementation(libs.androidx.ui.test.manifest)
     kapt("com.google.dagger:hilt-android-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
@@ -122,6 +129,9 @@ dependencies {
 
     // Compose BOM (일부 의존성 통일)
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+
+    // 달력 Kizitonwose
+    implementation("com.kizitonwose.calendar:compose:2.0.0") // 최신 버전 확인
 
     // 테스트
     testImplementation(libs.junit)

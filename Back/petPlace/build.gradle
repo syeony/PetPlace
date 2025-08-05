@@ -58,6 +58,11 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'        // 시큐리티 테스트 지원
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'                 // JUnit5 테스트 런처
     testRuntimeOnly 'com.h2database:h2'
+
+    // 포트원 연동을 위한 WebClient (webflux 스타터 대신 개별 의존성 사용)
+    implementation 'org.springframework:spring-webflux'
+    implementation 'io.projectreactor.netty:reactor-netty-http'
+
 }
 
 tasks.named('test') {

@@ -1,0 +1,29 @@
+jwt:
+  secret: your-super-secret-key-that-is-long-and-secure-enough-to-be-safe
+  expiration_time: 3600000      # Access Token: 1시간
+  refresh_expiration_time: 604800000  # Refresh Token: 7일 (새로 추가)
+
+spring:
+  security:
+    user:
+      name: user
+      password: ssafy123
+  datasource:
+    url: jdbc:mysql://localhost:3306/petplace_local?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ssafy
+    password: admin
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+server:
+  port: 8080
+
+logging:
+  level:
+    com.minjeok4go.petplace.auth: DEBUG
+    root: INFO

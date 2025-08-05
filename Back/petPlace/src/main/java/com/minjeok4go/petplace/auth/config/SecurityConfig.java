@@ -41,13 +41,24 @@ public class SecurityConfig {
                                 // 인증 API
                                 new AntPathRequestMatcher("/api/auth/login"),
                                 new AntPathRequestMatcher("/api/auth/refresh"),
+                                new AntPathRequestMatcher("/api/user/test-portone-token"),
+                                new AntPathRequestMatcher("/api/user/test-portone-cert/**"),
+
                                 // Swagger 관련 - 와일드카드 패턴 사용
                                 new AntPathRequestMatcher("/swagger-ui/**"),
                                 new AntPathRequestMatcher("/v3/api-docs/**"),
                                 new AntPathRequestMatcher("/swagger-resources/**"),
                                 new AntPathRequestMatcher("/webjars/**"),
                                 new AntPathRequestMatcher("/favicon.ico"),
-                                new AntPathRequestMatcher("/error")
+                                new AntPathRequestMatcher("/error"),
+
+                                // 채팅 기능 API 전체 허용
+                                new AntPathRequestMatcher("/api/chat/**"),
+                                // 여기에 추가!
+                                new AntPathRequestMatcher("/ws/**"),      // SockJS endpoint
+                                new AntPathRequestMatcher("/ws/chat/**")
+
+
                         ).permitAll()
 
                         // 나머지는 인증 필요

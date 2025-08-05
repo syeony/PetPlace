@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.user.repository;
 
-import com.minjeok4go.petplace.user.domain.User;
+import com.minjeok4go.petplace.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,5 +23,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     // nickname 존재 여부 확인 (중복 체크용)
     boolean existsByNickname(String nickname);
+
+    // 본인인증 관련 추가 메서드들
+    boolean existsByCi(String ci);
+    boolean existsByPhoneNumber(String phoneNumber);
+    Optional<User> findByCi(String ci);
 
 }
