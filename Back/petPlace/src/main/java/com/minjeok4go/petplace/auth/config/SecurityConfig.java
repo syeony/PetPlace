@@ -13,7 +13,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+// AntPathRequestMatcher는 더 이상 import할 필요가 없습니다.
+// import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -32,33 +33,30 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        // 🔥 더 강력한 패턴 매칭 사용
+                        // 🔥 new AntPathRequestMatcher를 제거하고 문자열만 사용합니다.
                         .requestMatchers(
                                 // 사용자 API
-                                new AntPathRequestMatcher("/api/user/signup"),
-                                new AntPathRequestMatcher("/api/user/check-username"), 
-                                new AntPathRequestMatcher("/api/user/check-nickname"),
+                                "/api/user/signup",
+                                "/api/user/check-username",
+                                "/api/user/check-nickname",
                                 // 인증 API
-                                new AntPathRequestMatcher("/api/auth/login"),
-                                new AntPathRequestMatcher("/api/auth/refresh"),
-                                new AntPathRequestMatcher("/api/user/test-portone-token"),
-                                new AntPathRequestMatcher("/api/user/test-portone-cert/**"),
+                                "/api/auth/login",
+                                "/api/auth/refresh",
+                                "/api/user/test-portone-token",
+                                "/api/user/test-portone-cert/**",
 
-                                // Swagger 관련 - 와일드카드 패턴 사용
-                                new AntPathRequestMatcher("/swagger-ui/**"),
-                                new AntPathRequestMatcher("/v3/api-docs/**"),
-                                new AntPathRequestMatcher("/swagger-resources/**"),
-                                new AntPathRequestMatcher("/webjars/**"),
-                                new AntPathRequestMatcher("/favicon.ico"),
-                                new AntPathRequestMatcher("/error"),
+                                // Swagger 관련
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/webjars/**",
+                                "/favicon.ico",
+                                "/error",
 
-                                // 채팅 기능 API 전체 허용
-                                new AntPathRequestMatcher("/api/chat/**"),
-                                // 여기에 추가!
-                                new AntPathRequestMatcher("/ws/**"),      // SockJS endpoint
-                                new AntPathRequestMatcher("/ws/chat/**")
-
-
+                                // 채팅 기능 API
+                                "/api/chat/**",
+                                "/ws/**",      // SockJS endpoint
+                                "/ws/chat/**"
                         ).permitAll()
 
                         // 나머지는 인증 필요
