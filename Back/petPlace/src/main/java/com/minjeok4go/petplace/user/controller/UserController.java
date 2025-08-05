@@ -15,6 +15,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import com.minjeok4go.petplace.user.service.PortOneApiService;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Slf4j
 @Tag(name = "User API", description = "사용자 관련 API 명세서입니다.")
 @RestController
@@ -26,6 +29,24 @@ public class UserController {
     private final PortOneApiService portOneApiService;
 
 
+
+    // 본인인증 준비 (certification_url 생성)
+    @Operation(summary = "본인인증 준비", description = "포트원 본인인증 URL을 생성합니다.")
+    @PostMapping("/certifications/prepare")
+    public ResponseEntity<ApiResponse<Map<String, String>>> prepareCertification() {
+        try {
+            log.info("본인인증 준비 요청");
+            Map<String, String> result = portOneApiService.prepareCertification();
+            
+            return ResponseEntity.ok(
+                    ApiResponse.success("본인인증 URL 생성 성공", result)
+            );
+        } catch (Exception e) {
+            log.error("본인인증 준비 실패", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.failure("본인인증 준비 중 오류가 발생했습니다: " + e.getMessage()));
+        }
+    }
 
     // 회원가입
     @Operation(summary = "회원가입", description = "본인인증 완료 후 회원가입을 진행합니다. 추후 카카오 연동 추가 예정 , 동네 인증도")
