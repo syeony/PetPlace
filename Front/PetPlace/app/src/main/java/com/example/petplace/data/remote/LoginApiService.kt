@@ -8,15 +8,26 @@ interface LoginApiService {
 
     // 🔹 요청 DTO
     data class LoginRequest(
-        val username: String, // 서버에서 요구하는 필드명 확인
+        val userName: String, // 서버에서 요구하는 필드명 확인
         val password: String
     )
 
     // 🔹 응답 DTO
     data class LoginResponse(
-        val token: String // 서버 JWT 응답 키에 맞게 수정 (예: "accessToken"이면 이름 변경)
+        val accessToken: String,
+        val refreshToken: String,
+        val message: String,
+        val user: User
     )
 
+    data class User(
+        val userName: String,
+        val nickname: String,
+        val userImgSrc: String?,
+        val level: Int,
+        val defaultPetId: Int?,
+        val regionId: Long
+    )
     @POST("api/auth/login") // 실제 서버 경로로 수정
     suspend fun login(
         @Body request: LoginRequest

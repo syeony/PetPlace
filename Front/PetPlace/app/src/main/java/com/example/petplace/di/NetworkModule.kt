@@ -6,6 +6,7 @@ import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.LoginApiService
 import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.remote.JoinApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -59,7 +60,7 @@ object NetworkModule {
             .addInterceptor { chain ->
                 val original = chain.request()
                 val app = PetPlaceApp.getAppContext() as PetPlaceApp
-                val token = app.getJwtToken() // 🔹 SharedPreferences에서 가져오기
+                val token = app.getAccessToken() //SharedPreferences에서 가져오기
                 val builder = original.newBuilder()
                 if (!token.isNullOrEmpty()) {
                     builder.addHeader("Authorization", "Bearer $token")
@@ -107,4 +108,11 @@ object NetworkModule {
     fun provideServerApi(
         @Named("Server") retrofit: Retrofit
     ): LoginApiService = retrofit.create(LoginApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideJoinApi(
+        @Named("Server") retrofit: Retrofit
+    ): JoinApiService = retrofit.create(JoinApiService::class.java)
+
 }

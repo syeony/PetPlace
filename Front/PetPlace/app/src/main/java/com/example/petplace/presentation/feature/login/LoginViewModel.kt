@@ -33,18 +33,22 @@ class LoginViewModel @Inject constructor(
                 val response = serverApi.login(LoginRequest(id, pw))
 
                 if (response.isSuccessful) {
-                    val token = response.body()?.token
-                    if (!token.isNullOrEmpty()) {
-                        // JWT 저장
-                        (PetPlaceApp.getAppContext() as PetPlaceApp).saveJwtToken(token)
+                    val body = response.body()
+                    val accessToken = body?.accessToken
+                    val refreshToken = body?.refreshToken
+                    val user = body?.user
+
+                    if (!accessToken.isNullOrEmpty() && !refreshToken.isNullOrEmpty() && user != null) {
+                        (PetPlaceApp.getAppContext() as PetPlaceApp)
+                            .saveLoginData(accessToken, refreshToken, user)
 
                         _loginState.value = LoginState(isSuccess = true)
                     } else {
-                        _loginState.value = LoginState(error = "토큰이 비어있습니다.")
+                        _loginState.value = LoginState(error = "응답 데이터가 비어있습니다.")
                     }
-                } else {
-                    _loginState.value = LoginState(error = "로그인 실패(${response.code()})")
                 }
+
+
             } catch (e: Exception) {
                 _loginState.value = LoginState(error = e.message ?: "알 수 없는 오류")
             }

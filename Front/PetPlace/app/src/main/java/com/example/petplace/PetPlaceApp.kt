@@ -3,6 +3,8 @@ package com.example.petplace
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import com.google.gson.Gson
+import com.example.petplace.data.remote.LoginApiService
 import com.kakao.vectormap.KakaoMapSdk
 import dagger.hilt.android.HiltAndroidApp
 import com.example.petplace.BuildConfig
@@ -15,6 +17,11 @@ class PetPlaceApp : Application() {
         fun getAppContext(): Context = instance.applicationContext
     }
 
+    private val prefs by lazy {
+        getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+    }
+    private val gson = Gson()
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -24,19 +31,31 @@ class PetPlaceApp : Application() {
         Log.d("KakaoKeyCheck", BuildConfig.KAKAO_REST_KEY)
     }
 
-    // 🔹 JWT 관리 함수
-    fun saveJwtToken(token: String) {
-        val prefs = getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putString("jwt_token", token).apply()
+    // 토큰 + 유저저 장
+    fun saveLoginData(
+        accessToken: String,
+        refreshToken: String,
+        user: LoginApiService.User
+    ) {
+        prefs.edit()
+            .putString("access_token", accessToken)
+            .putString("refresh_token", refreshToken)
+            .putString("user_info", gson.toJson(user))
+            .apply()
     }
 
-    fun getJwtToken(): String? {
-        val prefs = getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-        return prefs.getString("jwt_token", null)
+    //토큰 가져오기
+    fun getAccessToken(): String? = prefs.getString("access_token", null)
+    fun getRefreshToken(): String? = prefs.getString("refresh_token", null)
+
+    //유저정보 불러오기
+    fun getUserInfo(): LoginApiService.User? {
+        val json = prefs.getString("user_info", null) ?: return null
+        return gson.fromJson(json, LoginApiService.User::class.java)
     }
 
-    fun clearJwtToken() {
-        val prefs = getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-        prefs.edit().remove("jwt_token").apply()
+    //로그아웃
+    fun clearLoginData() {
+        prefs.edit().clear().apply()
     }
 }

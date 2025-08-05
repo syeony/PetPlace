@@ -10,7 +10,7 @@ class LoginRepository @Inject constructor(
         return try {
             val response = api.login(LoginApiService.LoginRequest(id, pw))
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!.token)
+                Result.success(response.body()!!.accessToken)
             } else {
                 Result.failure(Exception("로그인 실패"))
             }
