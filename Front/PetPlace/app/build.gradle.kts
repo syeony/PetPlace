@@ -73,6 +73,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.navigation.runtime.android)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")

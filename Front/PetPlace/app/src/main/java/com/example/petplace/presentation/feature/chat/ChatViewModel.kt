@@ -7,12 +7,18 @@ import com.example.petplace.data.local.chat.ChatMessage
 import com.example.petplace.data.model.chat.ChatMessageDTO
 import com.example.petplace.data.model.chat.ChatReadDTO
 import com.example.petplace.data.remote.websocket.WebSocketManager
+import com.example.petplace.data.repository.ChatRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ChatViewModel : ViewModel() {
+@HiltViewModel
+class ChatViewModel @Inject constructor(
+    private val chatRepository: ChatRepository
+) : ViewModel() {
 
     companion object {
         private const val TAG = "ChatViewModel"
@@ -245,13 +251,32 @@ class ChatViewModel : ViewModel() {
     private fun loadInitialMessages() {
         Log.d(TAG, "초기 메시지 로드 시작")
         viewModelScope.launch {
-            val initialMessage = ChatMessage(
-                content = "서버 연결을 시도하고 있습니다... (사용자: $currentUserId, 방: $currentChatRoomId)",
+            _messages.value = listOf(ChatMessage(
+                content = "대화 기록을 불러오는 중...",
                 isFromMe = false,
                 timestamp = getCurrentTimestamp()
-            )
-            _messages.value = listOf(initialMessage)
-            Log.d(TAG, "초기 메시지 설정 완료")
+            ))
+
+            val result = chatRepository.getChatMessages(currentChatRoomId)
+
+            result.onSuccess {
+                val chatMessages = it.map {
+                    ChatMessage(
+                        content = it.message,
+                        isFromMe = it.userId == currentUserId,
+                        timestamp = it.createdAt ?: getCurrentTimestamp()
+                    )
+                }
+                _messages.value = chatMessages
+                Log.d(TAG, "초기 메시지 로드 성공: ${it.size}개")
+            }.onFailure {
+                Log.e(TAG, "초기 메시지 로드 실패", it)
+                _messages.value = listOf(ChatMessage(
+                    content = "대화 기록을 불러오는데 실패했습니다.",
+                    isFromMe = false,
+                    timestamp = getCurrentTimestamp()
+                ))
+            }
         }
     }
 

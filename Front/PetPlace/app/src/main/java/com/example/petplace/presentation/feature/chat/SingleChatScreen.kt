@@ -29,17 +29,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.PrimaryColor
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SingleChatScreen(
     chatPartnerName: String,
     navController: NavController,
-    viewModel: ChatViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: ChatViewModel = hiltViewModel()
 ) {
     val messageInput by viewModel.messageInput.collectAsState()
     val showAttachmentOptions by viewModel.showAttachmentOptions.collectAsState()
