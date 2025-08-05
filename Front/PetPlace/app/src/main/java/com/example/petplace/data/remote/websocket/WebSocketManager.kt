@@ -10,8 +10,11 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import ua.naiksoftware.stomp.Stomp
 import ua.naiksoftware.stomp.StompClient
 import ua.naiksoftware.stomp.dto.LifecycleEvent
@@ -33,8 +36,8 @@ class WebSocketManager {
     val messageFlow: SharedFlow<ChatMessageDTO> = _messageFlow.asSharedFlow()
 
     // 연결 상태를 위한 Flow
-    private val _connectionStatus = MutableSharedFlow<Boolean>()
-    val connectionStatus: SharedFlow<Boolean> = _connectionStatus.asSharedFlow()
+    private val _connectionStatus = MutableStateFlow(false)
+    val connectionStatus: StateFlow<Boolean> = _connectionStatus.asStateFlow()
 
     fun connect() {
         if (stompClient != null) {
