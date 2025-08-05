@@ -76,6 +76,7 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
 
     // Navigation (Compose용)

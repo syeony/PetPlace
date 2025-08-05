@@ -1,12 +1,15 @@
 package com.example.petplace.di
 
+import android.content.Context
 import android.util.Log
 import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.ServerApiService
 import com.example.petplace.BuildConfig
+import com.example.petplace.PetPlaceApp
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -21,7 +24,7 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val KAKAO_BASE_URL = "https://dapi.kakao.com/"
-    private const val SERVER_BASE_URL = "https://api.ourserver.com/"
+    private const val SERVER_BASE_URL = "http://43.201.108.195:8081/"
     private const val KAKAO_API_KEY = BuildConfig.KAKAO_REST_KEY // 실제 키로 교체
 
     // 1) 로깅 인터셉터
@@ -48,10 +51,23 @@ object NetworkModule {
     @Provides
     @Singleton
     @Named("ServerClient")
-    fun provideServerOkHttpClient(): OkHttpClient =
+    fun provideServerOkHttpClient(
+        @ApplicationContext context: Context
+    ): OkHttpClient =
         OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor())
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val app = PetPlaceApp.getAppContext() as PetPlaceApp
+                val token = app.getJwtToken() // 🔹 SharedPreferences에서 가져오기
+                val builder = original.newBuilder()
+                if (!token.isNullOrEmpty()) {
+                    builder.addHeader("Authorization", "Bearer $token")
+                }
+                chain.proceed(builder.build())
+            }
             .build()
+
 
     // 4) Kakao Retrofit (Named 으로 구분)
     @Provides
