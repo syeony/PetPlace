@@ -1,7 +1,7 @@
 package com.example.petplace.data.local.chat
 
 data class ChatRoom(
-    val chatId: Int,              // 채팅방 ID (백엔드 연동 시 필수)
+    val id: Long,              // 채팅방 ID (백엔드 연동 시 필수)
     val name: String,                // 사용자 이름
     val region: String,              // 동네 이름
     val lastMessage: String,         // 마지막 메시지 내용

@@ -115,4 +115,10 @@ object NetworkModule {
         @Named("Server") retrofit: Retrofit
     ): JoinApiService = retrofit.create(JoinApiService::class.java)
 
+    @Provides
+    @Singleton
+    fun provideChatApi(
+        @Named("Server") retrofit: Retrofit
+    ): com.example.petplace.data.remote.ChatApiService = retrofit.create(com.example.petplace.data.remote.ChatApiService::class.java)
+
 }

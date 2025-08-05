@@ -6,8 +6,8 @@ import androidx.navigation.NavController
 @Composable
 fun ChatScreen(navController: NavController) {
     ChatListScreen(
-        onChatClick = { chatName ->
-            navController.navigate("chatDetail/$chatName")
+        onChatClick = { chatRoomId ->
+            navController.navigate("chatDetail/$chatRoomId")
         },
     )
 }

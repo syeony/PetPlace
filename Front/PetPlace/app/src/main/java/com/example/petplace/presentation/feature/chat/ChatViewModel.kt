@@ -21,7 +21,7 @@ class ChatViewModel : ViewModel() {
     private val webSocketManager = WebSocketManager()
 
     // 현재 사용자 ID와 채팅방 ID (실제로는 의존성 주입이나 다른 방법으로 설정)
-    private val currentUserId = 2L
+    private val currentUserId = 3L
     private val currentChatRoomId = 1L
 
     private val _messageInput = MutableStateFlow("")
