@@ -65,29 +65,73 @@ public class PortOneApiService {
      * 본인인증 결과 조회
      */
     public JsonNode getCertificationInfo(String impUid) {
-        String accessToken = getAccessToken();
+        log.info("포트원 인증 정보 조회 시작: impUid={}", impUid);
 
         try {
+            // 1. 액세스 토큰 발급
+            log.info("포트원 액세스 토큰 발급 시작");
+            String accessToken = getAccessToken();
+            log.info("포트원 액세스 토큰 발급 성공: {}...", accessToken.substring(0, Math.min(20, accessToken.length())));
+
+            // 2. API 호출
+            String url = "/certifications/" + impUid;
+            log.info("포트원 API 호출 URL: {}", url);
+
             String response = portOneWebClient.get()
-                    .uri("/certifications/" + impUid)
+                    .uri(url)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
 
-            log.debug("포트원 인증 조회 응답: {}", response);
-            JsonNode jsonNode = objectMapper.readTree(response);
+            log.info("포트원 API 원본 응답 길이: {}", response != null ? response.length() : "NULL");
+            log.info("포트원 API 원본 응답 내용: {}", response);
 
-            if (jsonNode.get("code").asInt() == 0) {
+            // 3. 응답 검증
+            if (response == null || response.trim().isEmpty()) {
+                log.error("포트원 API 응답이 비어있습니다");
+                return null;
+            }
+
+            // 4. JSON 파싱
+            JsonNode jsonNode;
+            try {
+                jsonNode = objectMapper.readTree(response);
+            } catch (Exception parseException) {
+                log.error("JSON 파싱 실패: {}", parseException.getMessage());
+                throw new RuntimeException("포트원 API 응답 파싱 실패: " + parseException.getMessage());
+            }
+
+            // 5. 응답 코드 확인
+            JsonNode codeNode = jsonNode.get("code");
+            if (codeNode == null) {
+                log.error("응답에 code 필드가 없습니다: {}", response);
+                throw new RuntimeException("잘못된 포트원 API 응답 형식");
+            }
+
+            int code = codeNode.asInt();
+            log.info("포트원 API 응답 코드: {}", code);
+
+            if (code == 0) {
+                JsonNode responseData = jsonNode.get("response");
                 log.info("본인인증 정보 조회 성공: impUid={}", impUid);
-                return jsonNode.get("response");
+                return responseData;
             } else {
-                throw new RuntimeException("인증 정보 조회 실패: " + jsonNode.get("message").asText());
+                JsonNode messageNode = jsonNode.get("message");
+                String message = messageNode != null ? messageNode.asText() : "Unknown error";
+                log.error("포트원 API 오류: code={}, message={}", code, message);
+                throw new RuntimeException("포트원 API 오류 - 코드: " + code + ", 메시지: " + message);
             }
 
         } catch (Exception e) {
-            log.error("본인인증 정보 조회 실패: impUid={}", impUid, e);
-            throw new RuntimeException("인증 정보 조회 중 오류 발생", e);
+            log.error("포트원 인증 정보 조회 실패: impUid={}, 오류: {}", impUid, e.getMessage(), e);
+
+            // 예외를 다시 던지되, null을 반환하지 않도록 함
+            if (e instanceof RuntimeException) {
+                throw e;
+            } else {
+                throw new RuntimeException("포트원 API 호출 중 오류 발생: " + e.getMessage(), e);
+            }
         }
     }
 }
