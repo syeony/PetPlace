@@ -33,9 +33,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,43 +47,40 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
+import com.example.petplace.data.model.feed.CreateImage
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BoardWriteScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
+    viewModel: BoardWriteViewModel = hiltViewModel()
 ) {
-    val allCategories = listOf("내새꾸자랑", "정보", "나눔", "공구", "자유")
-    val allTags = listOf(
-        "산책",
-        "목욕",
-        "미용",
-        "사료",
-        "간식",
-        "놀이",
-        "훈련",
-        "건강관리",
-        "동물병원",
-        "호텔",
-        "유치원",
-        "캣타워",
-        "펫시터",
-        "입양",
-        "보험",
-        "장난감",
-        "케어",
-        "리드줄",
-        "하네스",
-        "이동장"
+    val content by viewModel.content.collectAsState()
+    val category by viewModel.category.collectAsState()
+    val tagIds by viewModel.tagIds.collectAsState()
+    val images by viewModel.images.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    val allCategories = listOf(
+        "내새꾸자랑" to "MYPET",
+        "정보" to "INFO",
+        "나눔" to "SHARE",
+        "공구" to "GROUPBUY",
+        "자유" to "FREE"
     )
 
-    var selectedCategory by remember { mutableStateOf<String?>(null) }
-    var selectedTags by remember { mutableStateOf<List<String>>(emptyList()) }
-    var content by remember { mutableStateOf("") }
+    val allTags = listOf(
+        "산책", "목욕", "미용", "사료", "간식", "놀이", "훈련", "건강관리", "동물병원",
+        "호텔", "유치원", "캣타워", "펫시터", "입양", "보험", "장난감", "케어",
+        "리드줄", "하네스", "이동장"
+    )
+
     var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -89,6 +88,15 @@ fun BoardWriteScreen(
     ) { uris ->
         if (uris.isNotEmpty()) {
             imageUris = imageUris + uris
+            // 서버 전송할 CreateImage 모델로 변환
+            viewModel.setImages(
+                imageUris.mapIndexed { index, uri ->
+                    CreateImage(
+                        src = uri.toString(),
+                        sort = index
+                    )
+                }
+            )
         }
     }
 
@@ -98,7 +106,7 @@ fun BoardWriteScreen(
                 .fillMaxSize()
                 .background(Color.White)
                 .padding(16.dp)
-                .padding(bottom = 160.dp) // 여유 패딩
+                .padding(bottom = 160.dp)
         ) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -112,8 +120,8 @@ fun BoardWriteScreen(
                     .horizontalScroll(rememberScrollState())
                     .padding(start = 16.dp)
             ) {
-                allCategories.forEach { category ->
-                    val selected = selectedCategory == category
+                allCategories.forEach { (label, apiValue) ->
+                    val selected = category == apiValue
                     val bgColor = if (selected) Color(0xFFF79800) else Color.White
                     val textColor = if (selected) Color.White else Color.DarkGray
                     val borderColor = if (selected) Color.Transparent else Color.DarkGray
@@ -123,22 +131,27 @@ fun BoardWriteScreen(
                             .padding(end = 8.dp)
                             .border(1.dp, borderColor, RoundedCornerShape(20.dp))
                             .background(bgColor, RoundedCornerShape(20.dp))
-                            .clickable { selectedCategory = category }
+                            .clickable { viewModel.pickCategory(apiValue) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Text(text = category, color = textColor, fontSize = 14.sp)
+                        Text(text = label, color = textColor, fontSize = 14.sp)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            Text("카테고리를 하나 선택해주세요.", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(start = 16.dp))
+            Text(
+                "카테고리를 하나 선택해주세요.",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(start = 16.dp)
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = content,
-                onValueChange = { content = it },
+                onValueChange = { viewModel.updateContent(it) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp),
@@ -165,8 +178,8 @@ fun BoardWriteScreen(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalArrangement = Arrangement.spacedBy(7.dp)
             ) {
-                allTags.forEach { tag ->
-                    val selected = tag in selectedTags
+                allTags.forEachIndexed { index, tag ->
+                    val selected = tagIds.contains(index.toLong())
                     val bgColor = if (selected) Color(0xFFF79800) else Color.White
                     val borderColor = if (selected) Color(0xFFF79800) else Color.LightGray
                     val textColor = if (selected) Color.White else Color.DarkGray
@@ -178,26 +191,10 @@ fun BoardWriteScreen(
                             .border(1.dp, borderColor, RoundedCornerShape(20.dp))
                             .background(bgColor, RoundedCornerShape(20.dp))
                             .clickable {
-                                selectedTags = if (selected) {
-                                    selectedTags - tag
-                                } else if (selectedTags.size < 4) {
-                                    selectedTags + tag
-                                } else selectedTags
+                                viewModel.toggleTag(index.toLong())
                             }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         fontSize = 15.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(modifier = Modifier.padding(horizontal = 16.dp)) {
-                selectedTags.forEach {
-                    Text(
-                        text = "#${it}",
-                        color = Color(0xFFF79800),
-                        modifier = Modifier.padding(end = 8.dp),
-                        fontSize = 14.sp
                     )
                 }
             }
@@ -231,6 +228,11 @@ fun BoardWriteScreen(
                             IconButton(
                                 onClick = {
                                     imageUris = imageUris - uri
+                                    viewModel.setImages(
+                                        imageUris.mapIndexed { index, u ->
+                                            CreateImage(src = u.toString(), sort = index)
+                                        }
+                                    )
                                 },
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
@@ -262,8 +264,15 @@ fun BoardWriteScreen(
 
             Button(
                 onClick = {
-                    // TODO: 등록 처리
-                    navController.popBackStack()
+                    scope.launch {
+                        try {
+                            val res = viewModel.submit()
+                            // 성공 시 화면 뒤로 이동
+                            navController.popBackStack()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

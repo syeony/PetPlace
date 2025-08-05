@@ -105,7 +105,7 @@ class BoardViewModel @Inject constructor(
 /* 작고 반복되는 프로필 이미지 렌더링 */
 @Composable
 fun ProfileImage(url: String?) {
-    val painter = url?.let { rememberAsyncImagePainter(it) }
+    val painter = url?.let { rememberAsyncImagePainter("http://i13d104.p.ssafy.io:8081"+it) }
         ?: painterResource(R.drawable.pp_logo)
 
     Image(

@@ -310,7 +310,7 @@ private fun FeedItem(
                 ) { page ->
                     val img: ImageRes = feed.images!![page]
                     Image(
-                        painter = rememberAsyncImagePainter(img.src),
+                        painter = rememberAsyncImagePainter("http://i13d104.p.ssafy.io:8081"+img.src),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

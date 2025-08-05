@@ -1,7 +1,11 @@
 package com.example.petplace.data.remote
 
+import com.example.petplace.data.model.feed.FeedCreateReq
+import com.example.petplace.data.model.feed.FeedCreateRes
 import com.example.petplace.data.model.feed.FeedRecommendRes
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface FeedApiService {
@@ -11,4 +15,10 @@ interface FeedApiService {
         @Query("page") page: Int  = 0,
         @Query("size") size: Int  = 100
     ): List<FeedRecommendRes>        // 200 OK → JSON Array
+
+    /** 새 피드 등록 */
+    @POST("/api/feeds")
+    suspend fun createFeed(
+        @Body req: FeedCreateReq
+    ): FeedCreateRes
 }

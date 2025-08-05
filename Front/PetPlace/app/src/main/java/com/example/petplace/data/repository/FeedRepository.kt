@@ -1,5 +1,7 @@
 package com.example.petplace.data.repository
 
+import com.example.petplace.data.model.feed.FeedCreateReq
+import com.example.petplace.data.model.feed.FeedCreateRes
 import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.remote.FeedApiService
 import com.example.petplace.data.remote.LoginApiService
@@ -16,4 +18,9 @@ class FeedRepository @Inject constructor(
         page: Int = 0,
         size: Int = 100
     ): List<FeedRecommendRes> = api.getRecommendedFeeds(userId, page, size)
+
+    suspend fun createFeed(req: FeedCreateReq): FeedCreateRes {
+        return api.createFeed(req)
+    }
+
 }
