@@ -14,4 +14,13 @@ sealed class BottomNavItem(
     object Chat : BottomNavItem("nav_chat", R.drawable.ic_chat, R.string.chat)
     object MyPage : BottomNavItem("nav_mypage", R.drawable.ic_mypage, R.string.mypage)
     //홈  게시판 지도 채팅 마이페이지
+    // HotelRoutes.kt
+
+    object HotelRoutes {
+        const val Graph = "hotelGraph"
+        const val Hotel = "hotel"
+        const val DateSelection = "dateSelection"
+        const val HotelList = "hotelList"
+    }
+
 }

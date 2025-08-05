@@ -1,16 +1,24 @@
 package com.example.petplace.di
 
+import android.content.Context
 import android.util.Log
-import com.example.petplace.data.remote.KakaoApiService
-import com.example.petplace.data.remote.ServerApiService
 import com.example.petplace.BuildConfig
+import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.remote.JoinApiService
+import com.example.petplace.data.remote.KakaoApiService
+import com.example.petplace.data.remote.LoginApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
+import okhttp3.Authenticator
 import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.Route
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Named
@@ -21,39 +29,99 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val KAKAO_BASE_URL = "https://dapi.kakao.com/"
-    private const val SERVER_BASE_URL = "https://api.ourserver.com/"
-    private const val KAKAO_API_KEY = BuildConfig.KAKAO_REST_KEY // 실제 키로 교체
+    private const val SERVER_BASE_URL = "http://43.201.108.195:8081/"
 
-    // 1) 로깅 인터셉터
     private fun loggingInterceptor() =
         HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
 
-    // 2) Kakao 전용 OkHttpClient
+    // 1) Kakao Client
     @Provides
     @Singleton
     @Named("KakaoClient")
     fun provideKakaoOkHttpClient(): OkHttpClient =
         OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor())
-            .addInterceptor(Interceptor { chain ->
+            .addInterceptor { chain ->
                 val req = chain.request().newBuilder()
                     .addHeader("Authorization", "KakaoAK ${BuildConfig.KAKAO_REST_KEY}")
                     .build()
                 Log.d("KakaoHeader", "Authorization → ${req.header("Authorization")}")
                 chain.proceed(req)
-            })
+            }
             .build()
 
-    // 3) Server 전용 OkHttpClient
+    // 2) Server Client + Authenticator
     @Provides
     @Singleton
     @Named("ServerClient")
-    fun provideServerOkHttpClient(): OkHttpClient =
-        OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor())
-            .build()
+    fun provideServerOkHttpClient(
+        @ApplicationContext context: Context
+    ): OkHttpClient {
+        val app = PetPlaceApp.getAppContext() as PetPlaceApp
 
-    // 4) Kakao Retrofit (Named 으로 구분)
+        return OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor())
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val token = app.getAccessToken()
+                val builder = original.newBuilder()
+                if (!token.isNullOrEmpty()) {
+                    builder.addHeader("Authorization", "Bearer $token")
+                }
+                chain.proceed(builder.build())
+            }
+            .authenticator(object : Authenticator {
+                override fun authenticate(route: Route?, response: Response): Request? {
+                    // 이미 시도했는데 계속 401이면 무한 루프 방지
+                    if (response.request.header("Authorization") != null &&
+                        responseCount(response) >= 2) {
+                        return null
+                    }
+
+                    val refreshToken = app.getRefreshToken() ?: return null
+                    val retrofit = Retrofit.Builder()
+                        .baseUrl(SERVER_BASE_URL)
+                        .addConverterFactory(GsonConverterFactory.create())
+                        .build()
+
+                    val api = retrofit.create(LoginApiService::class.java)
+
+                    return try {
+                        val refreshResponse = api.refreshTokenBlocking(
+                            LoginApiService.TokenRefreshRequest(refreshToken)
+                        ).execute()
+
+                        if (refreshResponse.isSuccessful) {
+                            val body = refreshResponse.body()
+                            if (body != null && body.success == 1) {
+                                app.saveLoginData(body.accessToken, body.refreshToken,
+                                    app.getUserInfo() ?: return null
+                                )
+                                response.request.newBuilder()
+                                    .header("Authorization", "Bearer ${body.accessToken}")
+                                    .build()
+                            } else null
+                        } else null
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        null
+                    }
+                }
+            })
+            .build()
+    }
+
+    private fun responseCount(response: Response): Int {
+        var res: Response? = response
+        var count = 1
+        while (res?.priorResponse != null) {
+            count++
+            res = res.priorResponse
+        }
+        return count
+    }
+
+    // 3) Retrofit 제공
     @Provides
     @Singleton
     @Named("Kakao")
@@ -66,7 +134,6 @@ object NetworkModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
-    // 5) Server Retrofit
     @Provides
     @Singleton
     @Named("Server")
@@ -79,7 +146,7 @@ object NetworkModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
 
-    // 6) API 서비스 제공
+    // 4) API 서비스
     @Provides
     @Singleton
     fun provideKakaoApi(
@@ -90,5 +157,11 @@ object NetworkModule {
     @Singleton
     fun provideServerApi(
         @Named("Server") retrofit: Retrofit
-    ): ServerApiService = retrofit.create(ServerApiService::class.java)
+    ): LoginApiService = retrofit.create(LoginApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideJoinApi(
+        @Named("Server") retrofit: Retrofit
+    ): JoinApiService = retrofit.create(JoinApiService::class.java)
 }
