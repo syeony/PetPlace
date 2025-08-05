@@ -15,6 +15,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import com.minjeok4go.petplace.user.service.PortOneApiService;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Slf4j
 @Tag(name = "User API", description = "사용자 관련 API 명세서입니다.")
 @RestController
@@ -28,7 +31,7 @@ public class UserController {
 
 
     // 본인인증 준비 (certification_url 생성)
-    @Operation(summary = "본인인증 준비", description = "포트원 본인인증을 시작하기 위한 certification_url을 생성합니다.")
+    @Operation(summary = "본인인증 준비", description = "포트원 본인인증 URL을 생성합니다.")
     @PostMapping("/certifications/prepare")
     public ResponseEntity<ApiResponse<Map<String, String>>> prepareCertification() {
         try {
