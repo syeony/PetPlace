@@ -53,48 +53,79 @@ public class UserService {
             log.info("본인인증 검증 시작: impUid={}", impUid);
 
             // 포트원 API 호출하여 인증 결과 조회
-            JsonNode certificationInfo = portOneApiService.getCertificationInfo(impUid);
+            JsonNode certificationInfo = null;
 
-            // 디버깅을 위해 포트원에서 받은 전체 데이터 출력
-            log.info("### 포트원 본인인증 응답 결과: {}", certificationInfo.toPrettyString());
-
-            // 1. 인증 완료 여부 확인 (기존: "status", 변경: "certified")
-            boolean isCertified = certificationInfo.get("certified").asBoolean();
-            if (!isCertified) {
-                throw new IllegalArgumentException("본인인증이 완료되지 않았습니다.");
+            try {
+                certificationInfo = portOneApiService.getCertificationInfo(impUid);
+                log.info("포트원 API 호출 완료, 응답 null 여부: {}", certificationInfo == null);
+            } catch (Exception apiException) {
+                log.error("포트원 API 호출 중 예외 발생: {}", apiException.getMessage(), apiException);
+                throw new IllegalArgumentException("포트원 API 호출 실패: " + apiException.getMessage());
             }
 
-            // 2. 인증 시간 검증 (30분 이내)
+            // ✅ Null 체크 (가장 중요!)
+            if (certificationInfo == null) {
+                log.error("포트원 API 응답이 null입니다. impUid={}", impUid);
+                throw new IllegalArgumentException("포트원 인증 정보를 가져올 수 없습니다. API 키를 확인해주세요.");
+            }
+
+            // 응답 내용 로깅
+            log.info("포트원 API 응답 내용: {}", certificationInfo.toPrettyString());
+
+            // 인증 상태 확인
+            JsonNode statusNode = certificationInfo.get("status");
+            if (statusNode == null) {
+                log.error("status 필드가 없습니다. 전체 응답: {}", certificationInfo.toPrettyString());
+                throw new IllegalArgumentException("잘못된 포트원 API 응답 형식입니다.");
+            }
+
+            String status = statusNode.asText();
+            log.info("본인인증 상태: status={}", status);
+
+            if (!"verified".equals(status)) {
+                throw new IllegalArgumentException("본인인증이 완료되지 않았습니다. 상태: " + status);
+            }
+            // ✅ CI(unique_key) 검증 추가
+            String ci = certificationInfo.get("unique_key").asText();
+            if (ci == null || ci.trim().isEmpty()) {
+                // CI가 없는 경우 대체 방안
+                log.warn("CI(unique_key)가 비어있습니다. 전화번호로 중복 체크 진행");
+                ci = "TEMP_CI_" + certificationInfo.get("phone").asText() + "_" + System.currentTimeMillis();
+            }
+
+
+            // 인증 시간 검증 (예: 30분 이내)
             long certifiedAt = certificationInfo.get("certified_at").asLong();
             long currentTime = System.currentTimeMillis() / 1000;
+
             if (currentTime - certifiedAt > 1800) { // 30분 = 1800초
                 throw new IllegalArgumentException("본인인증이 만료되었습니다. 다시 인증해주세요.");
             }
 
-            // 3. 생년월일 데이터 파싱 (기존: "birth", 변경: "birthday")
-            String birthString = certificationInfo.get("birthday").asText(); // "YYYY-MM-DD" 형식
-            LocalDate birthDate = LocalDate.parse(birthString, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            // 인증 데이터 추출
+            String birthString = certificationInfo.get("birth").asText();
+            LocalDate birthDate = LocalDate.parse(birthString, DateTimeFormatter.ofPattern("yyyyMMdd"));
 
-            // 4. 외국인 여부 파싱 (기존: 문자열 "Y", 변경: boolean)
-            boolean isForeigner = certificationInfo.get("foreigner").asBoolean();
-
-            // 최종 데이터 조립
             VerificationData result = VerificationData.builder()
                     .ci(certificationInfo.get("unique_key").asText())
                     .name(certificationInfo.get("name").asText())
                     .phone(certificationInfo.get("phone").asText())
                     .birthDate(birthDate)
                     .gender(certificationInfo.get("gender").asText())
-                    .isForeigner(isForeigner)
+                    .isForeigner("Y".equals(certificationInfo.get("foreigner").asText()))
                     .build();
 
             log.info("본인인증 데이터 추출 완료: name={}, phone={}", result.getName(), result.getPhone());
             return result;
 
         } catch (Exception e) {
-            log.error("본인인증 검증 실패: impUid={}", impUid, e);
-            // 클라이언트에게 조금 더 친절한 메시지를 전달하기 위해 원본 예외 메시지를 포함하지 않을 수 있습니다.
-            throw new IllegalArgumentException("본인인증 검증에 실패했습니다. 관리자에게 문의하세요.");
+            log.error("본인인증 검증 실패: impUid={}, 오류타입: {}, 메시지: {}", impUid, e.getClass().getSimpleName(), e.getMessage(), e);
+
+            if (e instanceof IllegalArgumentException) {
+                throw e;
+            } else {
+                throw new IllegalArgumentException("본인인증 검증 중 시스템 오류가 발생했습니다: " + e.getMessage());
+            }
         }
     }
 

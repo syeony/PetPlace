@@ -36,6 +36,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/swagger-ui",
             "/v3/api-docs",
             "/swagger-resources",
+            //포트원
+            "/api/user/test-portone-token",
+            "/api/user/test-portone-cert",
             "/webjars",
             "/favicon.ico",
             "/error",
