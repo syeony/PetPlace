@@ -3,7 +3,7 @@ package com.example.petplace.di
 import android.content.Context
 import android.util.Log
 import com.example.petplace.data.remote.KakaoApiService
-import com.example.petplace.data.remote.ServerApiService
+import com.example.petplace.data.remote.LoginApiService
 import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
 import dagger.Module
@@ -27,7 +27,7 @@ object NetworkModule {
     private const val SERVER_BASE_URL = "http://43.201.108.195:8081/"
     private const val KAKAO_API_KEY = BuildConfig.KAKAO_REST_KEY // 실제 키로 교체
 
-    // 1) 로깅 인터셉터
+    // 1) 로깅 인터셉터 디버깅용 나중엔 NONE 처리
     private fun loggingInterceptor() =
         HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
 
@@ -106,5 +106,5 @@ object NetworkModule {
     @Singleton
     fun provideServerApi(
         @Named("Server") retrofit: Retrofit
-    ): ServerApiService = retrofit.create(ServerApiService::class.java)
+    ): LoginApiService = retrofit.create(LoginApiService::class.java)
 }

@@ -3,8 +3,8 @@ package com.example.petplace.presentation.feature.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
-import com.example.petplace.data.remote.ServerApiService
-import com.example.petplace.data.remote.ServerApiService.LoginRequest
+import com.example.petplace.data.remote.LoginApiService
+import com.example.petplace.data.remote.LoginApiService.LoginRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +19,7 @@ data class LoginState(
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val serverApi: ServerApiService
+    private val serverApi: LoginApiService
 ) : ViewModel() {
 
     private val _loginState = MutableStateFlow(LoginState())
