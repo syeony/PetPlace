@@ -1,12 +1,35 @@
+# 테스트 환경 전용 설정 (H2 인메모리 DB 사용 - 권장)
+jwt:
+  # 제공해주신 JWT 시크릿 키를 사용합니다.
+  secret: "MyVeryLongAndSecureJwtSecretKeyForPetPlaceApplicationThatIsAtLeast64BytesLongToEnsureHS512SecurityStandards"
+  access-token-expiry: 3600000
+  refresh-token-expiry: 604800000
+
 spring:
+  # 테스트 시에는 실제 DB 대신 가벼운 인메모리 DB(H2)를 사용합니다.
   datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;MODE=MySQL # H2 DB를 MySQL 모드로 실행
     username: sa
     password:
+    driver-class-name: org.h2.Driver
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create-drop # 테스트 시작 시 테이블 생성, 종료 시 삭제
+    show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        # H2를 MySQL 모드로 실행하기 위한 설정
+        database-platform: org.hibernate.dialect.MySQLDialect
+
+# 포트원 설정도 테스트용 값을 넣어줍니다.
+portone:
+  api-key: ${PORTONE_API_KEY}
+  secret-key: ${PORTONE_SECRET_KEY}
+  store-id: ${PORTONE_STORE_ID}
+  channel-key: channel-key-680df6ca-d2e7-4c93-9a7c-bae25c42e559
+  base-url: https://api.iamport.kr
+
+logging:
+  level:
+    com.minjeok4go.petplace: DEBUG
+    root: INFO

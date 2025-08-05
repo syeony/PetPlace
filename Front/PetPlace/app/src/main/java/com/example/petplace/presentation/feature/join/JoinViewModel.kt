@@ -28,7 +28,6 @@ class JoinViewModel @Inject constructor(
     private val _regionName = MutableStateFlow<String?>(null)
     val regionName: StateFlow<String?> = _regionName
 
-    /** 위경도 받아서 바로 행정동/법정동 이름 조회 */
     fun fetchRegionByCoord(lat: Double, lng: Double) {
         viewModelScope.launch {
             _regionName.value = repo.getRegionByCoord(lat, lng)
