@@ -222,16 +222,6 @@ fun FeedScreen(
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
         ) { Icon(Icons.Default.Add, contentDescription = "글쓰기") }
-
-//        FloatingActionButton(
-//            onClick = { isSearchMode = !isSearchMode },
-//            containerColor = Color(0xFFF79800),
-//            contentColor   = Color.White,
-//            shape = CircleShape,
-//            modifier = Modifier
-//                .align(Alignment.TopEnd)
-//                .offset(x = (-16).dp, y = 72.dp)
-//        ) { Icon(Icons.Default.Search, contentDescription = "검색") }
     }
 }
 

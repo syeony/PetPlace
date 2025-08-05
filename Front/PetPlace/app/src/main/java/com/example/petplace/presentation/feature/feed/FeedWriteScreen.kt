@@ -54,12 +54,29 @@ import com.example.petplace.R
 fun BoardWriteScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    viewModel: BoardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    val allCategories = viewModel.allCategories
+    val allCategories = listOf("내새꾸자랑", "정보", "나눔", "공구", "자유")
     val allTags = listOf(
-        "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999", "1010",
-        "11111", "1212", "1313", "1414", "1515", "1616", "1717", "1818", "1919", "2020"
+        "산책",
+        "목욕",
+        "미용",
+        "사료",
+        "간식",
+        "놀이",
+        "훈련",
+        "건강관리",
+        "동물병원",
+        "호텔",
+        "유치원",
+        "캣타워",
+        "펫시터",
+        "입양",
+        "보험",
+        "장난감",
+        "케어",
+        "리드줄",
+        "하네스",
+        "이동장"
     )
 
     var selectedCategory by remember { mutableStateOf<String?>(null) }

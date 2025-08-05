@@ -7,8 +7,8 @@ import retrofit2.http.Query
 interface FeedApiService {
     @GET("api/feeds/recommend")
     suspend fun getRecommendedFeeds(
-        @Query("user_id") userId: Long = 0, //로그인된 유저 id (필수)
-        @Query("page")    page: Int  = 0,
-        @Query("size")    size: Int  = 20
+        @Query("user_id") userId: LoginApiService.User?, //로그인된 유저 id (필수)
+        @Query("page") page: Int  = 0,
+        @Query("size") size: Int  = 100
     ): List<FeedRecommendRes>        // 200 OK → JSON Array
 }

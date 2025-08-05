@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.compose.rememberAsyncImagePainter
+import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
 import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.repository.FeedRepository
@@ -26,13 +27,16 @@ class BoardViewModel @Inject constructor(
     private val repo: FeedRepository
 ) : ViewModel() {
 
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val userInfo = app.getUserInfo()
+
     /* ─── 상수 ─── */
-    private val USER_ID = 1L         // ← 로그인 완료되면 Token or DataStore 에서 꺼내 쓰면 됨
+    private val USER_ID = userInfo         // ← 로그인 완료되면 Token or DataStore 에서 꺼내 쓰면 됨
     private val PAGE    = 0
-    private val SIZE    = 20
+    private val SIZE    = 100
 
     /* ─── UI State ─── */
-    val allCategories = listOf("MYPET", "INFO", "나눔", "공구", "자유")
+    val allCategories = listOf("MYPET", "INFO", "SHARE", "REVIEW", "ANY")
 
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory: StateFlow<String?> = _selectedCategory
