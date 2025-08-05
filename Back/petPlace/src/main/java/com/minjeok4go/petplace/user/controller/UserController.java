@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.user.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.service.UserService;
 import com.minjeok4go.petplace.common.dto.ApiResponse;
@@ -12,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
+import com.minjeok4go.petplace.user.service.PortOneApiService;
 
 @Slf4j
 @Tag(name = "User API", description = "사용자 관련 API 명세서입니다.")
@@ -22,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final PortOneApiService portOneApiService;
+
+
 
     // 회원가입
     @Operation(summary = "회원가입", description = "본인인증 완료 후 회원가입을 진행합니다. 추후 카카오 연동 추가 예정 , 동네 인증도")
@@ -90,6 +94,46 @@ public class UserController {
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResponse.failure("인증 실패"));
+        }
+    }
+
+    @GetMapping("/test-portone-token")
+    @Operation(summary = "포트원 토큰 발급 테스트")
+    public ResponseEntity<ApiResponse<String>> testPortOneToken() {
+        try {
+            log.info("포트원 토큰 발급 테스트 시작");
+
+            String accessToken = portOneApiService.getAccessToken();
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    "포트원 토큰 발급 성공! Token: " + accessToken.substring(0, Math.min(30, accessToken.length())) + "..."
+            ));
+        } catch (Exception e) {
+            log.error("포트원 토큰 발급 테스트 실패", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.failure("포트원 토큰 발급 실패: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/test-portone-cert/{impUid}")
+    @Operation(summary = "포트원 인증 정보 조회 테스트")
+    public ResponseEntity<ApiResponse<String>> testPortOneCert(@PathVariable String impUid) {
+        try {
+            log.info("포트원 인증 정보 조회 테스트 시작: impUid={}", impUid);
+
+            JsonNode result = portOneApiService.getCertificationInfo(impUid);
+
+            if (result == null) {
+                return ResponseEntity.ok(ApiResponse.failure("결과가 null입니다"));
+            }
+
+            return ResponseEntity.ok(ApiResponse.success(
+                    "포트원 인증 정보 조회 성공! 응답: " + result.toPrettyString()
+            ));
+        } catch (Exception e) {
+            log.error("포트원 인증 정보 조회 테스트 실패", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.failure("포트원 인증 정보 조회 실패: " + e.getMessage()));
         }
     }
 }

@@ -59,11 +59,9 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'                 // JUnit5 테스트 런처
     testRuntimeOnly 'com.h2database:h2'
 
-    // 포트원 연동을 위해 WebClient가 포함된 webflux 의존성 추가
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
-
-    // JSON <-> Java 객체 변환을 위한 jackson 의존성 (보통 webflux에 포함되어 있지만 명시적으로 추가해도 좋음)
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    // 포트원 연동을 위한 WebClient (webflux 스타터 대신 개별 의존성 사용)
+    implementation 'org.springframework:spring-webflux'
+    implementation 'io.projectreactor.netty:reactor-netty-http'
 
 }
 

@@ -41,6 +41,9 @@ public class SecurityConfig {
                                 // 인증 API
                                 new AntPathRequestMatcher("/api/auth/login"),
                                 new AntPathRequestMatcher("/api/auth/refresh"),
+                                new AntPathRequestMatcher("/api/user/test-portone-token"),
+                                new AntPathRequestMatcher("/api/user/test-portone-cert/**"),
+
                                 // Swagger 관련 - 와일드카드 패턴 사용
                                 new AntPathRequestMatcher("/swagger-ui/**"),
                                 new AntPathRequestMatcher("/v3/api-docs/**"),
