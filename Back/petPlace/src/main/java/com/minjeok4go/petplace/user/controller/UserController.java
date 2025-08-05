@@ -30,13 +30,13 @@ public class UserController {
     // 본인인증 준비 (certification_url 생성)
     @Operation(summary = "본인인증 준비", description = "포트원 본인인증을 시작하기 위한 certification_url을 생성합니다.")
     @PostMapping("/certifications/prepare")
-    public ResponseEntity<ApiResponse<String>> prepareCertification() {
+    public ResponseEntity<ApiResponse<Map<String, String>>> prepareCertification() {
         try {
             log.info("본인인증 준비 요청");
-            String certificationUrl = portOneApiService.prepareCertification();
+            Map<String, String> result = portOneApiService.prepareCertification();
             
             return ResponseEntity.ok(
-                    ApiResponse.success("본인인증 URL 생성 성공", certificationUrl)
+                    ApiResponse.success("본인인증 URL 생성 성공", result)
             );
         } catch (Exception e) {
             log.error("본인인증 준비 실패", e);
