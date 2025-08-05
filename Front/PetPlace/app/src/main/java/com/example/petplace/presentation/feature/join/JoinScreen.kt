@@ -46,7 +46,7 @@ import com.kakao.vectormap.label.LabelOptions
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
-fun JoinScreen(navController: NavController) {
+fun JoinScreen(navController: NavController, viewModel: JoinViewModel) {
     val context = LocalContext.current
 
     // ViewModel + 동네 이름 상태
@@ -358,8 +358,8 @@ private fun LocationCard(title: String, subTitle: String, buttonText: String, on
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFFFEF9F0)
-@Composable
-private fun JoinPreview() {
-    JoinScreen(navController = rememberNavController())
-}
+//@Preview(showBackground = true, backgroundColor = 0xFFFEF9F0)
+//@Composable
+//private fun JoinPreview() {
+//    JoinScreen(navController = rememberNavController(), viewModel = viewModel)
+//}

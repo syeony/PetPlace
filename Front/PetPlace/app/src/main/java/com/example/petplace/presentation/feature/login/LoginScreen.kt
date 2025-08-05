@@ -116,7 +116,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
-                onClick = { navController.navigate("join") },
+                onClick = { navController.navigate("join_graph") },
                 modifier = Modifier.fillMaxWidth(),
                 border = BorderStroke(1.dp, color = PrimaryColor),
                 shape = RoundedCornerShape(12.dp)
