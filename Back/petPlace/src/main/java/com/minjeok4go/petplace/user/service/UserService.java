@@ -2,6 +2,7 @@
 package com.minjeok4go.petplace.user.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.minjeok4go.petplace.auth.dto.TokenDto;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
@@ -9,6 +10,7 @@ import com.minjeok4go.petplace.user.dto.VerificationData;
 import com.minjeok4go.petplace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -167,5 +169,8 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 아이디입니다."));
     }
 
-
+    public User getUserFromToken(TokenDto.UserInfo tokenUser) {
+        return userRepository.findByUserName(tokenUser.getUserName())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + tokenUser.getUserName()));
+    }
 }
