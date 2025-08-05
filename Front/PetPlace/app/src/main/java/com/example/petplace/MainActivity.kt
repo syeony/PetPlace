@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import com.example.petplace.presentation.common.navigation.MainScaffold
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
 import android.util.Log
+import com.iamport.sdk.domain.core.Iamport
 import com.kakao.sdk.common.util.Utility
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -19,6 +20,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         var keyHash = Utility.getKeyHash(this)
         Log.e("KeyHash", "해쉬값 : ${keyHash}")
+        Iamport.init(this)
         setContent {
             PetPlaceTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {

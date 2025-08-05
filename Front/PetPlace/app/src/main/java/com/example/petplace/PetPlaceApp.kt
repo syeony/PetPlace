@@ -8,6 +8,8 @@ import com.example.petplace.data.remote.LoginApiService
 import com.kakao.vectormap.KakaoMapSdk
 import dagger.hilt.android.HiltAndroidApp
 import com.example.petplace.BuildConfig
+import com.iamport.sdk.domain.core.Iamport
+
 
 @HiltAndroidApp
 class PetPlaceApp : Application() {
@@ -29,6 +31,9 @@ class PetPlaceApp : Application() {
         // 카카오맵 SDK 초기화
         KakaoMapSdk.init(this, BuildConfig.KAKAO_NATIVE_KEY)
         Log.d("KakaoKeyCheck", BuildConfig.KAKAO_REST_KEY)
+        //본인인증 sdk
+//        Iamport.create(this)
+//        Iamport.init(this)
     }
 
     // 토큰 + 유저저 장

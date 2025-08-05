@@ -1,13 +1,10 @@
 package com.example.petplace.presentation.feature.join
 
 import android.annotation.SuppressLint
-import android.net.Uri
 import android.util.Log
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import com.iamport.sdk.domain.core.Iamport
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -17,10 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.petplace.R
+import com.iamport.sdk.data.sdk.IamPortCertification
+import com.iamport.sdk.data.sdk.IamPortResponse
 import kotlinx.coroutines.launch
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -30,101 +28,85 @@ fun CertificationScreen(
     viewModel: JoinViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val redirectUrl = "petplace://certification" // 커스텀 스킴
 
-    // 서버에서 받아올 인증 URL
-    var certificationUrl by remember { mutableStateOf<String?>(null) }
-    // 에러 메시지
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    // 로딩 상태
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    if (certificationUrl == null) {
-        // 1️⃣ 인증 시작 전 UI
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.img_certification),
+            contentDescription = "본인 인증 안내 이미지",
             modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.img_certification),
-                contentDescription = "본인 인증 안내 이미지",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp)
-            )
+                .fillMaxWidth()
+                .padding(bottom = 32.dp)
+        )
 
-            Button(
-                onClick = {
-                    errorMessage = null
-                    isLoading = true
-                    scope.launch {
-                        try {
-                            // suspend fun 호출
-                            val resp = viewModel.prepareCertification()
-                            certificationUrl = resp.data.certificationUrl
-                        } catch (e: Exception) {
-                            errorMessage = e.message ?: "인증 URL 생성 실패"
-                        } finally {
-                            isLoading = false
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading
-            ) {
-                Text(if (isLoading) "로딩 중..." else "휴대폰 본인 인증 시작")
-            }
+        Button(
+            onClick = {
+                // 본인인증 로직
+                scope.launch {
+                    try {
+                        isLoading = true
 
-            errorMessage?.let { msg ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(msg, color = androidx.compose.ui.graphics.Color.Red)
-            }
-        }
-    } else {
-        // 2️⃣ 인증 URL 준비되면 WebView 보여주기
-        AndroidView(
-            factory = { ctx ->
-                WebView(ctx).apply {
-                    settings.javaScriptEnabled = true
-                    settings.domStorageEnabled = true
+                        // 1. 서버로부터 merchantUid를 발급받는 API 호출
+                        val resp = viewModel.prepareCertification()
+                        val merchantUid = resp.data.merchantUid
+                        val userCode = "imp87506456" // ⚠️ 여기에 포트원 가맹점 식별코드 입력
 
-                    webViewClient = object : WebViewClient() {
-                        @Suppress("OverridingDeprecatedMember")
-                        override fun shouldOverrideUrlLoading(view: WebView?, url: String?) =
-                            handleUrl(url ?: "")
+                        // 2. Iamport.certification 함수 호출
+                        Iamport.certification(
+                            userCode = userCode,
+                            iamPortCertification = IamPortCertification(
+                                merchant_uid = merchantUid,
+                                company ="html5_inicis" ,
 
-                        override fun shouldOverrideUrlLoading(
-                            view: WebView?,
-                            request: WebResourceRequest?
-                        ) = handleUrl(request?.url.toString())
 
-                        private fun handleUrl(url: String): Boolean {
-                            Log.d("CertScreen", "Redirect URL: $url")
-                            if (url.startsWith(redirectUrl)) {
-                                val impUid = Uri.parse(url).getQueryParameter("imp_uid")
-                                if (!impUid.isNullOrEmpty()) {
-                                    viewModel.verifyCertification(impUid)
-                                    Toast.makeText(context, "본인인증 완료!", Toast.LENGTH_SHORT).show()
-                                    navController.popBackStack()
+
+
+                                ),
+
+                            resultCallback = { result: IamPortResponse? ->
+                                // 3. 인증 결과 처리
+                                isLoading = false
+                                if (result?.success == true) {
+                                    val impUid = result.imp_uid
+                                    if (!impUid.isNullOrEmpty()) {
+                                        // 4. 인증 성공 시, imp_uid를 서버로 보내 검증
+                                        viewModel.verifyCertification(impUid)
+                                        Toast.makeText(context, "본인인증이 완료되었습니다!", Toast.LENGTH_SHORT).show()
+                                        navController.popBackStack()
+                                    }
                                 } else {
-                                    Toast.makeText(context, "인증 실패", Toast.LENGTH_SHORT).show()
+                                    val msg = result?.error_msg ?: "인증 실패"
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    Log.e("Certification", "본인인증 실패: $msg")
                                 }
-                                return true
                             }
-                            return false
-                        }
+                        )
+                    } catch (e: Exception) {
+                        // API 호출 실패 등 예외 처리
+                        isLoading = false
+                        errorMessage = e.message ?: "인증 준비 중 오류 발생"
+                        Log.e("Certification", "오류 발생: ${e.message}")
                     }
-
-                    Log.d("CertScreen", "WebView 로드 시작: $certificationUrl")
-                    loadUrl(certificationUrl!!)
                 }
             },
-            modifier = Modifier.fillMaxSize()
-        )
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
+        ) {
+            Text(if (isLoading) "로딩 중..." else "휴대폰 본인 인증 시작")
+        }
+
+        errorMessage?.let { msg ->
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(msg, color = androidx.compose.ui.graphics.Color.Red)
+        }
     }
 }
