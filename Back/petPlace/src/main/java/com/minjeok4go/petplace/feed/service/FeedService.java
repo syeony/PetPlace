@@ -17,7 +17,9 @@ import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
+import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,12 +98,12 @@ public class FeedService {
                 .build();
     }
     @Transactional
-    public FeedDetailResponse createFeed(CreateFeedRequest req) {
-        // 1) 피드 저장 (insert)
+    public FeedDetailResponse createFeed(CreateFeedRequest req, User user) {
+        // 1) 피드 저장
         Feed feed = Feed.builder()
                 .content(req.getContent())
-                .userId(req.getUserId())
-                .userNick(req.getUserNick())
+                .userId(user.getId().longValue())
+                .userNick(user.getNickname())
                 .regionId(req.getRegionId())
                 .category(req.getCategory())
                 .build();
@@ -114,30 +116,34 @@ public class FeedService {
     }
 
     @Transactional
-    public FeedDetailResponse updateFeed(Long id, CreateFeedRequest req) {
-        // 1) 기존 피드 조회 & 수정
-        Feed feed = feedRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Feed not found"));
+    public FeedDetailResponse updateFeed(Long id, CreateFeedRequest req, User user) {
+        // 1) 한 번에 조회 + 권한검사
+        Feed feed = feedRepository
+                .findByIdAndUserId(id, user.getId().longValue())
+                .orElseThrow(() -> new AccessDeniedException("해당 피드를 찾을 수 없거나, 삭제 권한이 없습니다."));
+
+        // 2) 실제 수정
         feed.setContent(req.getContent());
-        feed.setUserNick(req.getUserNick());
+        feed.setUserNick(user.getNickname());
         feed.setRegionId(req.getRegionId());
         feed.setCategory(req.getCategory());
         feed.update();
-        feed = feedRepository.save(feed);
+        feedRepository.save(feed);
 
-        // 2) FeedTag / Image 삽입
+        // 3) 관계삽입
         saveRelations(feed, req);
 
-        return getFeedDetail(id);
+        return getFeedDetail(feed.getId());
     }
 
-    public DeleteFeedResponse deleteFeed(Long id) {
-
-        Feed feed = feedRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Feed not found"));
+    @Transactional
+    public DeleteFeedResponse deleteFeed(Long id, User user) {
+        Feed feed = feedRepository
+                .findByIdAndUserId(id, user.getId().longValue())
+                .orElseThrow(() -> new AccessDeniedException("해당 피드를 찾을 수 없거나, 삭제 권한이 없습니다."));
 
         feed.delete();
-
+        feedRepository.save(feed);
         return new DeleteFeedResponse(id);
     }
 
