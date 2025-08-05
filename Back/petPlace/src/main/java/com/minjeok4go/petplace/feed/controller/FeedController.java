@@ -52,9 +52,9 @@ public class FeedController {
     public ResponseEntity<List<FeedListResponse>> getRecommendedFeeds(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @AuthenticationPrincipal TokenDto.UserInfo tokenUser
+            @AuthenticationPrincipal String tokenUserName
     ) {
-        User me = userService.getUserFromToken(tokenUser);
+        User me = userService.getUserFromToken(tokenUserName);
         return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me.getId().longValue(), page, size));
     }
 
@@ -65,11 +65,10 @@ public class FeedController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public FeedDetailResponse createFeed(@Valid @RequestBody CreateFeedRequest req,
-                                         @AuthenticationPrincipal TokenDto.UserInfo tokenUser) {
-        User me = userService.getUserFromToken(tokenUser);
+                                         @AuthenticationPrincipal String tokenUserName) {
+        User me = userService.getUserFromToken(tokenUserName);
         return feedService.createFeed(req, me);
     }
-
 
     @Operation(
         summary = "피드 수정",
@@ -80,11 +79,10 @@ public class FeedController {
     @PutMapping("/{id}")
     public FeedDetailResponse updateFeed(@PathVariable Long id,
                                          @Valid @RequestBody CreateFeedRequest req,
-                                         @AuthenticationPrincipal TokenDto.UserInfo tokenUser) {
-        User me = userService.getUserFromToken(tokenUser);
+                                         @AuthenticationPrincipal String tokenUserName) {
+        User me = userService.getUserFromToken(tokenUserName);
         return feedService.updateFeed(id, req, me);
     }
-
 
     @Operation(
         summary = "피드 삭제",
@@ -93,8 +91,8 @@ public class FeedController {
     )
     @DeleteMapping("/{id}")
     public DeleteFeedResponse deleteFeed(@PathVariable Long id,
-                                         @AuthenticationPrincipal TokenDto.UserInfo tokenUser) {
-        User me = userService.getUserFromToken(tokenUser);
+                                         @AuthenticationPrincipal String tokenUserName) {
+        User me = userService.getUserFromToken(tokenUserName);
         return feedService.deleteFeed(id, me);
     }
 }
