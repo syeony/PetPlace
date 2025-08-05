@@ -27,9 +27,15 @@ class JoinViewModel @Inject constructor(
         private set
     var nickname = mutableStateOf("")
         private set
+
+    var impUid = mutableStateOf<String?>("")
+        private set
+
+
     fun onUserIdChange(newId: String) { userId.value = newId }
     fun onPasswordChange(newPw: String) { password.value = newPw }
     fun onNicknameChange(newName: String) { nickname.value = newName }
+    fun saveImpUid(newImpUid: String) { impUid.value = newImpUid }
 
     // 동네 이름 상태 (null: 아직 로딩 전)
     private val _regionName = MutableStateFlow<String?>(null)
@@ -62,6 +68,7 @@ class JoinViewModel @Inject constructor(
             try {
                 val response = joinRepo.verifyCertification(impUid)
                 if (response.isSuccessful && response.body()?.success == true) {
+
                     Log.d("Certification", "인증 성공: ${response.body()}")
                 } else {
                     Log.e("Certification", "인증 실패: ${response.errorBody()?.string()}")

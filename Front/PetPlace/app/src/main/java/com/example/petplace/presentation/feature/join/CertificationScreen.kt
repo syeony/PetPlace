@@ -16,6 +16,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.example.petplace.BuildConfig
 import com.example.petplace.R
 import com.iamport.sdk.data.sdk.IamPortCertification
 import com.iamport.sdk.data.sdk.IamPortResponse
@@ -58,7 +59,7 @@ fun CertificationScreen(
                         // 1. 서버로부터 merchantUid를 발급받는 API 호출
                         val resp = viewModel.prepareCertification()
                         val merchantUid = resp.data.merchantUid
-                        val userCode = "imp87506456" // ⚠️ 여기에 포트원 가맹점 식별코드 입력
+                        val userCode = BuildConfig.IMP_KEY // ⚠️ 여기에 포트원 가맹점 식별코드 입력
 
                         // 2. Iamport.certification 함수 호출
                         Iamport.certification(
@@ -79,9 +80,10 @@ fun CertificationScreen(
                                     val impUid = result.imp_uid
                                     if (!impUid.isNullOrEmpty()) {
                                         // 4. 인증 성공 시, imp_uid를 서버로 보내 검증
-                                        viewModel.verifyCertification(impUid)
+//                                        viewModel.verifyCertification(impUid) 이건 회원가입할때
+                                        viewModel.saveImpUid(result.imp_uid!!)
                                         Toast.makeText(context, "본인인증이 완료되었습니다!", Toast.LENGTH_SHORT).show()
-                                        navController.popBackStack()
+                                        navController.navigate("join/main")
                                     }
                                 } else {
                                     val msg = result?.error_msg ?: "인증 실패"

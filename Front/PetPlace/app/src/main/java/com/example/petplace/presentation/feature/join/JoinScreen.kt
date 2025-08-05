@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -48,7 +49,7 @@ import com.kakao.vectormap.label.LabelOptions
 @Composable
 fun JoinScreen(navController: NavController, viewModel: JoinViewModel) {
     val context = LocalContext.current
-
+    Log.d("impUid","${viewModel.impUid}")
     // ViewModel + 동네 이름 상태
     val viewModel: JoinViewModel = hiltViewModel()
     val rawRegionName by viewModel.regionName.collectAsState(initial = null)
