@@ -22,12 +22,6 @@ public class CreateFeedRequest {
     private String content;
 
     @NotNull
-    private Long userId;
-
-    @NotNull
-    private String userNick;
-
-    @NotNull
     private Long regionId;
 
     @NotNull
