@@ -8,6 +8,7 @@ import com.minjeok4go.petplace.auth.service.RefreshTokenService;
 import com.minjeok4go.petplace.common.dto.ApiResponse;
 import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class AuthController {
 
     private final AuthService authService;
@@ -71,7 +73,7 @@ public class AuthController {
 
             if (authentication != null && authentication.isAuthenticated()) {
                 String userName = authentication.getName();
-                refreshTokenService.deleteByUserId(userName);  // RefreshToken의 userId는 userName을 저장
+                refreshTokenService.deleteByUserName(userName);  // RefreshToken의 userId는 userName을 저장
                 return ResponseEntity.ok(ApiResponse.success("로그아웃 성공"));
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

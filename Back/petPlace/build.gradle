@@ -37,12 +37,12 @@ dependencies {
     runtimeOnly 'com.mysql:mysql-connector-j'                                   // MySQL JDBC 드라이버
 
     // --- 개발 편의 ---
-    compileOnly 'org.projectlombok:lombok'                                      // 롬복(코드 자동화: getter/setter 등)
-    annotationProcessor 'org.projectlombok:lombok'                              // 롬복(Annotation 처리)
+    compileOnly 'org.projectlombok:lombok'                                      // 롬북(코드 자동화: getter/setter 등)
+    annotationProcessor 'org.projectlombok:lombok'                              // 롬북(Annotation 처리)
     developmentOnly 'org.springframework.boot:spring-boot-devtools'             // 개발용 자동 재시작, 핫스왑 등
 
-    // --- API 문서화(Swagger/OpenAPI) ---
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'    // Swagger 문서 자동 생성
+    // --- API 문서화(Swagger/OpenAPI) --- 🔥 버전 업그레이드
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'   // Spring Boot 3.5+ 호환 버전
 
     // --- JSON 파싱(Jackson) ---
     implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -58,6 +58,11 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'        // 시큐리티 테스트 지원
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'                 // JUnit5 테스트 런처
     testRuntimeOnly 'com.h2database:h2'
+
+    // 포트원 연동을 위한 WebClient (webflux 스타터 대신 개별 의존성 사용)
+    implementation 'org.springframework:spring-webflux'
+    implementation 'io.projectreactor.netty:reactor-netty-http'
+
 }
 
 tasks.named('test') {

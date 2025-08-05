@@ -11,9 +11,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -22,9 +22,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-    private final RequestLoggingFilter requestLoggingFilter;  // 추가
-
-
+    private final RequestLoggingFilter requestLoggingFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -34,22 +32,41 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        // 인증 없이 접근 가능한 경로
+                        // 🔥 더 강력한 패턴 매칭 사용
                         .requestMatchers(
-                                "/api/user/signup", 
-                                "/api/auth/login",
-                                "/api/user/check-userid", 
-                                "/api/user/check-nickname",
-                                "/api/auth/refresh",
-                                "/swagger-ui/**", 
-                                "/v3/api-docs/**"
+                                // 사용자 API
+                                new AntPathRequestMatcher("/api/user/signup"),
+                                new AntPathRequestMatcher("/api/user/check-username"), 
+                                new AntPathRequestMatcher("/api/user/check-nickname"),
+                                // 인증 API
+                                new AntPathRequestMatcher("/api/auth/login"),
+                                new AntPathRequestMatcher("/api/auth/refresh"),
+                                new AntPathRequestMatcher("/api/user/test-portone-token"),
+                                new AntPathRequestMatcher("/api/user/test-portone-cert/**"),
+
+                                // Swagger 관련 - 와일드카드 패턴 사용
+                                new AntPathRequestMatcher("/swagger-ui/**"),
+                                new AntPathRequestMatcher("/v3/api-docs/**"),
+                                new AntPathRequestMatcher("/swagger-resources/**"),
+                                new AntPathRequestMatcher("/webjars/**"),
+                                new AntPathRequestMatcher("/favicon.ico"),
+                                new AntPathRequestMatcher("/error"),
+
+                                // 채팅 기능 API 전체 허용
+                                new AntPathRequestMatcher("/api/chat/**"),
+                                // 여기에 추가!
+                                new AntPathRequestMatcher("/ws/**"),      // SockJS endpoint
+                                new AntPathRequestMatcher("/ws/chat/**")
+
+
                         ).permitAll()
 
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
+                // 필터 순서 조정
                 .addFilterBefore(requestLoggingFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterAfter(jwtAuthenticationFilter, RequestLoggingFilter.class);
 
         return http.build();
     }
