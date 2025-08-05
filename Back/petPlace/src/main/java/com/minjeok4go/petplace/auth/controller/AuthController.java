@@ -8,6 +8,7 @@ import com.minjeok4go.petplace.auth.service.RefreshTokenService;
 import com.minjeok4go.petplace.common.dto.ApiResponse;
 import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class AuthController {
 
     private final AuthService authService;

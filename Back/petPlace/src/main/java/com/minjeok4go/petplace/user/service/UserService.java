@@ -7,6 +7,7 @@ import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
 import com.minjeok4go.petplace.user.dto.VerificationData;
 import com.minjeok4go.petplace.user.repository.UserRepository;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 @Transactional
 @Slf4j
+@SecurityRequirement(name = "bearerAuth")
 public class UserService {
 
     private final UserRepository userRepository;
