@@ -42,6 +42,20 @@ CREATE TABLE `users` (
     FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
 );
 
+-- ✅ RefreshToken
+CREATE TABLE `refresh_tokens` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id` VARCHAR(20) NOT NULL,
+    `refresh_token` VARCHAR(500) NOT NULL UNIQUE,
+    `expires_at` DATETIME NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_name`) ON DELETE CASCADE,
+    INDEX idx_user_id (`user_id`),
+    INDEX idx_refresh_token (`refresh_token`)
+);
+
+
 -- ✅ Pet
 CREATE TABLE `pets` (
     `id` INT NOT NULL AUTO_INCREMENT,
@@ -208,6 +222,7 @@ CREATE TABLE `images` (
     `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT') NOT NULL,
     `src` VARCHAR(500) NOT NULL,
     `sort` INT NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`)
 );
 

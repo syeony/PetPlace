@@ -58,6 +58,8 @@ import com.kakao.vectormap.MapLifeCycleCallback
 import com.kakao.vectormap.MapView
 import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
+import com.kakao.vectormap.label.LabelStyle
+import com.kakao.vectormap.label.LabelStyles
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -75,6 +77,7 @@ fun NeighborhoodScreen(
     val selectedTag by viewModel.selectedTag.collectAsState()
     val showSheet by viewModel.showBottomSheet.collectAsState()
     val showThanks by viewModel.showThanksDialog.collectAsState()
+
 
     // 위치 조회
     var currentLat by remember { mutableStateOf<Double?>(null) }
@@ -161,7 +164,7 @@ fun NeighborhoodScreen(
                                         context.startActivity(intent)
                                     }
                                     "실종펫 리스트" -> navController.navigate("missing_list")
-                                    "동물호텔" -> navController.navigate("hotel")
+                                    "동물호텔" -> navController.navigate("hotel_graph")
                                 }
                                 scope.launch {
                                     scaffoldState.bottomSheetState.partialExpand()
@@ -181,7 +184,7 @@ fun NeighborhoodScreen(
         ) {
             // 1) Map or Loading
             if (currentLat != null && currentLng != null) {
-
+                Log.d("logg", "$currentLat  $currentLng")
                 AndroidView(
                     factory = { ctx ->
                         MapView(ctx).apply {
@@ -201,7 +204,10 @@ fun NeighborhoodScreen(
                                         map.labelManager?.layer?.addLabel(
                                             LabelOptions.from(pos)
                                                 .setStyles(R.drawable.location_on)
+//                                                .setStyles(style)  // style 객체 사용
+
                                         )
+
                                         map.moveCamera(
                                             CameraUpdateFactory.newCenterPosition(
                                                 pos,
@@ -215,31 +221,26 @@ fun NeighborhoodScreen(
                     },
                     modifier = Modifier.fillMaxSize()
                 )
-
+                val style by remember {
+                    mutableStateOf(
+                        LabelStyles.from(LabelStyle.from(R.drawable.location_on))
+                    )
+                }
                 LaunchedEffect(markers) {
                     val map = kakaoMap.value ?: return@LaunchedEffect
-                    val pos = LatLng.from(
-                        currentLat ?: return@LaunchedEffect,
-                        currentLng ?: return@LaunchedEffect
-                    )
+                    val layer = map.labelManager?.layer ?: return@LaunchedEffect
 
-                    // 마커 초기화
-                    map.labelManager?.layer?.removeAll()
+                    // 현재 위치 마커만 유지하고 태그 마커만 갱신
+                    val currentPos = LatLng.from(currentLat ?: return@LaunchedEffect, currentLng ?: return@LaunchedEffect)
+                    layer.removeAll()
+                    layer.addLabel(LabelOptions.from(currentPos).setStyles(style))
 
-                    // 현재 위치 마커
-                    map.labelManager?.layer?.addLabel(
-                        LabelOptions.from(pos).setStyles(R.drawable.location_on)
-                    )
-
-                    // 태그 검색 마커
-                    markers.forEach { (lat, lng) ->
+                    markers.distinct().forEach { (lat, lng) ->
                         Log.d("Neighborhood", "마커 좌표: $lat, $lng")
-                        map.labelManager?.layer?.addLabel(
-                            LabelOptions.from(LatLng.from(lat, lng))
-                                .setStyles(R.drawable.location_on) // 태그용 마커 아이콘
-                        )
+                        layer.addLabel(LabelOptions.from(LatLng.from(lat, lng)).setStyles(style))
                     }
                 }
+
             } else {
                 Box(
                     Modifier.fillMaxSize(),
@@ -286,7 +287,15 @@ fun NeighborhoodScreen(
                                 .background(
                                     if (isSelected) Color(0xFFF79800) else Color(0xFFF5F5F5)
                                 )
-                                .clickable { viewModel.selectTag(tagItem) }
+                                .clickable { viewModel.selectTag(tagItem)
+                                    currentLng?.let {
+                                        currentLat?.let { it1 ->
+                                            viewModel.searchPlaces(tagItem.label,
+                                                currentLat!!, currentLng!!
+                                            )
+                                        }
+                                    }
+                                }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
