@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface FeedRepository extends JpaRepository<Feed, Long> {
 
@@ -17,6 +18,8 @@ public interface FeedRepository extends JpaRepository<Feed, Long> {
 //            "LEFT JOIN FETCH c.replies " +
 //            "WHERE f.id = :feedId")
 //    Optional<Feed> findFeedWithTagsAndComments(@Param("feedId") Long feedId);
+
+    Optional<Feed> findByIdAndUserId(Long id, Long userId);
 
     List<Feed> findByCategory(FeedCategory category);
 

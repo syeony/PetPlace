@@ -1,4 +1,3 @@
-// src/main/java/com/minjeok4go/petplace/user/service/UserService.java
 package com.minjeok4go.petplace.user.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,6 +9,7 @@ import com.minjeok4go.petplace.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -115,7 +115,6 @@ public class UserService {
         }
     }
 
-
     /**
      * 회원가입 유효성 검사
      */
@@ -181,5 +180,10 @@ public class UserService {
     public User findByUserName(String userName) {
         return userRepository.findByUserName(userName)
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 아이디입니다."));
+    }
+
+    public User getUserFromToken(String tokenUserName) {
+        return userRepository.findByUserName(tokenUserName)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + tokenUserName));
     }
 }
