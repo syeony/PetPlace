@@ -40,8 +40,7 @@ public class SecurityConfig {
                                 "/api/user/check-username",
                                 "/api/user/check-nickname",
                                 "/api/user/certifications/prepare",  // 본인인증 준비 API (DEPRECATED)
-                                "/api/user/certifications/otp/request",  // 본인인증 OTP 요청
-                                "/api/user/certifications/otp/confirm",  // 본인인증 OTP 확인
+
                                 // 인증 API
                                 "/api/auth/login",
                                 "/api/auth/refresh",
