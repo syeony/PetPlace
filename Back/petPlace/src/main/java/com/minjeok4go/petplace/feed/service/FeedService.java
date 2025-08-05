@@ -2,6 +2,7 @@ package com.minjeok4go.petplace.feed.service;
 
 import com.minjeok4go.petplace.comment.dto.CommentDto;
 import com.minjeok4go.petplace.comment.entity.Comment;
+import com.minjeok4go.petplace.common.constant.FeedCategory;
 import com.minjeok4go.petplace.common.constant.ImageType;
 import com.minjeok4go.petplace.feed.dto.CreateFeedRequest;
 import com.minjeok4go.petplace.feed.dto.DeleteFeedResponse;
@@ -63,7 +64,7 @@ public class FeedService {
                 .userNick(feed.getUserNick())
                 .userImg(feed.getUserImg())
                 .regionId(feed.getRegionId())
-                .category(feed.getCategory())
+                .category(feed.getCategory().getDisplayName())
                 .createdAt(feed.getCreatedAt())
                 .updatedAt(feed.getUpdatedAt())
                 .deletedAt(feed.getDeletedAt())
@@ -105,7 +106,7 @@ public class FeedService {
                 .userId(user.getId().longValue())
                 .userNick(user.getNickname())
                 .regionId(req.getRegionId())
-                .category(req.getCategory())
+                .category(FeedCategory.valueOf(req.getCategory()))
                 .build();
         feed = feedRepository.save(feed);
 
@@ -126,7 +127,7 @@ public class FeedService {
         feed.setContent(req.getContent());
         feed.setUserNick(user.getNickname());
         feed.setRegionId(req.getRegionId());
-        feed.setCategory(req.getCategory());
+        feed.setCategory(FeedCategory.valueOf(req.getCategory()));
         feed.update();
         feedRepository.save(feed);
 

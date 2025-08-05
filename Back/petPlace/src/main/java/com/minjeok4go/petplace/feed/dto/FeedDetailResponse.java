@@ -1,7 +1,6 @@
 package com.minjeok4go.petplace.feed.dto;
 
 import com.minjeok4go.petplace.comment.dto.CommentDto;
-import com.minjeok4go.petplace.common.constant.FeedCategory;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import lombok.*;
 
@@ -20,7 +19,7 @@ public class FeedDetailResponse {
     private String userNick;
     private String userImg;
     private Long regionId;
-    private FeedCategory category;
+    private String category;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;

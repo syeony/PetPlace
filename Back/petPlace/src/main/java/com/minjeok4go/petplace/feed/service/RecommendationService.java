@@ -68,7 +68,7 @@ public class RecommendationService {
                             .userNick(feed.getUserNick())
                             .userImg(feed.getUserImg())
                             .regionId(feed.getRegionId())
-                            .category(feed.getCategory().name())
+                            .category(feed.getCategory().getDisplayName())
                             .createdAt(feed.getCreatedAt())
                             .updatedAt(feed.getUpdatedAt())
                             .deletedAt(feed.getDeletedAt())

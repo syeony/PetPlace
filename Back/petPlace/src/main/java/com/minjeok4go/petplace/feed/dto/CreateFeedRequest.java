@@ -1,6 +1,5 @@
 package com.minjeok4go.petplace.feed.dto;
 
-import com.minjeok4go.petplace.common.constant.FeedCategory;
 import com.minjeok4go.petplace.image.dto.ImageRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -25,7 +24,7 @@ public class CreateFeedRequest {
     private Long regionId;
 
     @NotNull
-    private FeedCategory category;
+    private String category;
 
     @Builder.Default
     private List<Long> tagIds = new ArrayList<>();
