@@ -57,8 +57,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
-import com.example.petplace.data.local.feed.ImgDto
-import com.example.petplace.data.local.feed.TagDto
+import com.example.petplace.data.model.feed.FeedRecommendRes
+import com.example.petplace.data.model.feed.ImageRes
+import com.example.petplace.data.model.feed.TagRes
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -194,7 +195,7 @@ fun FeedScreen(
             LazyColumn {
                 items(feeds) { feed ->
                     FeedItem(
-                        feed         = feed,
+                        feed = feed,
                         hashtagColor = hashtagColor,
                         onCommentTap = { showCommentsForFeedId = feed.id }
                     )
@@ -237,7 +238,7 @@ fun FeedScreen(
 //피드
 @Composable
 private fun FeedItem(
-    feed:          com.example.petplace.data.local.feed.FeedDto,
+    feed: FeedRecommendRes,
     hashtagColor:  Color,
     onCommentTap:  () -> Unit
 ) {
@@ -281,7 +282,7 @@ private fun FeedItem(
         if (feed.tags.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.padding(horizontal = 16.dp)) {
-                feed.tags.forEach { tag: TagDto ->
+                feed.tags.forEach { tag: TagRes ->
                     Text(
                         "#${tag.name}",
                         color = hashtagColor,
@@ -317,7 +318,7 @@ private fun FeedItem(
                     state   = pagerState,
                     modifier = Modifier.fillMaxSize()
                 ) { page ->
-                    val img: ImgDto = feed.images!![page]
+                    val img: ImageRes = feed.images!![page]
                     Image(
                         painter = rememberAsyncImagePainter(img.src),
                         contentDescription = null,

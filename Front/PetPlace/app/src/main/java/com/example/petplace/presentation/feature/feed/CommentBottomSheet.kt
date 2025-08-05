@@ -45,13 +45,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.petplace.R
-import com.example.petplace.data.local.feed.CommentDto
+import com.example.petplace.data.model.feed.CommentRes
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommentBottomSheet(
-    comments: List<CommentDto>,
+    comments: List<CommentRes>,
     onDismiss: () -> Unit
 ) {
     /* ───────── bottom sheet state ───────── */
