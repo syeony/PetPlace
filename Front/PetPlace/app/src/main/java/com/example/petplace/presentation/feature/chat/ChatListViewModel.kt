@@ -26,7 +26,7 @@ class ChatListViewModel @Inject constructor(
     
 
     // 현재 사용자 ID (실제로는 의존성 주입이나 SharedPreferences에서 가져와야 함)
-    private val currentUserId = 3L
+    private val currentUserId = 5L
 
     private val _chatRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
     val chatRooms: StateFlow<List<ChatRoom>> = _chatRooms.asStateFlow()
@@ -81,7 +81,7 @@ class ChatListViewModel @Inject constructor(
         }
     }
 
-    private fun convertToChatRoom(response: ChatRoomResponse): ChatRoom {
+    private suspend fun convertToChatRoom(response: ChatRoomResponse): ChatRoom {
         // 상대방 ID 찾기
         val partnerId = if (response.userId1 == currentUserId) {
             response.userId2
@@ -92,6 +92,13 @@ class ChatListViewModel @Inject constructor(
         // 상대방 정보 가져오기 (임시로 하드코딩)
         val partnerInfo = getUser(partnerId)
 
+        // 안 읽은 메시지 수 가져오기
+        val unreadCount = chatRepository.getUnreads(response.chatRoomId, currentUserId)
+            .getOrElse {
+                Log.w(TAG, "안 읽은 메시지 수 가져오기 실패: ${it.message}")
+                0 // 실패 시 0으로 설정
+            }
+
         Log.d(TAG, "채팅방 변환: chatRoomId=${response.chatRoomId}, partner=${partnerInfo.name}")
 
         return ChatRoom(
@@ -100,7 +107,7 @@ class ChatListViewModel @Inject constructor(
             region = partnerInfo.region ?: "알 수 없음",
             lastMessage = response.lastMessage ?: "아직 메시지가 없습니다.",
             time = formatLastMessageTime(response.lastMessageAt),
-            unreadCount = 0, // 일단 0으로 설정 (나중에 API 추가 시 수정)
+            unreadCount = unreadCount, // 일단 0으로 설정 (나중에 API 추가 시 수정)
             profileImageUrl = partnerInfo.profileImageUrl
         )
     }

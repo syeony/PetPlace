@@ -32,4 +32,12 @@ interface ChatApiService {
     suspend fun getChatRooms(
         @Query("userId") userId: Long
     ): Response<List<ChatRoomResponse>>
+
+
+    // 채팅방 안 읽은 메시지 수 조회
+    @GET("/api/chat/rooms/{chatRoomId}/unread")
+    suspend fun getUnreads(
+        @Path("chatRoomId") chatRoomId: Long,
+        @Query("userId") userId: Long
+    ): Response<Int>
 }

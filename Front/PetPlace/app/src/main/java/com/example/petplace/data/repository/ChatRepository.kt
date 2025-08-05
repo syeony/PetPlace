@@ -114,4 +114,32 @@ class ChatRepository(
         }
     }
 
+    suspend fun getUnreads(chatRoomId: Long, userId: Long): Result<Int> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "안 읽은 메시지 수 요청: chatRoomId=$chatRoomId, userId=$userId")
+
+                val response = chatApiService.getUnreads(chatRoomId, userId)
+
+                if (response.isSuccessful) {
+                    val count = response.body()
+                    if (count != null) {
+                        Log.d(TAG, "안 읽은 메시지 수 가져오기 성공: $count")
+                        Result.success(count)
+                    } else {
+                        Log.e(TAG, "응답은 성공했지만 body가 null")
+                        Result.failure(Exception("응답은 성공했지만 body가 null"))
+                    }
+                } else {
+                    Log.e(TAG, "안 읽은 메시지 수 가져오기 실패: ${response.code()} ${response.message()}")
+                    Result.failure(Exception("안 읽은 메시지 수 가져오기 실패: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "안 읽은 메시지 수 가져오기 중 오류", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+
 }
