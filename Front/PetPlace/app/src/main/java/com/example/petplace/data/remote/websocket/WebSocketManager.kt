@@ -21,7 +21,7 @@ class WebSocketManager {
 
     companion object {
         private const val TAG = "WebSocketManager"
-        private const val SERVER_URL = "ws://192.168.100.137:8080/ws/chat" // 본인 ip 주소
+        private const val SERVER_URL = "ws://43.201.108.195:8081/ws/chat/websocket" // 본인 ip 주소
     }
 
     private var stompClient: StompClient? = null
