@@ -62,6 +62,64 @@ public class PortOneApiService {
     }
 
     /**
+     * 본인인증 사전 등록 (certification_url 생성)
+     */
+    public Map<String, String> prepareCertification() {
+        log.info("포트원 본인인증 사전 등록 시작");
+
+        try {
+            // 1. 액세스 토큰 발급
+            String accessToken = getAccessToken();
+            log.info("포트원 액세스 토큰 발급 성공");
+
+            // 2. 고유한 merchant_uid 생성
+            String merchantUid = "cert_" + System.currentTimeMillis();
+            log.info("생성된 merchant_uid: {}", merchantUid);
+
+            // 3. 요청 데이터 구성
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("merchant_uid", merchantUid);
+            requestBody.put("m_redirect_url", "http://localhost:3000/auth/callback"); // 프론트엔드 콜백 URL
+            requestBody.put("popup", false); // 팝업이 아닌 리다이렉트 방식
+
+            // 4. API 호출
+            String response = portOneWebClient.post()
+                    .uri("/certifications")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            log.info("포트원 본인인증 사전 등록 응답: {}", response);
+
+            // 5. 응답 파싱
+            JsonNode jsonNode = objectMapper.readTree(response);
+            int code = jsonNode.get("code").asInt();
+
+            if (code == 0) {
+                String certificationUrl = jsonNode.get("response").get("certification_url").asText();
+                log.info("본인인증 URL 생성 성공: {}", certificationUrl);
+                
+                // certification_url과 merchant_uid를 함께 반환
+                Map<String, String> result = new HashMap<>();
+                result.put("certification_url", certificationUrl);
+                result.put("merchant_uid", merchantUid);
+                return result;
+            } else {
+                String message = jsonNode.get("message").asText();
+                log.error("포트원 본인인증 사전 등록 실패: code={}, message={}", code, message);
+                throw new RuntimeException("본인인증 준비 실패: " + message);
+            }
+
+        } catch (Exception e) {
+            log.error("포트원 본인인증 사전 등록 중 오류 발생", e);
+            throw new RuntimeException("본인인증 준비 중 오류 발생: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 본인인증 결과 조회
      */
     public JsonNode getCertificationInfo(String impUid) {
