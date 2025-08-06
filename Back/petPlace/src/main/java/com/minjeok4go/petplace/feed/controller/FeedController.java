@@ -44,6 +44,16 @@ public class FeedController {
     }
 
     @Operation(
+            summary = "내가 작성한 피드 조회",
+            description = "Path 변수로 넘어온 피드 ID 에 해당하는 피드를 상세 정보와 함께 반환합니다."
+    )
+    @GetMapping("/me")
+    public List<FeedDetailResponse> getMyFeed(@AuthenticationPrincipal String tokenUserId) {
+        User me = userService.getUserByStringId(tokenUserId);
+        return feedService.findByIdWhereUserId(me.getId());
+    }
+
+    @Operation(
         summary = "유저 데이터 기반 추천 피드",
         description = "토큰으로 받아온 유저 ID에 적합한 피드들을\n" +
                 "Param 변수로 넘어온 현재 페이지와 사이즈 만큼 반환합니다."

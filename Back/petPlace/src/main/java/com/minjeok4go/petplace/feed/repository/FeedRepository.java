@@ -19,6 +19,8 @@ public interface FeedRepository extends JpaRepository<Feed, Long> {
 //            "WHERE f.id = :feedId")
 //    Optional<Feed> findFeedWithTagsAndComments(@Param("feedId") Long feedId);
 
+    List<Feed> findByUserIdAndDeletedAtIsNull(Long id);
+
     Optional<Feed> findByIdAndDeletedAtIsNull(Long id);
 
     List<Feed> findAllByDeletedAtIsNull();
