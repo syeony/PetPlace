@@ -3,6 +3,8 @@ package com.minjeok4go.petplace.auth.jwt;
 import com.minjeok4go.petplace.auth.dto.TokenType;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -183,5 +185,65 @@ public class JwtTokenProvider {
         }
     }
 
+    /**
+     * 토큰의 남은 유효시간을 초 단위로 반환
+     */
+    public Long getTokenExpiryInSeconds(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            Date expiration = claims.getExpiration();
+            Date now = new Date();
+            
+            long expiryTime = (expiration.getTime() - now.getTime()) / 1000;
+            return Math.max(0, expiryTime); // 음수가 나올 경우 0 반환
+        } catch (Exception e) {
+            return 0L; // 토큰이 유효하지 않으면 0 반환
+        }
+    }
+
+    /**
+     * 토큰 유효성 검증과 함께 상세 정보 반환
+     */
+    public TokenValidationResult validateTokenWithDetails(String token) {
+        try {
+            Claims claims = parseClaims(token);
+            Date expiration = claims.getExpiration();
+            Date now = new Date();
+            
+            boolean isExpired = expiration.before(now);
+            if (isExpired) {
+                return new TokenValidationResult(false, "토큰이 만료되었습니다", null, 0L);
+            }
+            
+            String userIdStr = claims.getSubject();
+            Long userId = Long.parseLong(userIdStr);
+            Long expiresIn = (expiration.getTime() - now.getTime()) / 1000;
+            
+            return new TokenValidationResult(true, "토큰이 유효합니다", userId, expiresIn);
+            
+        } catch (ExpiredJwtException e) {
+            return new TokenValidationResult(false, "토큰이 만료되었습니다", null, 0L);
+        } catch (UnsupportedJwtException e) {
+            return new TokenValidationResult(false, "지원되지 않는 토큰 형식입니다", null, 0L);
+        } catch (MalformedJwtException e) {
+            return new TokenValidationResult(false, "잘못된 형식의 토큰입니다", null, 0L);
+        } catch (SecurityException e) {
+            return new TokenValidationResult(false, "토큰 서명이 유효하지 않습니다", null, 0L);
+        } catch (NumberFormatException e) {
+            return new TokenValidationResult(false, "토큰의 사용자 ID 형식이 올바르지 않습니다", null, 0L);
+        } catch (Exception e) {
+            return new TokenValidationResult(false, "토큰 검증 중 오류가 발생했습니다", null, 0L);
+        }
+    }
+
+    // TokenValidationResult 내부 클래스 추가
+    @Getter
+    @AllArgsConstructor
+    public static class TokenValidationResult {
+        private boolean valid;
+        private String message;
+        private Long userId;
+        private Long expiresIn;
+    }
 
 }
