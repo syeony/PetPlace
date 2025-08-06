@@ -13,8 +13,8 @@ import java.util.List;
 @AllArgsConstructor
 public class ChatMessageDTO {
     private Long chatId;
-    private Integer chatRoomId;
-    private Integer userId;
+    private Long chatRoomId;
+    private Long userId;
     private String nickname;
     private String message;
     private List<String> imageUrls; // 여러 이미지 URL

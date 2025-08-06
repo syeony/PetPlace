@@ -17,7 +17,7 @@ public class CommentDto {
     private Long parentCommentId;   // ✅ cid → parent_comment_id
     private Long feedId;            // ✅ fid → feed_id
     private String content;
-    private Integer userId;            // ✅ uid → user_id (타입 수정: Long → Integer)
+    private Long userId;
     private String userNick;
     private String userImg;
     private LocalDateTime createdAt;
@@ -31,7 +31,7 @@ public class CommentDto {
                 .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
                 .feedId(comment.getFeed().getId())
                 .content(comment.getContent())
-                .userId(comment.getUserId())
+                .userId(comment.getUserId().longValue())
                 .userNick(comment.getUserNick())
                 .userImg(comment.getUserImg())
                 .createdAt(comment.getCreatedAt())

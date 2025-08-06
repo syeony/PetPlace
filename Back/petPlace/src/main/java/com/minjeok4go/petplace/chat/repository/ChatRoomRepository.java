@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface ChatRoomRepository extends JpaRepository<ChatRoom, Integer> {
+public interface ChatRoomRepository extends JpaRepository<ChatRoom, Long> {
     // user1, user2 조합으로 중복 체크
 //    Optional<com.minjeok4go.petplace.domain.chat.model.ChatRoom> findByUser1AndUser2(User user1, User user2);
     // 두 유저가 참여하는 채팅방이 이미 있는지 확인 (양방향 모두 체크)
@@ -23,6 +23,6 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, Integer> {
 
     // 해당 user가 속한 방 모두 찾기
     @Query("SELECT r FROM ChatRoom r WHERE r.user1.id = :userId OR r.user2.id = :userId")
-    List<com.minjeok4go.petplace.chat.entity.ChatRoom> findByUserId(@Param("userId") Integer userId);
+    List<com.minjeok4go.petplace.chat.entity.ChatRoom> findByUserId(@Param("userId") Long userId);
 }
 

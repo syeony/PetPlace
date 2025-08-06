@@ -1,32 +1,41 @@
 package com.minjeok4go.petplace.user.repository;
 
+import com.minjeok4go.petplace.user.entity.LoginType; // ✅ LoginType 임포트
 import com.minjeok4go.petplace.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, Integer> {
+public interface UserRepository extends JpaRepository<User, Long> {
 
-    // userName으로 사용자를 찾는 메소드
-    //SELECT * FROM User WHERE user_name = ? 와 같은 쿼리문을 만드는 것
+    // --- 기존 메서드 (변경 없음) ---
     @Query("SELECT u FROM User u WHERE u.userName = :userName")
     Optional<User> findByUserName(@Param("userName") String userName);
 
-    // nickname으로 사용자를 찾는 메소드 (중복 체크용)
-    //SELECT * FROM User WHERE nickname = ? 와 같은 쿼리문을 만드는 것
     Optional<User> findByNickname(String nickname);
 
-    // userName 존재 여부 확인 (중복 체크용)
+
+
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.userName = :userName")
     boolean existsByUserName(@Param("userName") String userName);
 
-    // nickname 존재 여부 확인 (중복 체크용)
     boolean existsByNickname(String nickname);
-
-    // 본인인증 관련 추가 메서드들
     boolean existsByCi(String ci);
     boolean existsByPhoneNumber(String phoneNumber);
     Optional<User> findByCi(String ci);
 
+    // id 기반 조회 메서드 추가
+    Optional<User> findById(Long id);
+    boolean existsById(Long id);
+
+    // --- 소셜 로그인용 메서드 추가 ---
+
+    // [추가] 로그인 타입과 소셜 ID로 사용자를 찾는 메서드
+    @Query("SELECT u FROM User u WHERE u.loginType = :loginType AND u.socialId = :socialId")
+    Optional<User> findBySocialId(@Param("loginType") LoginType loginType, @Param("socialId") String socialId);
+
+    // [추가] 로그인 타입과 소셜 ID로 사용자 존재 여부를 확인하는 메서드
+    @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.loginType = :loginType AND u.socialId = :socialId")
+    boolean existsBySocialId(@Param("loginType") LoginType loginType, @Param("socialId") String socialId);
 }

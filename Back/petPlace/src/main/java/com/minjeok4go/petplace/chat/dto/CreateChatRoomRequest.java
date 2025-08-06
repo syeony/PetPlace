@@ -6,6 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateChatRoomRequest {
-    private Integer userId1;
-    private Integer userId2;
+    private Long userId1;
+    private Long userId2;
 }

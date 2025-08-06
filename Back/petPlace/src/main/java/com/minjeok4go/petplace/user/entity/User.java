@@ -21,12 +21,13 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT
-    private Integer id;
+    private Long id;
 
     @Column(name = "user_name", nullable = false, unique = true, length = 20)
     private String userName;
 
-    @Column(nullable = false, length = 200)
+    // [개선] 소셜 로그인을 위해 nullable = true로 변경 (nullable=false 삭제)
+    @Column(length = 200)
     private String password;
 
     @Column(nullable = false, length = 20)
@@ -48,8 +49,9 @@ public class User {
     @Column(name = "default_pet_id")
     private Integer defaultPetId; // ⭐️ 나중에 Pet 엔티티와 @OneToOne 관계로 변경될 수 있습니다.
 
-    @Column(length = 200)
-    private String kakaoOauth;
+    // [개선] 컬럼명 일반화 (kakaoOauth -> socialId) 및 unique 속성 추가
+    @Column(name = "social_id", length = 200, unique = true)
+    private String socialId;
 
     @Column(length = 500)
     private String userImgSrc;
@@ -80,8 +82,16 @@ public class User {
 
     @Column(nullable = false)
     private Integer experience;
+    // [개선] 로그인 타입(EMAIL, KAKAO 등)을 구분하는 컬럼 추가
+    @Enumerated(EnumType.STRING)
+    @Column(name = "login_type", length = 20, nullable = false)
+    private LoginType loginType;
 
-    // 회원가입 시 필요한 정보를 받는 빌더
+    // [개선] 소셜 계정의 이메일을 저장하는 컬럼 추가
+    @Column(name = "social_email", length = 100)
+    private String socialEmail;
+
+    // [개선] 기존 이메일 회원가입용 빌더 수정
     @Builder
     public User(String userName, String password, String name, String nickname, Long regionId, String ci, String phoneNumber, String gender, LocalDate birthday) {
         this.userName = userName;
@@ -93,10 +103,50 @@ public class User {
         this.phoneNumber = phoneNumber;
         this.gender = gender;
         this.birthday = birthday;
+        this.loginType = LoginType.EMAIL; // 이메일 가입자는 EMAIL 타입으로 설정
         // 기본값 설정
         this.petSmell = new BigDecimal("36.5");
         this.isForeigner = false;
         this.level = 1;
         this.experience = 0;
+    }
+
+    // [개선] 신규 소셜 회원가입용 팩토리 메서드 추가
+    public static User createSocialUser(String name, String nickname, Long regionId, String ci,
+                                        String phoneNumber, String gender, LocalDate birthday,
+                                        String socialId, String socialEmail, String profileImageUrl, LoginType loginType) {
+        User user = new User();
+        user.userName = loginType.name().toLowerCase() + "_" + socialId; // e.g., "kakao_12345"
+        user.password = null; // 소셜 가입자는 비밀번호를 null로 설정
+        user.name = name;
+        user.nickname = nickname;
+        user.regionId = regionId;
+        user.ci = ci;
+        user.phoneNumber = phoneNumber;
+        user.gender = gender;
+        user.birthday = birthday;
+        user.loginType = loginType;
+        user.socialId = socialId;
+        user.socialEmail = socialEmail;
+        user.userImgSrc = profileImageUrl;
+        // 기본값 설정
+        user.petSmell = new BigDecimal("36.5");
+        user.isForeigner = false;
+        user.level = 1;
+        user.experience = 0;
+        return user;
+    }
+
+    // [개선] 기존 이메일 계정 -> 소셜 계정 연동 메서드 추가
+    public void linkSocialAccount(String socialId, String socialEmail, String profileImageUrl) {
+        if (this.socialId != null) {
+            throw new IllegalStateException("이미 다른 소셜 계정과 연동된 계정입니다.");
+        }
+        this.socialId = socialId;
+        this.socialEmail = socialEmail;
+        // 소셜 프로필 이미지가 있다면 업데이트
+        if (profileImageUrl != null && !profileImageUrl.isBlank()) {
+            this.userImgSrc = profileImageUrl;
+        }
     }
 }
