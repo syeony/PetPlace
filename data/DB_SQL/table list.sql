@@ -45,13 +45,13 @@ CREATE TABLE `users` (
 -- ✅ RefreshToken
 CREATE TABLE `refresh_tokens` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `user_name` VARCHAR(20) NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `refresh_token` VARCHAR(500) NOT NULL UNIQUE,
     `expires_at` DATETIME NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`user_name`) REFERENCES `users`(`user_name`) ON DELETE CASCADE,
-    INDEX idx_user_id (`user_name`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    INDEX idx_user_id (`user_id`),
     INDEX idx_refresh_token (`refresh_token`)
 );
 
