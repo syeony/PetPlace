@@ -5,20 +5,27 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class FeedComment extends MyComment {
+public class MyComment {
 
-    private List<FeedComment> replies;
+    private Long id;
+    private Long parentCommentId;
+    private Long feedId;
+    private String content;
+    private Long userId;
+    private String userNick;
+    private String userImg;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime deletedAt;
 
-    public static FeedComment from(Comment comment) {
-        return FeedComment.builder()
+    public static MyComment from(Comment comment) {
+        return MyComment.builder()
                 .id(comment.getId())
                 .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
                 .feedId(comment.getFeed().getId())
@@ -29,9 +36,6 @@ public class FeedComment extends MyComment {
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
                 .deletedAt(comment.getDeletedAt())
-                .replies(comment.getReplies().stream()
-                        .map(FeedComment::from)
-                        .collect(Collectors.toList()))
                 .build();
     }
 }
