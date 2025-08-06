@@ -13,8 +13,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,7 +30,7 @@ class ChatViewModel @Inject constructor(
     private val webSocketManager = WebSocketManager()
 
     // 현재 사용자 ID와 채팅방 ID
-    private val currentUserId = 6L
+    private val currentUserId = 3L
     private val currentChatRoomId: Long = savedStateHandle["chatRoomId"] ?: 0L
 
     private val _messageInput = MutableStateFlow("")
@@ -48,7 +48,7 @@ class ChatViewModel @Inject constructor(
     private var lastMessageId = 0L
 
     init {
-        Log.d(TAG, "ChatViewModel 초기화 - 사용자: $currentUserId, 채팅방: $currentChatRoomId")
+        Log.d(TAG, "🚀 ChatViewModel 초기화 - 사용자: $currentUserId, 채팅방: $currentChatRoomId")
 
         // 초기 메시지 로드
         loadInitialMessages()
@@ -58,10 +58,12 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun setupWebSocket() {
+        Log.d(TAG, "🔌 WebSocket 설정 시작")
+
         // 연결 상태 관찰
         viewModelScope.launch {
             webSocketManager.connectionStatus.collect { isConnected ->
-                Log.d(TAG, "연결 상태 변경: $isConnected")
+                Log.d(TAG, "📡 연결 상태 변경: $isConnected")
                 _connectionStatus.value = isConnected
 
                 if (isConnected) {
@@ -71,44 +73,55 @@ class ChatViewModel @Inject constructor(
             }
         }
 
-        // 메시지 수신 관찰 - UI에 즉시 반영
-        viewModelScope.launch {
+        // 메시지 수신 관찰 - 메인 스레드에서 직접 처리
+        viewModelScope.launch(Dispatchers.Main) {
             webSocketManager.messageFlow.collect { messageDto ->
-                Log.d(TAG, "📨 웹소켓 메시지 수신: '${messageDto.message}' (chatId: ${messageDto.chatId})")
+                Log.d(TAG, "📨 웹소켓 메시지 수신 처리 시작: '${messageDto.message}' (chatId: ${messageDto.chatId})")
 
-                // 메시지를 ChatMessage로 변환
-                val newMessage = messageDto.toChatMessage(currentUserId)
-                Log.d(TAG, "📨 변환 완료: isFromMe=${newMessage.isFromMe}")
+                try {
+                    // 메시지를 ChatMessage로 변환
+                    val newMessage = messageDto.toChatMessage(currentUserId)
+                    Log.d(TAG, "🔄 메시지 변환 완료: isFromMe=${newMessage.isFromMe}")
 
-                // UI 스레드에서 상태 업데이트 보장
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    _messages.value = _messages.value + newMessage
-                    Log.d(TAG, "💬 UI 업데이트 완료: 총 ${_messages.value.size}개 메시지")
-                }
+                    // 메시지 리스트에 추가 (이미 메인 스레드이므로 직접 업데이트)
+                    val updatedMessages = _messages.value.toMutableList().apply {
+                        add(newMessage)
+                    }
+                    _messages.value = updatedMessages
 
-                // 최신 메시지 ID 업데이트 (읽음 처리용)
-                messageDto.chatId?.let { chatId ->
-                    lastMessageId = chatId
-                    Log.d(TAG, "🔄 최신 메시지 ID 업데이트: $lastMessageId")
+                    Log.d(TAG, "✅ UI 업데이트 완료: 총 ${_messages.value.size}개 메시지")
+
+                    // 최신 메시지 ID 업데이트 (읽음 처리용)
+                    messageDto.chatId?.let { chatId ->
+                        lastMessageId = chatId
+                        Log.d(TAG, "🔄 최신 메시지 ID 업데이트: $lastMessageId")
+                    }
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ 메시지 처리 중 오류", e)
                 }
             }
         }
 
         // 읽음 알림 수신 관찰 - 읽음 상태 UI 반영
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Main) {
             webSocketManager.readFlow.collect { readDto ->
                 Log.d(TAG, "📖 읽음 알림 수신: userId=${readDto.userId}, lastReadCid=${readDto.lastReadCid}")
 
-                // UI 스레드에서 읽음 상태 업데이트
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    _messages.value = _messages.value.map { message ->
+                try {
+                    // 읽음 상태 업데이트
+                    val updatedMessages = _messages.value.map { message ->
                         if (message.id != null && message.id <= readDto.lastReadCid) {
                             message.copy(isRead = true)
                         } else {
                             message
                         }
                     }
+                    _messages.value = updatedMessages
                     Log.d(TAG, "✅ 읽음 상태 UI 반영 완료")
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ 읽음 상태 처리 중 오류", e)
                 }
             }
         }
@@ -128,7 +141,7 @@ class ChatViewModel @Inject constructor(
             timestamp = this.createdAt ?: getCurrentTimestamp(),
             isRead = false
         ).also {
-            Log.d(TAG, "🔄 변환 결과: isFromMe=${it.isFromMe}")
+            Log.d(TAG, "🔄 변환 결과: content='${it.content}', isFromMe=${it.isFromMe}")
         }
     }
 
@@ -150,10 +163,13 @@ class ChatViewModel @Inject constructor(
 
     fun sendMessage() {
         val message = messageInput.value.trim()
-        if (message.isBlank()) return
+        if (message.isBlank()) {
+            Log.w(TAG, "⚠️ 빈 메시지 전송 시도")
+            return
+        }
 
         if (!_connectionStatus.value) {
-            Log.w(TAG, "연결되지 않은 상태에서 메시지 전송 시도")
+            Log.w(TAG, "⚠️ 연결되지 않은 상태에서 메시지 전송 시도")
             addSystemMessage("연결되지 않았습니다. 연결을 확인해주세요.")
             return
         }
@@ -171,10 +187,9 @@ class ChatViewModel @Inject constructor(
 
             Log.d(TAG, "📤 메시지 전송 완료: $message")
             // 주의: 내가 보낸 메시지도 웹소켓을 통해 수신되므로 여기서 UI에 추가하지 않음
-            // messageFlow에서 수신할 때 UI에 반영됨
 
         } catch (e: Exception) {
-            Log.e(TAG, "메시지 전송 실패", e)
+            Log.e(TAG, "❌ 메시지 전송 실패", e)
             addSystemMessage("메시지 전송 실패: ${e.message}")
         }
     }
@@ -187,11 +202,13 @@ class ChatViewModel @Inject constructor(
                 lastReadCid = lastMessageId
             )
             webSocketManager.markAsRead(readDTO)
-            Log.d(TAG, "읽음 처리 요청: lastMessageId=$lastMessageId")
+            Log.d(TAG, "📖 읽음 처리 요청: lastMessageId=$lastMessageId")
         }
     }
 
     private fun loadInitialMessages() {
+        Log.d(TAG, "📥 초기 메시지 로드 시작")
+
         viewModelScope.launch {
             try {
                 val result = chatRepository.getChatMessages(currentChatRoomId)
@@ -205,19 +222,23 @@ class ChatViewModel @Inject constructor(
                             isRead = false
                         )
                     }
-                    _messages.value = chatMessages
+
+                    // 메인 스레드에서 UI 업데이트
+                    launch(Dispatchers.Main) {
+                        _messages.value = chatMessages
+                    }
 
                     if (messageDTOs.isNotEmpty()) {
                         lastMessageId = messageDTOs.last().chatId ?: 0L
                     }
 
-                    Log.d(TAG, "초기 메시지 로드 완료: ${chatMessages.size}개")
+                    Log.d(TAG, "✅ 초기 메시지 로드 완료: ${chatMessages.size}개")
                 }.onFailure { e ->
-                    Log.e(TAG, "메시지 로드 실패", e)
+                    Log.e(TAG, "❌ 메시지 로드 실패", e)
                     addSystemMessage("대화 기록을 불러오는데 실패했습니다.")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "메시지 로드 중 예외", e)
+                Log.e(TAG, "❌ 메시지 로드 중 예외", e)
                 addSystemMessage("대화 기록 로드 중 오류가 발생했습니다.")
             }
         }
@@ -231,9 +252,13 @@ class ChatViewModel @Inject constructor(
             timestamp = getCurrentTimestamp(),
             isRead = false
         )
-        // UI 스레드에서 직접 업데이트
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.Main) {
-            _messages.value = _messages.value + systemMessage
+
+        // 메인 스레드에서 직접 업데이트
+        viewModelScope.launch(Dispatchers.Main) {
+            val updatedMessages = _messages.value.toMutableList().apply {
+                add(systemMessage)
+            }
+            _messages.value = updatedMessages
             Log.d(TAG, "🔔 시스템 메시지 추가: '$content', 총 메시지: ${_messages.value.size}개")
         }
     }
@@ -247,9 +272,9 @@ class ChatViewModel @Inject constructor(
         super.onCleared()
         try {
             webSocketManager.disconnect()
-            Log.d(TAG, "ViewModel 정리 완료")
+            Log.d(TAG, "🧹 ViewModel 정리 완료")
         } catch (e: Exception) {
-            Log.e(TAG, "ViewModel 정리 중 오류", e)
+            Log.e(TAG, "❌ ViewModel 정리 중 오류", e)
         }
     }
 }
