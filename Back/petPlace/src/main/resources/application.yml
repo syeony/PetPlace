@@ -17,6 +17,9 @@ spring:
     user:
       name: user
       password: ssafy123
+  web:
+    resources:
+      static-locations: file:/home/ubuntu/upload/images/
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USER}
@@ -31,7 +34,7 @@ spring:
         format_sql: true
 
 server:
-  port: 8080
+  port: 8081
 
 portone:
   api-key: ${PORTONE_API_KEY}
