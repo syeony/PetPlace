@@ -4,9 +4,11 @@ import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.repository.FeedRepository;
 import com.minjeok4go.petplace.pet.entity.Animal;
 import com.minjeok4go.petplace.pet.entity.Pet;
+import com.minjeok4go.petplace.pet.repository.PetRepository;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -41,12 +43,12 @@ public class RecommendationBatchService {
             for (Feed feed : feeds) {
                 double score = calculateScore(user, pets, feed); // 점수 산정 함수
                 // Redis: group:{groupKey} => (feedId, score)
-                redisTemplate.opsForZSet().add("group:" + groupKey, String.valueOf(feed.getId()), score);
+                redisTemplate.opsForZSet().add("group:" + groupKey, String.valueOf(feed.getId()), score); // groupkey를 redis에 저장
             }
         }
     }
 
-    // 피드별 추천 점수 계산 로직 (간단 예시)
+    // 피드별 추천 점수 계산 로직
     private double calculateScore(User user, List<Pet> pets, Feed feed) {
         double score = 0;
         score += feed.getLikeCount() * 2; // 좋아요 개수 *2
@@ -54,8 +56,8 @@ public class RecommendationBatchService {
         if (feed.isDogRelated() && pets.stream().anyMatch(pet -> pet.getAnimal() == Animal.DOG)) {
             score += 20; // 유저가 강아지 키우면 강아지 피드 가산점
         }
-        if (feed.getCreatedAt().isAfter(LocalDate.now().minusDays(2))) {
-            score += 10; // 최신 피드 가산점
+        if (feed.getCreatedAt().isAfter(LocalDate.now().minusDays(2).atStartOfDay())) {
+            score += 10;
         }
         // 기타 룰 추가 가능
         return score;
