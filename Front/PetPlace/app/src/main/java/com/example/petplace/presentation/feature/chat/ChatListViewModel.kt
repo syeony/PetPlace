@@ -26,7 +26,7 @@ class ChatListViewModel @Inject constructor(
     
 
     // 현재 사용자 ID (실제로는 의존성 주입이나 SharedPreferences에서 가져와야 함)
-    private val currentUserId = 6L
+    private val currentUserId = 3L
 
     private val _chatRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
     val chatRooms: StateFlow<List<ChatRoom>> = _chatRooms.asStateFlow()

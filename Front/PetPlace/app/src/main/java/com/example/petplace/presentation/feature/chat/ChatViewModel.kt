@@ -28,7 +28,7 @@ class ChatViewModel @Inject constructor(
     private val webSocketManager = WebSocketManager()
 
     // 현재 사용자 ID와 채팅방 ID (예시, 실제론 DI로)
-    private val currentUserId = 6L
+    private val currentUserId = 3L
     private val currentChatRoomId = 1L
 
     private val _messageInput = MutableStateFlow("")
