@@ -51,9 +51,9 @@ public class FeedController {
     @GetMapping("/recommend")
     public ResponseEntity<List<FeedListResponse>> getRecommendedFeeds(@RequestParam(defaultValue = "0") int page,
                                                                       @RequestParam(defaultValue = "20") int size,
-                                                                      @AuthenticationPrincipal String tokenUserName
+                                                                      @AuthenticationPrincipal String tokenUserId
     ) {
-        User me = userService.getUserFromToken(tokenUserName);
+        User me = userService.getUserByStringId(tokenUserId);
         return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me.getId(), page, size));
     }
 
@@ -64,8 +64,8 @@ public class FeedController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public FeedDetailResponse createFeed(@Valid @RequestBody CreateFeedRequest req,
-                                         @AuthenticationPrincipal String tokenUserName) {
-        User me = userService.getUserFromToken(tokenUserName);
+                                         @AuthenticationPrincipal String tokenUserId) {
+        User me = userService.getUserByStringId(tokenUserId);
         return feedService.createFeed(req, me);
     }
 
@@ -78,8 +78,8 @@ public class FeedController {
     @PutMapping("/{id}")
     public FeedDetailResponse updateFeed(@PathVariable Long id,
                                          @Valid @RequestBody CreateFeedRequest req,
-                                         @AuthenticationPrincipal String tokenUserName) {
-        User me = userService.getUserFromToken(tokenUserName);
+                                         @AuthenticationPrincipal String tokenUserId) {
+        User me = userService.getUserByStringId(tokenUserId);
         return feedService.updateFeed(id, req, me);
     }
 
@@ -90,8 +90,8 @@ public class FeedController {
     )
     @DeleteMapping("/{id}")
     public DeleteFeedResponse deleteFeed(@PathVariable Long id,
-                                         @AuthenticationPrincipal String tokenUserName) {
-        User me = userService.getUserFromToken(tokenUserName);
+                                         @AuthenticationPrincipal String tokenUserId) {
+        User me = userService.getUserByStringId(tokenUserId);
         return feedService.deleteFeed(id, me);
     }
 }
