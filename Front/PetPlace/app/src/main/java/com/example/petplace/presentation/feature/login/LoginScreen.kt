@@ -117,6 +117,7 @@ fun LoginScreen(
 
             OutlinedButton(
                 onClick = { navController.navigate("join_graph") },
+//                onClick = { navController.navigate("join/main") },
                 modifier = Modifier.fillMaxWidth(),
                 border = BorderStroke(1.dp, color = PrimaryColor),
                 shape = RoundedCornerShape(12.dp)
