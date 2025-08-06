@@ -48,6 +48,15 @@ class PetPlaceApp : Application() {
             .putString("user_info", gson.toJson(user))
             .apply()
     }
+    fun saveTokens(
+        accessToken: String,
+        refreshToken: String
+    ) {
+        prefs.edit()
+            .putString("access_token", accessToken)
+            .putString("refresh_token", refreshToken)
+            .apply()
+    }
 
     //토큰 가져오기
     fun getAccessToken(): String? = prefs.getString("access_token", null)

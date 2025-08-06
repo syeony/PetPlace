@@ -1,6 +1,12 @@
 package com.example.petplace.data.repository
 
 import com.example.petplace.data.remote.LoginApiService
+import com.example.petplace.data.remote.LoginApiService.TokenRefreshRequest
+import com.example.petplace.data.remote.LoginApiService.TokenRefreshResponse
+import retrofit2.Call
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.POST
 import javax.inject.Inject
 
 class LoginRepository @Inject constructor(
@@ -18,4 +24,11 @@ class LoginRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+
+    suspend fun refreshToken(refreshToken: TokenRefreshRequest) = api.refreshToken(refreshToken)
+
+
+    suspend fun refreshTokenBlocking(request: TokenRefreshRequest) = api.refreshTokenBlocking(request)
+
 }
