@@ -45,7 +45,7 @@ class BoardWriteViewModel @Inject constructor(
         val body = FeedCreateReq(
             content = _content.value.trim(),
             regionId = user.regionId,
-            category = _category.value ?: "MYPET",
+            category = _category.value ?: "ANY",
             tagIds = _tagIds.value,
             images = _images.value
         )

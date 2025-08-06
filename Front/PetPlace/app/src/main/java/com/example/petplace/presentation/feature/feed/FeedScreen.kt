@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +39,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +66,7 @@ import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.model.feed.ImageRes
 import com.example.petplace.data.model.feed.TagRes
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun FeedScreen(
@@ -78,6 +84,17 @@ fun FeedScreen(
 
     val bgColor      = Color(0xFFFEF9F0)
     val hashtagColor = Color(0xFFF79800)
+
+    val refreshState = rememberPullToRefreshState()
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+    if (refreshState.isRefreshing) {
+        // 새로고침 시작
+        viewModel.refreshFeeds {
+            refreshState.endRefresh()  // 새로고침 종료 시점에서 호출!
+        }
+    }
+
+
 
     /* ---------- UI ---------- */
     Box(
@@ -192,14 +209,29 @@ fun FeedScreen(
             Spacer(Modifier.height(8.dp))
 
             /* 피드 리스트 */
-            LazyColumn {
-                items(feeds) { feed ->
-                    FeedItem(
-                        feed = feed,
-                        hashtagColor = hashtagColor,
-                        onCommentTap = { showCommentsForFeedId = feed.id }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+//                    .verticalScroll(rememberScrollState())
+                    .nestedScroll(refreshState.nestedScrollConnection)
+            ) {
+                LazyColumn {
+                    items(feeds) { feed ->
+                        FeedItem(
+                            feed = feed,
+                            hashtagColor = hashtagColor,
+                            onCommentTap = { showCommentsForFeedId = feed.id }
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
+                }
+                if (refreshState.isRefreshing || refreshState.progress > 0f) {
+                    PullToRefreshContainer(
+                        state = refreshState,
+                        containerColor = Color.White,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.align(Alignment.TopCenter)
                     )
-                    Spacer(Modifier.height(6.dp))
                 }
             }
         }

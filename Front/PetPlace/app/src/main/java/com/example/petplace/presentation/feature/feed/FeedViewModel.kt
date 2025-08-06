@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -100,6 +101,23 @@ class BoardViewModel @Inject constructor(
     /** ------------ 댓글 가져오기 ------------ */
     fun getCommentsForFeed(feedId: Long) =
         _remoteFeeds.value.firstOrNull { it.id == feedId }?.comments ?: emptyList()
+
+    fun refreshFeeds(onFinish: () -> Unit) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                val result = repo.fetchRecommendedFeeds(USER_ID, PAGE, SIZE)
+                _remoteFeeds.value = result
+                applyFilters()
+            } catch (e: Exception) {
+                _error.value = e.message ?: "알 수 없는 오류"
+            } finally {
+                _loading.value = false
+                onFinish()
+            }
+        }
+    }
 }
 
 /* 작고 반복되는 프로필 이미지 렌더링 */
@@ -111,6 +129,7 @@ fun ProfileImage(url: String?) {
     Image(
         painter = painter,
         contentDescription = null,
+        contentScale = ContentScale.Crop,
         modifier = Modifier
             .size(35.dp)
             .clip(CircleShape)
