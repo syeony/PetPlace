@@ -19,7 +19,7 @@ import java.util.List;
 public class Chat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     // chat_rooms_id (DB) <-> chatRoom (Java)
     @ManyToOne(fetch = FetchType.LAZY)

@@ -35,7 +35,7 @@ public class ChatService {
 
             Chat saved = chatRepository.save(chat);
             // 내 메세지는 바로읽음 처리
-            userChatRoomService.updateLastRead(dto.getUserId(), dto.getChatRoomId(), saved.getId().intValue());
+            userChatRoomService.updateLastRead(dto.getUserId(), dto.getChatRoomId(), saved.getId().longValue());
 
             System.out.println(">>> 저장된 Chat ID: " + saved.getId());
 
@@ -74,7 +74,7 @@ public class ChatService {
         }
     }
 
-    public List<ChatMessageDTO> getMessagesByRoom(Integer chatRoomId) {
+    public List<ChatMessageDTO> getMessagesByRoom(Long chatRoomId) {
 //        List<Chat> chats = chatRepository.findByChatRoom_IdOrderByCreatedAtAsc(chatRoomId);
         List<Chat> chats = chatRepository.findAllByChatRoomId(chatRoomId); // 여기!
 

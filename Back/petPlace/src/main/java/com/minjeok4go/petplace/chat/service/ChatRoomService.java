@@ -29,7 +29,7 @@ public class ChatRoomService {
         this.userChatRoomService = userChatRoomService;
     }
 
-    public ChatRoomDTO createChatRoom(Integer userId1, Integer userId2) {
+    public ChatRoomDTO createChatRoom(Long userId1, Long userId2) {
         User user1 = userRepository.findById(userId1).orElseThrow();
         User user2 = userRepository.findById(userId2).orElseThrow();
 
@@ -60,7 +60,7 @@ public class ChatRoomService {
     }
 
 
-    public List<ChatRoomDTO> getChatRoomsByUser(Integer userId) {
+    public List<ChatRoomDTO> getChatRoomsByUser(Long userId) {
         List<ChatRoom> rooms = chatRoomRepository.findByUserId(userId);
         // ChatRoom → ChatRoomDto 변환
         return rooms.stream()

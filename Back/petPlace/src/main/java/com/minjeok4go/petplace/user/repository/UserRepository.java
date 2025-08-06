@@ -7,13 +7,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, Integer> {
+public interface UserRepository extends JpaRepository<User, Long> {
 
     // --- 기존 메서드 (변경 없음) ---
     @Query("SELECT u FROM User u WHERE u.userName = :userName")
     Optional<User> findByUserName(@Param("userName") String userName);
 
     Optional<User> findByNickname(String nickname);
+
+
 
     @Query("SELECT COUNT(u) > 0 FROM User u WHERE u.userName = :userName")
     boolean existsByUserName(@Param("userName") String userName);

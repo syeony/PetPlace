@@ -21,7 +21,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // AUTO_INCREMENT
-    private Integer id;
+    private Long id;
 
     @Column(name = "user_name", nullable = false, unique = true, length = 20)
     private String userName;
