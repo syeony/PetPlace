@@ -13,6 +13,7 @@ import lombok.*;
 public class FeedTag {
 
     @EmbeddedId
+    @Builder.Default
     private FeedTagId id = new FeedTagId();
 
     @ManyToOne(fetch = FetchType.LAZY)

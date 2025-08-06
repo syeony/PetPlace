@@ -13,8 +13,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-// AntPathRequestMatcher는 더 이상 import할 필요가 없습니다.
-// import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -33,38 +31,39 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        // 🔥 new AntPathRequestMatcher를 제거하고 문자열만 사용합니다.
                         .requestMatchers(
-                                // 사용자 API
-                                "/api/user/signup",
-                                "/api/user/check-username",
-                                "/api/user/check-nickname",
-                                "/api/user/certifications/prepare",  // 본인인증 준비 API (DEPRECATED)
-
-                                //소셜로그인
-                                "/api/auth/social/login",
-                                "/api/auth/social/signup",
-                                "api/auth/social/check-linkable",
-
-
-                                // 인증 API
-                                "/api/auth/login",
-                                "/api/auth/refresh",
-                                "/api/user/test-portone-token",
-                                "/api/user/test-portone-cert/**",
-                                "/api/upload/images",
-
-                                // Swagger 관련
+                                // ✅ Swagger 관련 경로 (가장 먼저 배치)
+                                "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
                                 "/webjars/**",
                                 "/favicon.ico",
+
+                                // 사용자 API
+                                "/api/user/signup",
+                                "/api/user/check-username",
+                                "/api/user/check-nickname",
+                                "/api/user/certifications/prepare",
+                                "/api/user/test-portone-token",
+                                "/api/user/test-portone-cert/**",
+
+                                // 소셜로그인
+                                "/api/auth/social/login",
+                                "/api/auth/social/signup",
+                                "/api/auth/social/check-linkable",
+
+                                // 인증 API
+                                "/api/auth/login",
+                                "/api/auth/refresh",
+
+                                // 기타 공개 API
+                                "/api/upload/images",
                                 "/error",
 
                                 // 채팅 기능 API
                                 "/api/chat/**",
-                                "/ws/**",      // SockJS endpoint
+                                "/ws/**",
                                 "/ws/chat/**"
                         ).permitAll()
 
