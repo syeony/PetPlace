@@ -82,6 +82,7 @@ public class User {
 
     @Column(nullable = false)
     private Integer experience;
+
     // [개선] 로그인 타입(EMAIL, KAKAO 등)을 구분하는 컬럼 추가
     @Enumerated(EnumType.STRING)
     @Column(name = "login_type", length = 20, nullable = false)
@@ -104,6 +105,7 @@ public class User {
         this.gender = gender;
         this.birthday = birthday;
         this.loginType = LoginType.EMAIL; // 이메일 가입자는 EMAIL 타입으로 설정
+
         // 기본값 설정
         this.petSmell = new BigDecimal("36.5");
         this.isForeigner = false;
@@ -137,16 +139,45 @@ public class User {
         return user;
     }
 
-    // [개선] 기존 이메일 계정 -> 소셜 계정 연동 메서드 추가
-    public void linkSocialAccount(String socialId, String socialEmail, String profileImageUrl) {
-        if (this.socialId != null) {
+    /**
+     * 기존 이메일 계정에 소셜 계정 연동
+     */
+    public void linkSocialAccount(String socialId, String socialEmail, String profileImageUrl, LoginType loginType) {
+        if (this.socialId != null && !this.socialId.isEmpty()) {
             throw new IllegalStateException("이미 다른 소셜 계정과 연동된 계정입니다.");
         }
+
+        // LoginType이 소셜인지 확인
+        if (!loginType.isSocial()) {
+            throw new IllegalArgumentException("소셜 로그인 타입이 아닙니다.");
+        }
+
         this.socialId = socialId;
         this.socialEmail = socialEmail;
-        // 소셜 프로필 이미지가 있다면 업데이트
-        if (profileImageUrl != null && !profileImageUrl.isBlank()) {
+
+        // 프로필 이미지 업데이트 (기존 이미지가 없는 경우에만)
+        if ((this.userImgSrc == null || this.userImgSrc.isEmpty())
+                && profileImageUrl != null && !profileImageUrl.isEmpty()) {
             this.userImgSrc = profileImageUrl;
         }
+    }
+
+    /**
+     * 소셜 계정 연동 해제
+     */
+    public void unlinkSocialAccount() {
+        if (this.loginType.isSocial()) {
+            throw new IllegalStateException("순수 소셜 가입자는 연동을 해제할 수 없습니다.");
+        }
+
+        this.socialId = null;
+        this.socialEmail = null;
+    }
+
+    /**
+     * 소셜 계정 연동 여부 확인
+     */
+    public boolean hasSocialAccount() {
+        return this.socialId != null && !this.socialId.isEmpty();
     }
 }

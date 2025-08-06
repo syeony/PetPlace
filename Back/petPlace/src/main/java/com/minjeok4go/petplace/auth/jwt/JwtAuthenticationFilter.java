@@ -31,6 +31,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/user/check-nickname",
             "/api/user/certifications/prepare",  // 본인인증 준비 (DEPRECATED)
             "/api/upload/images",
+            //소셜로그인
+            "/api/auth/social/login",
+            "/api/auth/social/signup",
+            "api/auth/social/check-linkable",
             // 인증 API
             "/api/auth/login",
             "/api/auth/refresh",
