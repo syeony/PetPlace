@@ -4,10 +4,8 @@ import android.util.Log
 import com.example.petplace.data.model.chat.ChatMessageDTO
 import com.example.petplace.data.model.chat.ChatReadDTO
 import com.google.gson.Gson
-import io.reactivex.Completable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,27 +16,28 @@ import kotlinx.coroutines.flow.asStateFlow
 import ua.naiksoftware.stomp.Stomp
 import ua.naiksoftware.stomp.StompClient
 import ua.naiksoftware.stomp.dto.LifecycleEvent
-import ua.naiksoftware.stomp.dto.StompMessage
 
 class WebSocketManager {
 
     companion object {
         private const val TAG = "WebSocketManager"
-        private const val SERVER_URL = "ws://43.201.108.195:8081/ws/chat/websocket" // 본인 ip 주소
+        private const val SERVER_URL = "ws://43.201.108.195:8081/ws/chat/websocket"
     }
 
     private var stompClient: StompClient? = null
     private val compositeDisposable = CompositeDisposable()
     private val gson = Gson()
 
+    // 구독 대기 중인 roomId를 저장
+    private var pendingRoomId: Long? = null
+
     // 메시지 수신을 위한 Flow
     private val _messageFlow = MutableSharedFlow<ChatMessageDTO>()
     val messageFlow: SharedFlow<ChatMessageDTO> = _messageFlow.asSharedFlow()
 
-    // 읽음 알림용 FLOW (이 위치에 선언)
+    // 읽음 알림용 Flow
     private val _readFlow = MutableSharedFlow<ChatReadDTO>()
     val readFlow: SharedFlow<ChatReadDTO> = _readFlow.asSharedFlow()
-
 
     // 연결 상태를 위한 Flow
     private val _connectionStatus = MutableStateFlow(false)
@@ -61,6 +60,13 @@ class WebSocketManager {
                     LifecycleEvent.Type.OPENED -> {
                         Log.d(TAG, "WebSocket 연결됨")
                         _connectionStatus.tryEmit(true)
+
+                        // 연결 완료 후 대기 중인 구독 처리
+                        pendingRoomId?.let { roomId ->
+                            Log.d(TAG, "연결 완료 후 대기 중인 구독 실행: roomId=$roomId")
+                            performSubscription(roomId)
+                            pendingRoomId = null
+                        }
                     }
                     LifecycleEvent.Type.CLOSED -> {
                         Log.d(TAG, "WebSocket 연결 종료됨")
@@ -83,59 +89,68 @@ class WebSocketManager {
     }
 
     fun subscribeToChatRoom(roomId: Long) {
-        Log.d(TAG, "📡 subscribeToChatRoom 호출됨")
+        Log.d(TAG, "📡 subscribeToChatRoom 호출됨 - roomId: $roomId")
+
         stompClient?.let { client ->
             if (!client.isConnected) {
-                Log.w(TAG, "⚠️ stompClient가 아직 연결되지 않았습니다. 구독 생략")
+                Log.w(TAG, "⚠️ stompClient가 아직 연결되지 않음. 연결 후 구독 예약")
+                pendingRoomId = roomId
                 return
             }
 
-            Log.d(TAG, "✅ stompClient 연결됨. 채팅방 구독 시도 중...")
-            val topicDisposable = client.topic("/topic/chat.room.$roomId")
-                .doOnSubscribe { Log.d(TAG, "🟡 doOnSubscribe: 토픽 구독 시작") }
-                .doOnNext { Log.d(TAG, "🟢 doOnNext 호출됨 (메시지 수신 예정)") }
-                .doOnError { Log.e(TAG, "🔴 doOnError 호출됨", it) }
-                .doOnComplete { Log.d(TAG, "🔵 doOnComplete 호출됨") }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                    { stompMessage ->
-                        try {
-                            val chatMessage = gson.fromJson(stompMessage.payload, ChatMessageDTO::class.java)
-                            Log.d(TAG, "메시지 수신: ${chatMessage.message}")
-                            _messageFlow.tryEmit(chatMessage)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "메시지 파싱 에러", e)
-                        }
-                    },
-                    { throwable ->
-                        Log.e(TAG, "채팅방 구독 에러", throwable)
-                    }
-                )
-            val readTopicDisposable = client.topic("/topic/chat.room.$roomId.read")
-                .doOnSubscribe { Log.d(TAG, "읽음 토픽 구독 시작") }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(
-                    { stompMessage ->
-                        try {
-                            // 읽음 알림 DTO로 파싱 (ChatReadDTO)
-                            val readDto = gson.fromJson(stompMessage.payload, ChatReadDTO::class.java)
-                            Log.d(TAG, "읽음 알림 수신: $readDto")
-                            // ✅ 읽음 알림을 외부로 전달하는 Flow 등에서 emit 필요
-                            _readFlow.tryEmit(readDto)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "읽음 알림 파싱 에러", e)
-                        }
-                    },
-                    { throwable ->
-                        Log.e(TAG, "읽음 알림 구독 에러", throwable)
-                    }
-                )
-
-
-            compositeDisposable.add(topicDisposable)
+            performSubscription(roomId)
+        } ?: run {
+            Log.e(TAG, "stompClient가 null입니다")
         }
+    }
+
+    private fun performSubscription(roomId: Long) {
+        Log.d(TAG, "✅ 실제 구독 수행 - roomId: $roomId")
+
+        val client = stompClient ?: return
+
+        // 메시지 구독
+        val topicDisposable = client.topic("/topic/chat.room.$roomId")
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { stompMessage ->
+                    try {
+                        val chatMessage = gson.fromJson(stompMessage.payload, ChatMessageDTO::class.java)
+                        Log.d(TAG, "메시지 수신: ${chatMessage.message}")
+                        _messageFlow.tryEmit(chatMessage)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "메시지 파싱 에러", e)
+                    }
+                },
+                { throwable ->
+                    Log.e(TAG, "채팅방 구독 에러", throwable)
+                }
+            )
+
+        // 읽음 알림 구독
+        val readTopicDisposable = client.topic("/topic/chat.room.$roomId.read")
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(
+                { stompMessage ->
+                    try {
+                        val readDto = gson.fromJson(stompMessage.payload, ChatReadDTO::class.java)
+                        Log.d(TAG, "읽음 알림 수신: $readDto")
+                        _readFlow.tryEmit(readDto)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "읽음 알림 파싱 에러", e)
+                    }
+                },
+                { throwable ->
+                    Log.e(TAG, "읽음 알림 구독 에러", throwable)
+                }
+            )
+
+        compositeDisposable.add(topicDisposable)
+        compositeDisposable.add(readTopicDisposable)
+
+        Log.d(TAG, "구독 완료: roomId=$roomId")
     }
 
     fun sendMessage(messageDTO: ChatMessageDTO) {
@@ -180,6 +195,7 @@ class WebSocketManager {
         compositeDisposable.clear()
         stompClient?.disconnect()
         stompClient = null
+        pendingRoomId = null
         Log.d(TAG, "WebSocket 연결 해제")
     }
 
