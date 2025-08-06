@@ -29,7 +29,7 @@ public class Feed {
     private String content;
 
     @Column(name = "user_id", nullable = false)
-    private Long userId;  // users.id는 INT 타입
+    private Long userId;
 
     @Column(name = "user_nick", nullable = false)
     private String userNick;
@@ -71,6 +71,10 @@ public class Feed {
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
     private Set<Comment> comments = new HashSet<>();
+
+    public Feed(Long feedId) {
+        this.id = feedId;
+    }
 
     public void update() {
         this.updatedAt = LocalDateTime.now();

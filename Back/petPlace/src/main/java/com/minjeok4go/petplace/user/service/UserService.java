@@ -182,13 +182,13 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 아이디입니다."));
     }
 
-    public User getUserFromToken(String tokenUserName) {
-        return userRepository.findByUserName(tokenUserName)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + tokenUserName));
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
     }
 
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+    public User getUserByStringId(String id) {
+        return userRepository.findById(Long.parseLong(id))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + id));
     }
 }
