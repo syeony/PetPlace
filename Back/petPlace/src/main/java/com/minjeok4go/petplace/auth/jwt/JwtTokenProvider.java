@@ -12,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -135,4 +137,51 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
     }
+    /**
+     * 소셜 로그인용 임시 토큰 생성 (15분 유효)
+     * @param socialId 소셜 플랫폼 고유 ID
+     * @param provider 소셜 플랫폼명
+     * @return 임시 토큰
+     */
+    public String createTempToken(String socialId, String provider) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + 900000); // 15분
+
+        return Jwts.builder()
+                .setSubject("TEMP_" + provider + "_" + socialId)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .claim("type", "TEMP_SOCIAL")
+                .claim("provider", provider)
+                .claim("socialId", socialId)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
+     * 임시 토큰에서 소셜 정보 추출
+     */
+    public Map<String, Object> getTempTokenClaims(String tempToken) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(tempToken)
+                    .getBody();
+
+            if (!"TEMP_SOCIAL".equals(claims.get("type"))) {
+                throw new IllegalArgumentException("유효하지 않은 임시 토큰입니다.");
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("provider", claims.get("provider"));
+            result.put("socialId", claims.get("socialId"));
+            return result;
+
+        } catch (Exception e) {
+            throw new IllegalArgumentException("임시 토큰이 유효하지 않습니다.", e);
+        }
+    }
+
+
 }
