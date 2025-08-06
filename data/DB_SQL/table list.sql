@@ -45,7 +45,7 @@ CREATE TABLE `users` (
 -- ✅ RefreshToken
 CREATE TABLE `refresh_tokens` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `user_id` BIGINT NOT NULL,
+    `user_id` INT NOT NULL,
     `refresh_token` VARCHAR(500) NOT NULL UNIQUE,
     `expires_at` DATETIME NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
