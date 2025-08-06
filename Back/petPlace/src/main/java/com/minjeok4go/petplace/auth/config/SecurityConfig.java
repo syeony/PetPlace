@@ -52,6 +52,7 @@ public class SecurityConfig {
                                 "/api/auth/refresh",
                                 "/api/user/test-portone-token",
                                 "/api/user/test-portone-cert/**",
+                                "/api/upload/images",
 
                                 // Swagger 관련
                                 "/swagger-ui/**",
