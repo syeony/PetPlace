@@ -246,4 +246,15 @@ INSERT INTO `feed_tags` (`feed_id`, `tag_id`) VALUES
 (49, 5), (49, 9), (49, 11),
 (50, 5), (50, 16);
 
+-- 1) feed_id별 선택 횟수 집계
+UPDATE feeds AS f
+JOIN (
+  SELECT
+    feed_id,
+    COUNT(*) AS cnt
+  FROM likes
+  GROUP BY feed_id
+) AS a ON f.id = a.feed_id
+SET f.likes = f.likes + a.cnt;
+
 commit;
