@@ -29,7 +29,6 @@ fun SplashScreen(
 ) {
     val app = PetPlaceApp.getAppContext() as PetPlaceApp
 
-    // 1️⃣ Lottie 애니메이션
     Box(
         modifier = Modifier
             .fillMaxSize()

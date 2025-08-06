@@ -74,7 +74,7 @@ fun MainScaffold() {
 //            composable("join") { JoinScreen(navController, viewModel) }
             composable(BottomNavItem.Feed.route) { FeedScreen(navController = navController) }
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
-            composable(BottomNavItem.MyPage.route) { MyPageScreen() }
+            composable(BottomNavItem.MyPage.route) { MyPageScreen(navController) }
             composable(
                 route = "chatDetail/{chatName}",
                 arguments = listOf(navArgument("chatName") { type = NavType.StringType })
