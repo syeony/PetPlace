@@ -31,7 +31,7 @@ public class CommentDto {
                 .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
                 .feedId(comment.getFeed().getId())
                 .content(comment.getContent())
-                .userId(comment.getUserId())
+                .userId(comment.getUserId().longValue())
                 .userNick(comment.getUserNick())
                 .userImg(comment.getUserImg())
                 .createdAt(comment.getCreatedAt())

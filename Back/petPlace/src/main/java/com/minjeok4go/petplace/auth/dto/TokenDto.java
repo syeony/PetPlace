@@ -15,6 +15,7 @@ public class TokenDto {
     @Getter
     @AllArgsConstructor
     public static class UserInfo {
+        private Long userId;
         private String userName;
         private String nickname;
         private String userImgSrc;
@@ -24,10 +25,10 @@ public class TokenDto {
     }
     
     // 기존 생성자 호환을 위한 정적 팩토리 메서드
-    public static TokenDto of(String accessToken, String refreshToken, 
+    public static TokenDto of(String accessToken, String refreshToken, Long userId,
                               String userName, String nickname, String userImgSrc, 
                               Integer level, Integer defaultPetId, Long regionId) {
-        UserInfo userInfo = new UserInfo(userName, nickname, userImgSrc, level, defaultPetId, regionId);
+        UserInfo userInfo = new UserInfo(userId, userName, nickname, userImgSrc, level, defaultPetId, regionId);
         return new TokenDto(accessToken, refreshToken, "로그인 성공", userInfo);
     }
 }

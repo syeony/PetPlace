@@ -15,6 +15,7 @@ public class PortOneConfig {
 
     private String apiKey;
     private String secretKey;
+    private String impCode;      // 포트원 식별코드 추가
     private String storeId;
     private String channelKey;
     private String baseUrl = "https://api.iamport.kr";

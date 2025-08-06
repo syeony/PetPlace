@@ -36,7 +36,6 @@ import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
-import androidx.lifecycle.ViewModel
 import androidx.navigation.navigation
 import com.example.petplace.presentation.feature.join.CertificationScreen
 import com.example.petplace.presentation.feature.join.JoinViewModel
@@ -70,7 +69,7 @@ fun MainScaffold() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("login") { LoginScreen(navController) }
-            composable("join") { JoinScreen(navController) }
+//            composable("join") { JoinScreen(navController, viewModel) }
             composable(BottomNavItem.Feed.route) { FeedScreen(navController = navController) }
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
             composable(BottomNavItem.MyPage.route) { MyPageScreen() }
@@ -131,30 +130,30 @@ fun MainScaffold() {
             }
 
 
-//            navigation(startDestination = "join/certification", route = "join_graph") {
-//                composable("join/certification") { backStackEntry ->
-//                    val parentEntry = remember(backStackEntry) {
-//                        navController.getBackStackEntry("join_graph")
-//                    }
-//                    val viewModel = hiltViewModel<JoinViewModel>(parentEntry)
-//                    CertificationScreen(navController, viewModel)
-//                }
-//                composable("join/main") { backStackEntry ->
-//                    val parentEntry = remember(backStackEntry) {
-//                        navController.getBackStackEntry("join_graph")
-//                    }
-//                    val viewModel = hiltViewModel<JoinViewModel>(parentEntry)
-//                    JoinScreen(navController, viewModel)
-//                }
-//            }
+            navigation(startDestination = "join/certification", route = "join_graph") {
+                composable("join/certification") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("join_graph")
+                    }
+                    val viewModel = hiltViewModel<JoinViewModel>(parentEntry)
+                    CertificationScreen(navController, viewModel)
+                }
+                composable("join/main") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("join_graph")
+                    }
+                    val viewModel = hiltViewModel<JoinViewModel>(parentEntry)
+                    JoinScreen(navController, viewModel)
+                }
+            }
         }
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun MainScaffoldPreview() {
-    PetPlaceTheme {
-        MainScaffold()
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun MainScaffoldPreview() {
+//    PetPlaceTheme {
+//        MainScaffold()
+//    }
+//}

@@ -23,9 +23,10 @@ public class RefreshToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // getUserId 메서드 수정
     // 실제 getter 메서드
-    @Column(name = "user_name", nullable = false, length = 20)  // user_id → user_name
-    private String userName;  // userId → userName
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Column(name = "refresh_token", nullable = false, length = 500, unique = true)
     private String refreshToken;
@@ -42,14 +43,9 @@ public class RefreshToken {
         this.refreshToken = refreshToken;
         this.expiresAt = expiresAt;
     }
-
     // 만료 여부 확인
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(this.expiresAt);
     }
 
-    // 하위 호환성을 위한 메서드 (기존 코드가 호출할 수 있음)
-    public String getUserId() {
-        return this.userName;  // 기존 코드 호환을 위해 userName 반환
-    }
 }

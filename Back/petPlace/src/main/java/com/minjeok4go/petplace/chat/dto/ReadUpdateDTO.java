@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class ReadUpdateDTO {
-    private Integer userId;
-    private Integer chatRoomId;
-    private Integer lastReadCid;
+    private Long userId;
+    private Long chatRoomId;
+    private Long lastReadCid;
 }

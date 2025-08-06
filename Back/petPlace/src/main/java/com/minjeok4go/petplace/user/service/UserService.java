@@ -186,4 +186,9 @@ public class UserService {
         return userRepository.findByUserName(tokenUserName)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + tokenUserName));
     }
+
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+    }
 }

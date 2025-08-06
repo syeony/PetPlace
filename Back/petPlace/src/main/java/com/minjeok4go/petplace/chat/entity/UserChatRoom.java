@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 public class UserChatRoom {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     // chat_room_id (DB) <-> chatRoom (Java)
     @ManyToOne(fetch = FetchType.LAZY)
@@ -33,7 +33,7 @@ public class UserChatRoom {
 
     // last_read_cid (DB) <-> lastReadCid (Java)
     @Column(name = "last_read_cid")
-    private Integer lastReadCid;
+    private Long lastReadCid;
 
     // leave_at (DB) <-> leaveAt (Java)
     @Column(name = "leave_at")

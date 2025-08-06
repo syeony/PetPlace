@@ -62,6 +62,41 @@ public class PortOneApiService {
     }
 
     /**
+     * 본인인증 URL 생성 (간단한 방식)
+     */
+    public Map<String, String> prepareCertification() {
+        log.info("포트원 본인인증 URL 생성 시작");
+
+        try {
+            // 고유한 merchant_uid 생성
+            String merchantUid = "cert_" + System.currentTimeMillis();
+            log.info("생성된 merchant_uid: {}", merchantUid);
+
+            // 포트원 식별코드 (환경변수나 설정에서 가져와야 함)
+            String impCode = portOneConfig.getImpCode(); // 포트원 식별코드
+            
+            // 본인인증 URL 직접 구성
+            String certificationUrl = String.format(
+                "https://cert.iamport.kr/?IMP=%s&merchant_uid=%s&m_redirect_url=%s",
+                impCode,
+                merchantUid,
+                "petplace://certification" // 모바일 앱 딥링크로 변경
+            );
+            
+            log.info("본인인증 URL 생성 성공: {}", certificationUrl);
+            
+            Map<String, String> result = new HashMap<>();
+            result.put("certification_url", certificationUrl);
+            result.put("merchant_uid", merchantUid);
+            return result;
+
+        } catch (Exception e) {
+            log.error("포트원 본인인증 URL 생성 중 오류 발생", e);
+            throw new RuntimeException("본인인증 URL 생성 중 오류 발생: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 본인인증 결과 조회
      */
     public JsonNode getCertificationInfo(String impUid) {

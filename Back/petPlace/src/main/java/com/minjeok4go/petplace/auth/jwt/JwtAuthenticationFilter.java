@@ -29,6 +29,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/user/signup",
             "/api/user/check-username", 
             "/api/user/check-nickname",
+            "/api/user/certifications/prepare",  // 본인인증 준비 (DEPRECATED)
+
             // 인증 API
             "/api/auth/login",
             "/api/auth/refresh",
@@ -86,12 +88,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // 토큰이 유효한 경우 인증 정보 설정
-            String userName = jwtTokenProvider.getUserNameFromToken(token);
+            Long userId = jwtTokenProvider.getUserIdFromToken(token);
             Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    userName, null, Collections.emptyList());
+                    userId.toString(), null, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            log.debug("인증 성공: {}", userName);
+            log.debug("인증 성공: {}", userId);
 
         } catch (Exception e) {
             log.error("JWT 필터 에러: ", e);
