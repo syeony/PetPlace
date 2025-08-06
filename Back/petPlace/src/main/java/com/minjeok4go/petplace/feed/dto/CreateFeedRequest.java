@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.feed.dto;
 
-import com.minjeok4go.petplace.image.dto.ImageRequest;
+import com.minjeok4go.petplace.image.dto.FeedImageRequest;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -30,5 +30,5 @@ public class CreateFeedRequest {
     private List<Long> tagIds = new ArrayList<>();
 
     @Builder.Default
-    private List<ImageRequest> images = new ArrayList<>();
+    private List<FeedImageRequest> images = new ArrayList<>();
 }
