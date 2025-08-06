@@ -22,6 +22,7 @@ import com.example.petplace.presentation.common.theme.BackgroundColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+
 @Composable
 fun SplashScreen(
     navController: NavController,
@@ -35,10 +36,8 @@ fun SplashScreen(
             .background(BackgroundColor),
         contentAlignment = Alignment.Center
     ) {
-        // lottie-compose 라이브러리 필요
-        // implementation "com.airbnb.android:lottie-compose:6.0.0"
         val composition by rememberLottieComposition(
-            LottieCompositionSpec.Asset("splash.json") // <- assets 폴더
+            LottieCompositionSpec.Asset("splash.json")
         )
         val progress by animateLottieCompositionAsState(composition, iterations = 1)
 
@@ -50,14 +49,20 @@ fun SplashScreen(
     }
 
     LaunchedEffect(Unit) {
-        delay(2000) // 애니메이션 표시 시간
+        delay(2000)
 
         val accessToken = app.getAccessToken()
         val refreshToken = app.getRefreshToken()
 
         val goHome = when {
-            !accessToken.isNullOrEmpty() -> true
-            !refreshToken.isNullOrEmpty() -> viewModel.refreshToken(refreshToken)
+            // 1. AccessToken 유효성 검사
+            !accessToken.isNullOrEmpty() -> {
+                viewModel.isTokenValid()
+            }
+            // 2. AccessToken이 없고 RefreshToken은 있으면 갱신 시도
+            !refreshToken.isNullOrEmpty() -> {
+                viewModel.refreshToken(refreshToken)
+            }
             else -> false
         }
 

@@ -27,7 +27,7 @@ class LoginRepository @Inject constructor(
 
 
     suspend fun refreshToken(refreshToken: TokenRefreshRequest) = api.refreshToken(refreshToken)
-
+    suspend fun isTokenValid() = api.isTokenValid()
 
     suspend fun refreshTokenBlocking(request: TokenRefreshRequest) = api.refreshTokenBlocking(request)
 
