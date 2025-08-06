@@ -2,6 +2,7 @@
 package com.minjeok4go.petplace.auth.service;
 
 import com.minjeok4go.petplace.auth.dto.TokenDto;
+import com.minjeok4go.petplace.auth.dto.TokenValidationResponse;
 import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
@@ -49,5 +50,28 @@ public class AuthService {
                 user.getDefaultPetId(),
                 user.getRegionId()
         );
+    }
+
+    /**
+     * Access Token 유효성 검증
+     */
+    public TokenValidationResponse validateAccessToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            return TokenValidationResponse.invalid("토큰이 제공되지 않았습니다");
+        }
+        
+        JwtTokenProvider.TokenValidationResult result = jwtTokenProvider.validateTokenWithDetails(token);
+        
+        if (result.isValid()) {
+            // 실제 사용자가 존재하는지 확인 (선택사항)
+            try {
+                User user = userService.getUserById(result.getUserId());
+                return TokenValidationResponse.valid(user.getId(), result.getExpiresIn());
+            } catch (Exception e) {
+                return TokenValidationResponse.invalid("토큰의 사용자 정보를 찾을 수 없습니다");
+            }
+        } else {
+            return TokenValidationResponse.invalid(result.getMessage());
+        }
     }
 }
