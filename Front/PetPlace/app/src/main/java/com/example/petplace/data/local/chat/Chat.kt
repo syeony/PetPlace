@@ -12,6 +12,8 @@ data class ChatRoom(
 
 
 data class ChatMessage(
+    val id:Long?,
+    val isRead: Boolean = false,
     val content: String,
     val isFromMe: Boolean,
     val timestamp: String = ""

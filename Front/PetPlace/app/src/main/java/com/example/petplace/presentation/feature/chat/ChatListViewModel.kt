@@ -26,7 +26,7 @@ class ChatListViewModel @Inject constructor(
     
 
     // 현재 사용자 ID (실제로는 의존성 주입이나 SharedPreferences에서 가져와야 함)
-    private val currentUserId = 5L
+    private val currentUserId = 6L
 
     private val _chatRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
     val chatRooms: StateFlow<List<ChatRoom>> = _chatRooms.asStateFlow()
@@ -134,7 +134,7 @@ class ChatListViewModel @Inject constructor(
     private fun getUser(userId: Long): User {
         return when (userId) {
             3L -> User(3L, "김철수", com.example.petplace.R.drawable.ic_mypage, "인의동")
-            5L -> User(5L, "나", com.example.petplace.R.drawable.ic_mypage, "진평동")
+            6L -> User(6L, "나", com.example.petplace.R.drawable.ic_mypage, "진평동")
             else -> User(userId, "사용자$userId", com.example.petplace.R.drawable.ic_mypage, "알 수 없음")
         }
     }

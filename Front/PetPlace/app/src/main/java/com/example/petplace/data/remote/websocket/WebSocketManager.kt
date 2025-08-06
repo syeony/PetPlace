@@ -35,6 +35,11 @@ class WebSocketManager {
     private val _messageFlow = MutableSharedFlow<ChatMessageDTO>()
     val messageFlow: SharedFlow<ChatMessageDTO> = _messageFlow.asSharedFlow()
 
+    // 읽음 알림용 FLOW (이 위치에 선언)
+    private val _readFlow = MutableSharedFlow<ChatReadDTO>()
+    val readFlow: SharedFlow<ChatReadDTO> = _readFlow.asSharedFlow()
+
+
     // 연결 상태를 위한 Flow
     private val _connectionStatus = MutableStateFlow(false)
     val connectionStatus: StateFlow<Boolean> = _connectionStatus.asStateFlow()
@@ -107,6 +112,27 @@ class WebSocketManager {
                         Log.e(TAG, "채팅방 구독 에러", throwable)
                     }
                 )
+            val readTopicDisposable = client.topic("/topic/chat.room.$roomId.read")
+                .doOnSubscribe { Log.d(TAG, "읽음 토픽 구독 시작") }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { stompMessage ->
+                        try {
+                            // 읽음 알림 DTO로 파싱 (ChatReadDTO)
+                            val readDto = gson.fromJson(stompMessage.payload, ChatReadDTO::class.java)
+                            Log.d(TAG, "읽음 알림 수신: $readDto")
+                            // ✅ 읽음 알림을 외부로 전달하는 Flow 등에서 emit 필요
+                            _readFlow.tryEmit(readDto)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "읽음 알림 파싱 에러", e)
+                        }
+                    },
+                    { throwable ->
+                        Log.e(TAG, "읽음 알림 구독 에러", throwable)
+                    }
+                )
+
 
             compositeDisposable.add(topicDisposable)
         }
