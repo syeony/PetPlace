@@ -44,7 +44,7 @@ public class ChatRoomController {
     // 채팅방 목록 조회
     @Operation(summary = "채팅방 목록 조회")
     @GetMapping("/rooms")
-    public ResponseEntity<?> getChatRooms(@RequestParam Integer userId) {
+    public ResponseEntity<?> getChatRooms(@RequestParam Long userId) {
         List<ChatRoomDTO> rooms = chatRoomService.getChatRoomsByUser(userId);
         return ResponseEntity.ok(rooms);
     }
@@ -53,8 +53,8 @@ public class ChatRoomController {
     @Operation(summary = "채팅방 안 읽은 메시지 수 조회")
     @GetMapping("/rooms/{chatRoomId}/unread")
     public ResponseEntity<Integer> getUnreadCount(
-            @PathVariable Integer chatRoomId,
-            @RequestParam Integer userId
+            @PathVariable Long chatRoomId,
+            @RequestParam Long userId
     ) {
         int count = userChatRoomService.getUnreadCount(userId, chatRoomId);
         return ResponseEntity.ok(count);
@@ -62,8 +62,8 @@ public class ChatRoomController {
 
     @PostMapping("/rooms/{chatRoomId}/join")
     public ResponseEntity<?> joinChatRoom(
-            @PathVariable Integer chatRoomId,
-            @RequestParam Integer userId
+            @PathVariable Long chatRoomId,
+            @RequestParam Long userId
     ) {
         userChatRoomService.joinChatRoom(userId, chatRoomId); // ⬅️ 이거 꼭 필요!
         return ResponseEntity.ok().build();
@@ -71,7 +71,7 @@ public class ChatRoomController {
 
 
     @GetMapping("/{chatRoomId}/messages")
-    public ResponseEntity<List<ChatMessageDTO>> getMessages(@PathVariable Integer chatRoomId) {
+    public ResponseEntity<List<ChatMessageDTO>> getMessages(@PathVariable Long chatRoomId) {
         List<ChatMessageDTO> messages = chatService.getMessagesByRoom(chatRoomId);
         return ResponseEntity.ok(messages);
     }
