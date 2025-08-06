@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SingleChatScreen(
-    chatPartnerName: String,
+    chatRoomId: Long,
     navController: NavController,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
@@ -70,7 +70,7 @@ fun SingleChatScreen(
     Scaffold(
         topBar = {
             ChatTopAppBar(
-                chatPartnerName = chatPartnerName,
+                chatPartnerName = chatRoomId.toString(),// 추후 닉네임으로 변경
                 isConnected = connectionStatus,
                 onBackClick = {
                     navController.popBackStack()

@@ -1,6 +1,7 @@
 package com.example.petplace.presentation.feature.chat
 
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.data.local.chat.ChatMessage
@@ -18,7 +19,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val chatRepository: ChatRepository
+    private val chatRepository: ChatRepository,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     companion object {
@@ -29,7 +31,7 @@ class ChatViewModel @Inject constructor(
 
     // 현재 사용자 ID와 채팅방 ID (예시, 실제론 DI로)
     private val currentUserId = 3L
-    private val currentChatRoomId = 1L
+    private val currentChatRoomId: Long = savedStateHandle["chatRoomId"] ?: 0L
 
     private val _messageInput = MutableStateFlow("")
     val messageInput: StateFlow<String> = _messageInput.asStateFlow()

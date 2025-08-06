@@ -75,12 +75,12 @@ fun MainScaffold() {
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
             composable(BottomNavItem.MyPage.route) { MyPageScreen() }
             composable(
-                route = "chatDetail/{chatName}",
-                arguments = listOf(navArgument("chatName") { type = NavType.StringType })
+                route = "chatDetail/{chatRoomId}",
+                arguments = listOf(navArgument("chatRoomId") { type = NavType.LongType })
             ) { backStackEntry ->
-                val chatName = backStackEntry.arguments?.getString("chatName") ?: ""
+                val chatRoomId = backStackEntry.arguments?.getLong("chatRoomId") ?: 0
                 SingleChatScreen(
-                    chatPartnerName = chatName,
+                    chatRoomId = chatRoomId,
                     navController = navController
                 )
             }
