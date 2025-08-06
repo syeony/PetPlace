@@ -90,7 +90,7 @@ public class FeedService {
                         : null)
                 .feedId(comment.getFeed().getId())
                 .content(comment.getContent())
-                .userId(comment.getUserId().longValue())
+                .userId(comment.getUserId())
                 .userNick(comment.getUserNick())
                 .userImg(comment.getUserImg())
                 .createdAt(comment.getCreatedAt())
@@ -104,7 +104,7 @@ public class FeedService {
         // 1) 피드 저장
         Feed feed = Feed.builder()
                 .content(req.getContent())
-                .userId(user.getId().longValue())
+                .userId(user.getId())
                 .userNick(user.getNickname())
                 .userImg(user.getUserImgSrc())
                 .regionId(req.getRegionId())
@@ -122,7 +122,7 @@ public class FeedService {
     public FeedDetailResponse updateFeed(Long id, CreateFeedRequest req, User user) {
         // 1) 한 번에 조회 + 권한검사
         Feed feed = feedRepository
-                .findByIdAndUserIdAndDeletedAtIsNull(id, user.getId().longValue())
+                .findByIdAndUserIdAndDeletedAtIsNull(id, user.getId())
                 .orElseThrow(() -> new AccessDeniedException("해당 피드를 찾을 수 없거나, 삭제 권한이 없습니다."));
 
         // 2) 실제 수정
@@ -143,7 +143,7 @@ public class FeedService {
     @Transactional
     public DeleteFeedResponse deleteFeed(Long id, User user) {
         Feed feed = feedRepository
-                .findByIdAndUserIdAndDeletedAtIsNull(id, user.getId().longValue())
+                .findByIdAndUserIdAndDeletedAtIsNull(id, user.getId())
                 .orElseThrow(() -> new AccessDeniedException("해당 피드를 찾을 수 없거나, 삭제 권한이 없습니다."));
 
         feed.delete();

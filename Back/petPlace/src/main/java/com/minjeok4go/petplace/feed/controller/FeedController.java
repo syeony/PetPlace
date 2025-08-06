@@ -54,7 +54,7 @@ public class FeedController {
                                                                       @AuthenticationPrincipal String tokenUserName
     ) {
         User me = userService.getUserFromToken(tokenUserName);
-        return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me.getId().longValue(), page, size));
+        return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me.getId(), page, size));
     }
 
     @Operation(
