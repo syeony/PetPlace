@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,7 +40,7 @@ public class FeedService {
     @Transactional(readOnly = true)
     public FeedDetailResponse getFeedDetail(Long feedId) {
 
-        Feed feed = feedRepository.findById(feedId)
+        Feed feed = feedRepository.findByIdAndDeletedAtIsNull(feedId)
                 .orElseThrow(() -> new RuntimeException("Feed not found"));
 
         List<TagResponse> tagDtos = feed.getFeedTags().stream()
@@ -105,6 +106,7 @@ public class FeedService {
                 .content(req.getContent())
                 .userId(user.getId().longValue())
                 .userNick(user.getNickname())
+                .userImg(user.getUserImgSrc())
                 .regionId(req.getRegionId())
                 .category(FeedCategory.valueOf(req.getCategory()))
                 .build();
@@ -120,12 +122,13 @@ public class FeedService {
     public FeedDetailResponse updateFeed(Long id, CreateFeedRequest req, User user) {
         // 1) 한 번에 조회 + 권한검사
         Feed feed = feedRepository
-                .findByIdAndUserId(id, user.getId().longValue())
+                .findByIdAndUserIdAndDeletedAtIsNull(id, user.getId().longValue())
                 .orElseThrow(() -> new AccessDeniedException("해당 피드를 찾을 수 없거나, 삭제 권한이 없습니다."));
 
         // 2) 실제 수정
         feed.setContent(req.getContent());
         feed.setUserNick(user.getNickname());
+        feed.setUserImg(user.getUserImgSrc());
         feed.setRegionId(req.getRegionId());
         feed.setCategory(FeedCategory.valueOf(req.getCategory()));
         feed.update();
@@ -140,7 +143,7 @@ public class FeedService {
     @Transactional
     public DeleteFeedResponse deleteFeed(Long id, User user) {
         Feed feed = feedRepository
-                .findByIdAndUserId(id, user.getId().longValue())
+                .findByIdAndUserIdAndDeletedAtIsNull(id, user.getId().longValue())
                 .orElseThrow(() -> new AccessDeniedException("해당 피드를 찾을 수 없거나, 삭제 권한이 없습니다."));
 
         feed.delete();
@@ -200,5 +203,10 @@ public class FeedService {
 
             imageRepository.saveAll(toAdd);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Feed> findById(Long id) {
+        return feedRepository.findById(id);
     }
 }

@@ -26,7 +26,7 @@ public class RecommendationService {
     public List<FeedListResponse> getRecommendedFeeds(Long userId, int page, int size) {
         boolean isColdStart = checkColdStart(userId);
 
-        List<Feed> allFeeds = feedRepository.findAll();
+        List<Feed> allFeeds = feedRepository.findAllByDeletedAtIsNull();
 
         List<FeedListResponse> scoredFeedDtos = allFeeds.stream()
                 .map(feed -> {

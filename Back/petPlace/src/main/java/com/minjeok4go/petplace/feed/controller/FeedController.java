@@ -36,7 +36,7 @@ public class FeedController {
 
     @Operation(
         summary = "피드 단건 조회",
-        description = "path 변수로 넘어온 피드 ID 에 해당하는 피드를 상세 정보와 함께 반환합니다."
+        description = "Path 변수로 넘어온 피드 ID 에 해당하는 피드를 상세 정보와 함께 반환합니다."
     )
     @GetMapping("/{id}")
     public FeedDetailResponse getFeed(@PathVariable Long id) {
@@ -49,10 +49,9 @@ public class FeedController {
                 "Param 변수로 넘어온 현재 페이지와 사이즈 만큼 반환합니다."
     )
     @GetMapping("/recommend")
-    public ResponseEntity<List<FeedListResponse>> getRecommendedFeeds(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @AuthenticationPrincipal String tokenUserName
+    public ResponseEntity<List<FeedListResponse>> getRecommendedFeeds(@RequestParam(defaultValue = "0") int page,
+                                                                      @RequestParam(defaultValue = "20") int size,
+                                                                      @AuthenticationPrincipal String tokenUserName
     ) {
         User me = userService.getUserFromToken(tokenUserName);
         return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me.getId().longValue(), page, size));
