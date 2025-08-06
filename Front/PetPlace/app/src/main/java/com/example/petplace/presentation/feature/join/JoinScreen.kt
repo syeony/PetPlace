@@ -43,12 +43,20 @@ import com.kakao.vectormap.*
 import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import kotlinx.coroutines.launch
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun JoinScreen(navController: NavController, viewModel: JoinViewModel = hiltViewModel()) {
     val context = LocalContext.current
     Log.d("impUid", "${viewModel.impUid}")
+
+    //뒤로가기 누를시 로그인으로 가게됨
+    BackHandler(enabled = true) {
+        navController.navigate("login") {
+            popUpTo("join_graph") { inclusive = true } // join_graph 스택 모두 제거
+        }
+    }
 
     // 동네 이름 상태
     val rawRegionName by viewModel.regionName.collectAsState(initial = null)
@@ -133,6 +141,8 @@ fun JoinScreen(navController: NavController, viewModel: JoinViewModel = hiltView
                         // 회원가입 API 호출
                         viewModel.signUp()
                         Toast.makeText(context, "회원가입 요청 완료", Toast.LENGTH_SHORT).show()
+                        navController.navigate("login")
+
                     }
                 },
                 enabled = canSignUp,
