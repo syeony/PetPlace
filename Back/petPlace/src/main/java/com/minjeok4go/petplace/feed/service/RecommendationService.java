@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.feed.service;
 
-import com.minjeok4go.petplace.comment.dto.CommentDto;
+import com.minjeok4go.petplace.comment.dto.FeedComment;
 import com.minjeok4go.petplace.common.constant.ImageType;
 import com.minjeok4go.petplace.feed.dto.FeedListResponse;
 import com.minjeok4go.petplace.feed.dto.TagResponse;
@@ -56,8 +56,8 @@ public class RecommendationService {
                             .collect(Collectors.toList());
 
                     // 3) CommentDto 리스트
-                    List<CommentDto> comments = feed.getComments().stream()
-                            .map(CommentDto::from)
+                    List<FeedComment> comments = feed.getComments().stream()
+                            .map(FeedComment::from)
                             .collect(Collectors.toList());
 
                     // 4) 최종 FeedDto 빌드

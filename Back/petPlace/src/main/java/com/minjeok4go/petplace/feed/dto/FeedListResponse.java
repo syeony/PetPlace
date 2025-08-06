@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.feed.dto;
 
-import com.minjeok4go.petplace.comment.dto.CommentDto;
+import com.minjeok4go.petplace.comment.dto.FeedComment;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -27,6 +27,6 @@ public class FeedListResponse {
     private Double score;
     private List<TagResponse> tags;
     private List<ImageResponse> images;
-    private List<CommentDto> comments;
+    private List<FeedComment> comments;
     private Integer commentCount;
 }
