@@ -193,7 +193,7 @@ fun SingleChatScreen(
                             // 내가 보낸 메시지일 경우: 읽음/시간 -> 메시지 버블
                             Column {
                                 Text(
-                                    text = "읽음",
+                                    text = if (msg.isRead) "읽음" else "안읽음",
                                     fontSize = 10.sp,
                                     color = Color.Gray,
                                     modifier = Modifier
@@ -235,20 +235,13 @@ fun SingleChatScreen(
                                 )
                             }
                             Spacer(modifier = Modifier.width(2.dp))
-                            Column {
-                                Text(
-                                    text = "읽음",
-                                    fontSize = 10.sp,
-                                    color = Color.Gray,
-                                    modifier = Modifier.padding(horizontal = 4.dp)
-                                )
-                                Text(
-                                    text = if (msg.timestamp.isNotEmpty()) msg.timestamp else "방금",
-                                    fontSize = 10.sp,
-                                    color = Color.Gray,
-                                    modifier = Modifier.padding(horizontal = 4.dp)
-                                )
-                            }
+
+                            Text(
+                                text = if (msg.timestamp.isNotEmpty()) msg.timestamp else "방금",
+                                fontSize = 10.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
                         }
                     }
                 }
@@ -330,7 +323,9 @@ fun AttachmentOptionsGrid(
                     horizontalArrangement = Arrangement.SpaceAround
                 ) {
                     rowOptions.forEach { option ->
-                        AttachmentOptionItem(option = option, onClick = { onOptionSelected(option.key) })
+                        AttachmentOptionItem(
+                            option = option,
+                            onClick = { onOptionSelected(option.key) })
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
