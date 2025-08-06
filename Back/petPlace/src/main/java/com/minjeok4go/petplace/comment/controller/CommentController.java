@@ -1,12 +1,12 @@
 package com.minjeok4go.petplace.comment.controller;
 
+import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.comment.dto.CreateCommentRequest;
 import com.minjeok4go.petplace.comment.dto.FeedComment;
 import com.minjeok4go.petplace.comment.dto.DeleteCommentResponse;
 import com.minjeok4go.petplace.comment.dto.MyComment;
 import com.minjeok4go.petplace.comment.service.CommentService;
 import com.minjeok4go.petplace.user.entity.User;
-import com.minjeok4go.petplace.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,7 +26,7 @@ import java.util.List;
 public class CommentController {
 
     private final CommentService commentService;
-    private final UserService userService;
+    private final AuthService authService;
 
     @Operation(
             summary = "댓글 단건 조회",
@@ -56,7 +56,7 @@ public class CommentController {
     public List<MyComment> getMyComments(
             @AuthenticationPrincipal String tokenUserId
     ) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return commentService.getCommentsByUser(me.getId());
     }
 
@@ -70,7 +70,7 @@ public class CommentController {
             @Valid @RequestBody CreateCommentRequest req,
             @AuthenticationPrincipal String tokenUserId
     ) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return commentService.createComment(req, me);
     }
 
@@ -84,7 +84,7 @@ public class CommentController {
             @PathVariable Long id,
             @AuthenticationPrincipal String tokenUserId
     ) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return commentService.deleteComment(id, me);
     }
 }

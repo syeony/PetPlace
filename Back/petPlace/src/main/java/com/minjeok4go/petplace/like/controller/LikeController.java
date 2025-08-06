@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.like.controller;
 
+import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.feed.dto.FeedDetailResponse;
 import com.minjeok4go.petplace.feed.dto.FeedLikeResponse;
 import com.minjeok4go.petplace.feed.dto.FeedListResponse;
@@ -7,7 +8,6 @@ import com.minjeok4go.petplace.feed.service.FeedService;
 import com.minjeok4go.petplace.like.dto.CreateLikeRequest;
 import com.minjeok4go.petplace.like.service.LikeService;
 import com.minjeok4go.petplace.user.entity.User;
-import com.minjeok4go.petplace.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +27,7 @@ import java.util.List;
 public class LikeController {
 
     private final LikeService likeService;
-    private final UserService userService;
+    private final AuthService authService;
     private final FeedService feedService;
 
     @Operation(
@@ -36,7 +36,7 @@ public class LikeController {
     )
     @GetMapping("/me")
     public List<FeedDetailResponse> getLikeFeed(@AuthenticationPrincipal String tokenUserId) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return feedService.findByIdWhereUserId(me.getId());
     }
 
@@ -50,7 +50,7 @@ public class LikeController {
             @Valid @RequestBody CreateLikeRequest req,
             @AuthenticationPrincipal String tokenUserId
     ) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return likeService.createLike(req, me);
     }
 
@@ -64,7 +64,7 @@ public class LikeController {
             @Valid @PathVariable Long id,
             @AuthenticationPrincipal String tokenUserId
     ) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return likeService.deleteLike(id, me);
     }
 }
