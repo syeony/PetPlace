@@ -31,16 +31,17 @@ public class AuthService {
         }
 
         // 3. Access Token과 Refresh Token 생성
-        String accessToken = jwtTokenProvider.createAccessToken(user.getUserName());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserName());
+        String accessToken = jwtTokenProvider.createAccessToken(user.getId());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
         // 4. Refresh Token 저장 (RefreshToken의 userId는 user_name을 참조)
-        refreshTokenService.saveOrUpdate(user.getUserName(), refreshToken);
+        refreshTokenService.saveOrUpdate(user.getId(), refreshToken);
 
         // 5. 토큰 및 사용자 정보 반환
         return TokenDto.of(
                 accessToken,
                 refreshToken,
+                user.getId(),
                 user.getUserName(),
                 user.getNickname(),
                 user.getUserImgSrc(),

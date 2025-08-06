@@ -31,10 +31,10 @@ public class JwtTokenProvider {
         this.refreshTokenExpiryInMs = refreshTokenExpiry;
     }
 
-    // Access Token 생성
-    public String createAccessToken(String userName) {
+    //  Access Token 생성 - userId(Long)를 받아서 토큰에 저장
+    public String createAccessToken(Long userId) {
         return Jwts.builder()
-                .setSubject(userName)
+                .setSubject(userId.toString())  // Long을 String으로 변환하여 저장
                 .claim("type", TokenType.ACCESS.toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiryInMs))
@@ -42,10 +42,10 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // Refresh Token 생성
-    public String createRefreshToken(String userName) {
+    //  Refresh Token 생성 - userId(Long)를 받아서 토큰에 저장
+    public String createRefreshToken(Long userId) {
         return Jwts.builder()
-                .setSubject(userName)
+                .setSubject(userId.toString())  // Long을 String으로 변환하여 저장
                 .claim("type", TokenType.REFRESH.toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpiryInMs))
@@ -53,22 +53,26 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 토큰에서 사용자명 추출
-    public String getUserNameFromToken(String token) {
+    // 토큰에서 사용자 ID 추출 - Long 타입으로 반환
+    public Long getUserIdFromToken(String token) {
         try {
             Claims claims = parseClaims(token);
-            String userName = claims.getSubject();
-            log.debug("토큰에서 추출한 사용자명: {}", userName);
-            return userName;
+            String userIdStr = claims.getSubject();
+            log.debug("토큰에서 추출한 사용자 ID: {}", userIdStr);
+            return Long.parseLong(userIdStr);  // String을 Long으로 변환
+        } catch (NumberFormatException e) {
+            log.error("토큰의 사용자 ID 형식이 잘못됨: {}", e.getMessage());
+            throw new IllegalArgumentException("유효하지 않은 토큰 형식입니다.");
         } catch (Exception e) {
-            log.error("토큰에서 사용자명 추출 실패: {}", e.getMessage());
+            log.error("토큰에서 사용자 ID 추출 실패: {}", e.getMessage());
             throw new IllegalArgumentException("유효하지 않은 토큰입니다.");
         }
     }
 
-    // 하위 호환성을 위한 메서드
-    public String getUserIdFromToken(String token) {
-        return getUserNameFromToken(token);
+    //  하위 호환성을 위한 메서드
+    @Deprecated
+    public String getUserNameFromToken(String token) {
+        return getUserIdFromToken(token).toString();
     }
 
     // 토큰 검증

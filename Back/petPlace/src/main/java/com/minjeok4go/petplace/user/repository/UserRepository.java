@@ -25,6 +25,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByPhoneNumber(String phoneNumber);
     Optional<User> findByCi(String ci);
 
+    // id 기반 조회 메서드 추가
+    Optional<User> findById(Long id);
+    boolean existsById(Long id);
+
     // --- 소셜 로그인용 메서드 추가 ---
 
     // [추가] 로그인 타입과 소셜 ID로 사용자를 찾는 메서드
