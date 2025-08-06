@@ -44,7 +44,7 @@ public class ChatRoomService {
             // **이미 방이 있으면, joinChatRoom도 해주면 좋음**
             userChatRoomService.joinChatRoom(userId1, cr.getId());
             userChatRoomService.joinChatRoom(userId2, cr.getId());
-            return new ChatRoomDTO(cr.getId().longValue(), userId1, userId2, cr.getLastMessage(), cr.getLastMessageAt());
+            return new ChatRoomDTO(cr.getId(), userId1, userId2, cr.getLastMessage(), cr.getLastMessageAt());
         }
 
         // 새로 생성
