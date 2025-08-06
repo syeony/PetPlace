@@ -78,8 +78,19 @@ class WebSocketManager {
     }
 
     fun subscribeToChatRoom(roomId: Long) {
+        Log.d(TAG, "📡 subscribeToChatRoom 호출됨")
         stompClient?.let { client ->
+            if (!client.isConnected) {
+                Log.w(TAG, "⚠️ stompClient가 아직 연결되지 않았습니다. 구독 생략")
+                return
+            }
+
+            Log.d(TAG, "✅ stompClient 연결됨. 채팅방 구독 시도 중...")
             val topicDisposable = client.topic("/topic/chat.room.$roomId")
+                .doOnSubscribe { Log.d(TAG, "🟡 doOnSubscribe: 토픽 구독 시작") }
+                .doOnNext { Log.d(TAG, "🟢 doOnNext 호출됨 (메시지 수신 예정)") }
+                .doOnError { Log.e(TAG, "🔴 doOnError 호출됨", it) }
+                .doOnComplete { Log.d(TAG, "🔵 doOnComplete 호출됨") }
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(

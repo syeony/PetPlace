@@ -1,5 +1,7 @@
 package com.example.petplace.presentation.feature.chat
 
+import android.content.ContentValues.TAG
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -51,6 +53,7 @@ fun SingleChatScreen(
 
     // 화면이 표시될 때 읽음 처리
     LaunchedEffect(Unit) {
+        Log.d(TAG, "SingleChatScreen: 화면 진입")
         viewModel.markMessagesAsRead()
     }
 

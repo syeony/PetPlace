@@ -12,8 +12,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.log
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -50,6 +52,29 @@ class ChatViewModel @Inject constructor(
         Log.d(TAG, "현재 사용자 ID: $currentUserId, 채팅방 ID: $currentChatRoomId")
         setupWebSocketConnection()
         loadInitialMessages()
+        viewModelScope.launch {
+            Log.d(TAG, "메시지 수신 대기 중...")
+            webSocketManager.messageFlow.collect { messageDto ->
+                Log.d(TAG, "수신한 메시지 DTO: $messageDto")
+
+                val message = messageDto.toChatMessage(currentUserId) // 현재 로그인 유저 ID 전달
+
+                _messages.update { old -> old + message }
+                Log.d(TAG, "chat id :  ${messageDto.chatId}")
+                messageDto.chatId?.let {
+                    lastMessageId = it
+                    Log.d(TAG, "📩 최신 메시지 ID 업데이트: $lastMessageId")
+                }
+            }
+        }
+    }
+
+    fun ChatMessageDTO.toChatMessage(myUserId: Long): ChatMessage {
+        return ChatMessage(
+            content = this.message,
+            isFromMe = this.userId == myUserId,
+            timestamp = this.createdAt ?: ""
+        )
     }
 
     private fun setupWebSocketConnection() {
@@ -251,11 +276,13 @@ class ChatViewModel @Inject constructor(
     private fun loadInitialMessages() {
         Log.d(TAG, "초기 메시지 로드 시작")
         viewModelScope.launch {
-            _messages.value = listOf(ChatMessage(
-                content = "대화 기록을 불러오는 중...",
-                isFromMe = false,
-                timestamp = getCurrentTimestamp()
-            ))
+            _messages.value = listOf(
+                ChatMessage(
+                    content = "대화 기록을 불러오는 중...",
+                    isFromMe = false,
+                    timestamp = getCurrentTimestamp()
+                )
+            )
 
             val result = chatRepository.getChatMessages(currentChatRoomId)
 
@@ -268,14 +295,20 @@ class ChatViewModel @Inject constructor(
                     )
                 }
                 _messages.value = chatMessages
+                if (it.isNotEmpty()) {
+                    lastMessageId = it.last().chatId ?: 0L
+                    Log.d(TAG, "초기 메시지 로드 후 lastMessageId 업데이트: $lastMessageId")
+                }
                 Log.d(TAG, "초기 메시지 로드 성공: ${it.size}개")
             }.onFailure {
                 Log.e(TAG, "초기 메시지 로드 실패", it)
-                _messages.value = listOf(ChatMessage(
-                    content = "대화 기록을 불러오는데 실패했습니다.",
-                    isFromMe = false,
-                    timestamp = getCurrentTimestamp()
-                ))
+                _messages.value = listOf(
+                    ChatMessage(
+                        content = "대화 기록을 불러오는데 실패했습니다.",
+                        isFromMe = false,
+                        timestamp = getCurrentTimestamp()
+                    )
+                )
             }
         }
     }
