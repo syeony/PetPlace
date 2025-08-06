@@ -7,12 +7,16 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,6 +59,25 @@ public class JwtTokenProvider {
                 .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpiryInMs))
                 .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
+    }
+
+    // ✅ 누락된 getAuthentication 메서드 추가
+    public Authentication getAuthentication(String token) {
+        try {
+            Long userId = getUserIdFromToken(token);
+            log.debug("토큰에서 추출한 사용자 ID로 Authentication 생성: {}", userId);
+
+            // 간단한 Authentication 객체 생성
+            // principal에는 userId를 문자열로 저장 (컨트롤러에서 @AuthenticationPrincipal로 받을 수 있도록)
+            return new UsernamePasswordAuthenticationToken(
+                    userId.toString(),  // principal (컨트롤러에서 @AuthenticationPrincipal로 받는 값)
+                    null,               // credentials (비밀번호는 필요없음)
+                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))  // authorities
+            );
+        } catch (Exception e) {
+            log.error("토큰으로부터 Authentication 생성 실패: {}", e.getMessage());
+            throw new IllegalArgumentException("유효하지 않은 토큰입니다.", e);
+        }
     }
 
     // 토큰에서 사용자 ID 추출 - Long 타입으로 반환
@@ -139,6 +162,7 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
     /**
      * 소셜 로그인용 임시 토큰 생성 (15분 유효)
      * @param socialId 소셜 플랫폼 고유 ID
@@ -193,7 +217,7 @@ public class JwtTokenProvider {
             Claims claims = parseClaims(token);
             Date expiration = claims.getExpiration();
             Date now = new Date();
-            
+
             long expiryTime = (expiration.getTime() - now.getTime()) / 1000;
             return Math.max(0, expiryTime); // 음수가 나올 경우 0 반환
         } catch (Exception e) {
@@ -209,18 +233,18 @@ public class JwtTokenProvider {
             Claims claims = parseClaims(token);
             Date expiration = claims.getExpiration();
             Date now = new Date();
-            
+
             boolean isExpired = expiration.before(now);
             if (isExpired) {
                 return new TokenValidationResult(false, "토큰이 만료되었습니다", null, 0L);
             }
-            
+
             String userIdStr = claims.getSubject();
             Long userId = Long.parseLong(userIdStr);
             Long expiresIn = (expiration.getTime() - now.getTime()) / 1000;
-            
+
             return new TokenValidationResult(true, "토큰이 유효합니다", userId, expiresIn);
-            
+
         } catch (ExpiredJwtException e) {
             return new TokenValidationResult(false, "토큰이 만료되었습니다", null, 0L);
         } catch (UnsupportedJwtException e) {
@@ -245,5 +269,4 @@ public class JwtTokenProvider {
         private Long userId;
         private Long expiresIn;
     }
-
 }

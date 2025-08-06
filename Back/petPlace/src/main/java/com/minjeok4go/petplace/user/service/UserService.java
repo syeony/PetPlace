@@ -16,7 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -49,8 +48,45 @@ public class UserService {
     }
 
     /**
-     * 포트원 본인인증 결과 조회 및 검증 (수정된 메서드)
+     * 아이디 중복 체크
      */
+    @Transactional(readOnly = true)
+    public CheckDuplicateResponseDto checkUserNameDuplicate(String userName) {
+        boolean isDuplicate = userRepository.existsByUserName(userName);
+        String message = isDuplicate ? "이미 사용 중인 아이디입니다." : "사용 가능한 아이디입니다.";
+        return new CheckDuplicateResponseDto(isDuplicate, message);
+    }
+
+    /**
+     * 닉네임 중복 체크
+     */
+    @Transactional(readOnly = true)
+    public CheckDuplicateResponseDto checkNicknameDuplicate(String nickname) {
+        boolean isDuplicate = userRepository.existsByNickname(nickname);
+        String message = isDuplicate ? "이미 사용 중인 닉네임입니다." : "사용 가능한 닉네임입니다.";
+        return new CheckDuplicateResponseDto(isDuplicate, message);
+    }
+
+    /**
+     * 사용자명으로 사용자 조회 (AuthService에서 로그인 시 사용)
+     */
+    @Transactional(readOnly = true)
+    public User findByUserName(String userName) {
+        return userRepository.findByUserName(userName)
+                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 아이디입니다."));
+    }
+
+    /**
+     * ID로 사용자 조회 (AuthService 및 다른 서비스에서 사용)
+     */
+    @Transactional(readOnly = true)
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+    }
+
+    // === 아래 private 메서드들은 기존과 동일하게 유지 ===
+
     private VerificationData verifyAndGetUserData(String impUid) {
         try {
             log.info("본인인증 검증 시작: impUid={}", impUid);
@@ -107,9 +143,6 @@ public class UserService {
         }
     }
 
-    /**
-     * 회원가입 유효성 검사
-     */
     private void validateSignupRequest(UserSignupRequestDto requestDto, VerificationData verificationData) {
         if (userRepository.existsByUserName(requestDto.getUserName())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
@@ -125,9 +158,6 @@ public class UserService {
         }
     }
 
-    /**
-     * User 엔티티 생성
-     */
     private User createUser(UserSignupRequestDto requestDto, VerificationData verificationData) {
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
 
@@ -142,50 +172,5 @@ public class UserService {
                 .gender(verificationData.getGender())
                 .birthday(verificationData.getBirthDate())
                 .build();
-    }
-
-    // 아이디 중복 체크
-    @Transactional(readOnly = true)
-    public CheckDuplicateResponseDto checkUserNameDuplicate(String userName) {
-        boolean isDuplicate = userRepository.existsByUserName(userName);
-        String message = isDuplicate ? "이미 사용 중인 아이디입니다." : "사용 가능한 아이디입니다.";
-        return new CheckDuplicateResponseDto(isDuplicate, message);
-    }
-
-    // 닉네임 중복 체크
-    @Transactional(readOnly = true)
-    public CheckDuplicateResponseDto checkNicknameDuplicate(String nickname) {
-        boolean isDuplicate = userRepository.existsByNickname(nickname);
-        String message = isDuplicate ? "이미 사용 중인 닉네임입니다." : "사용 가능한 닉네임입니다.";
-        return new CheckDuplicateResponseDto(isDuplicate, message);
-    }
-
-    // AuthService에서 호출할 사용자 조회 메서드
-    @Transactional(readOnly = true)
-    public User findByUserName(String userName) {
-        return userRepository.findByUserName(userName)
-                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 아이디입니다."));
-    }
-
-    /**
-     * 토큰에서 추출한 정보로 사용자 조회
-     * @param userIdString 토큰에서 추출한 사용자 ID (문자열 형태)
-     * @return User 엔티티
-     */
-    public User getUserFromToken(String userIdString) {
-        log.debug("Attempting to find user with ID string: {}", userIdString);
-        try {
-            Long userId = Long.parseLong(userIdString);
-            return userRepository.findById(userId)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
-        } catch (NumberFormatException e) {
-            log.error("Failed to parse user ID from token string: '{}'. This should be a numeric ID.", userIdString, e);
-            throw new UsernameNotFoundException("Invalid user identifier in token: " + userIdString);
-        }
-    }
-
-    public User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
     }
 }
