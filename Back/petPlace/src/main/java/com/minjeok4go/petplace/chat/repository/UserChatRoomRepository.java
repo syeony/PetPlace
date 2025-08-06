@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface UserChatRoomRepository extends JpaRepository<UserChatRoom, Long> {
     Optional<com.minjeok4go.petplace.chat.entity.UserChatRoom> findByUserIdAndChatRoomId(Long userId, Long chatRoomId); //userid와 chatRoomId주어진 값을 찾아서 반환
     List<UserChatRoom> findByUserId(Long userId);
+    List<UserChatRoom> findByChatRoom_Id(Long chatRoomId);
+
 }
