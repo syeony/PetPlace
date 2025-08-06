@@ -2,6 +2,7 @@ package com.minjeok4go.petplace.chat.controller;
 
 import com.minjeok4go.petplace.chat.dto.ChatMessageDTO;
 import com.minjeok4go.petplace.chat.dto.ChatRoomDTO;
+import com.minjeok4go.petplace.chat.dto.ChatRoomParticipantDTO;
 import com.minjeok4go.petplace.chat.dto.CreateChatRoomRequest;
 import com.minjeok4go.petplace.chat.service.ChatRoomService;
 import com.minjeok4go.petplace.chat.service.ChatService;
@@ -68,6 +69,12 @@ public class ChatRoomController {
         userChatRoomService.joinChatRoom(userId, chatRoomId); // ⬅️ 이거 꼭 필요!
         return ResponseEntity.ok().build();
     }
+    // 방 기준으로 참여자 정보 가져오기
+    @GetMapping("/rooms/{chatRoomId}/participants")
+    public List<ChatRoomParticipantDTO> getParticipants(@PathVariable Long chatRoomId) {
+        return chatRoomService.getParticipantDTOs(chatRoomId);
+    }
+
 
 
     @GetMapping("/{chatRoomId}/messages")

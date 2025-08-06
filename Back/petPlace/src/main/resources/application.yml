@@ -2,12 +2,24 @@ jwt:
   secret: ${JWT_SECRET_KEY}
   access-token-expiry: 3600000      # Access Token: 1시간
   refresh-token-expiry: 604800000   # Refresh Token: 7일
+  temp-expiration-time: 900000  # 15분 (새로 추가)
+
+# 소셜 로그인 설정
+social:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+
 
 spring:
   security:
     user:
       name: user
       password: ssafy123
+  web:
+    resources:
+      static-locations: file:/home/ubuntu/upload/images/
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USER}
@@ -15,14 +27,14 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
         format_sql: true
 
 server:
-  port: 8080
+  port: 8081
 
 portone:
   api-key: ${PORTONE_API_KEY}
