@@ -2,18 +2,19 @@ package com.example.petplace.data.model.feed
 
 import com.google.gson.annotations.SerializedName
 
-/** ------------ 1. 태그 & 이미지 ------------ */
+// 태그
 data class TagRes(
     val id: Long,
     val name: String
 )
 
+// 이미지
 data class ImageRes(
     val src: String,
     val sort: Int
 )
 
-/** ─── 댓글(재귀) ─── */
+// 댓글 (대댓글 재귀)
 data class CommentRes(
     val id: Long,
     @SerializedName("parentCommentId") val parentId: Long?,
@@ -25,11 +26,10 @@ data class CommentRes(
     val createdAt: String,
     val updatedAt: String?,
     val deletedAt: String?,
-    /** 서버가 주지 않으면 빈 배열(=0 depth) */
-    val replies: List<CommentRes> = emptyList()
+    val replies: List<CommentRes> = emptyList() //서버가 주지 않으면 빈 배열
 )
 
-/** ------------ 3. 피드 ------------ */
+// 피드
 data class FeedRecommendRes(
     val id: Long,
     val content: String,

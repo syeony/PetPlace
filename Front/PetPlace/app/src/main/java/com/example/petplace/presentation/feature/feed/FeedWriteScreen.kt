@@ -71,14 +71,14 @@ fun BoardWriteScreen(
         "내새꾸자랑" to "MYPET",
         "정보" to "INFO",
         "나눔" to "SHARE",
-        "공구" to "GROUPBUY",
+        "후기" to "REVIEW",
         "자유" to "FREE"
     )
 
     val allTags = listOf(
         "산책", "목욕", "미용", "사료", "간식", "놀이", "훈련", "건강관리", "동물병원",
         "호텔", "유치원", "캣타워", "펫시터", "입양", "보험", "장난감", "케어",
-        "리드줄", "하네스", "이동장"
+        "리드줄", "하네스", "이동장", "실종"
     )
 
     var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
