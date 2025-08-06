@@ -14,10 +14,10 @@ import java.util.stream.Collectors;
 public class CommentDto {
 
     private Long id;
-    private Long parentCommentId;   // ✅ cid → parent_comment_id
-    private Long feedId;            // ✅ fid → feed_id
+    private Long parentCommentId;
+    private Long feedId;
     private String content;
-    private Integer userId;            // ✅ uid → user_id (타입 수정: Long → Integer)
+    private Long userId;
     private String userNick;
     private String userImg;
     private LocalDateTime createdAt;
