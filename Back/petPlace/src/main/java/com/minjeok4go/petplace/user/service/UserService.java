@@ -182,10 +182,16 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 아이디입니다."));
     }
 
-    public User getUserFromToken(String tokenUserName) {
-        return userRepository.findByUserName(tokenUserName)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + tokenUserName));
-    }
+    public User getUserFromToken(String userIdString) {
+        log.debug("Attempting to find user with ID string: {}", userIdString);
+        try {
+            Long userId = Long.parseLong(userIdString);
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+        } catch (NumberFormatException e) {
+            log.error("Failed to parse user ID from token string: '{}'. This should be a numeric ID.", userIdString, e);
+            throw new UsernameNotFoundException("Invalid user identifier in token: " + userIdString);
+        }    }
 
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
