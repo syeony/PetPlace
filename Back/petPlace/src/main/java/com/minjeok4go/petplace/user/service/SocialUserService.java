@@ -8,11 +8,13 @@ import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,7 @@ public class SocialUserService {
 
     private final UserRepository userRepository;
     private final PortOneApiService portOneApiService;
+    private final PasswordEncoder passwordEncoder; // 추가
 
     /**
      * 소셜 ID로 기존 사용자 조회
@@ -92,7 +95,11 @@ public class SocialUserService {
         // 1. 중복 검사
         validateSocialSignup(request, verificationData);
 
-        // 2. 소셜 사용자 생성
+        // 2. 소셜 사용자용 랜덤 패스워드 생성
+        String randomPassword = UUID.randomUUID().toString();
+        String encodedPassword = passwordEncoder.encode(randomPassword);
+        
+        // 3. 소셜 사용자 생성
         LoginType loginType = convertProviderToLoginType(request.getProvider());
 
         User socialUser = User.createSocialUser(
@@ -106,7 +113,8 @@ public class SocialUserService {
                 request.getUserInfo().getSocialId(),
                 request.getUserInfo().getEmail(),
                 request.getUserInfo().getProfileImage(),
-                loginType
+                loginType,
+                encodedPassword // 인코딩된 랜덤 패스워드 추가
         );
 
         User savedUser = userRepository.save(socialUser);
