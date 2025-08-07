@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import java.text.SimpleDateFormat
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -156,7 +158,7 @@ class ChatViewModel @Inject constructor(
             id = this.chatId,
             content = this.message,
             isFromMe = this.userId == myUserId,
-            timestamp = this.createdAt ?: getCurrentTimestamp(),
+            timestamp = formatToHHmm(this.createdAt!!),
             isRead = !isFromMe
         ).also {
             Log.d(TAG, "🔄 변환 결과: content='${it.content}', isFromMe=${it.isFromMe}")
@@ -285,7 +287,7 @@ class ChatViewModel @Inject constructor(
                             id = dto.chatId,
                             content = dto.message,
                             isFromMe = isFromMe,
-                            timestamp = dto.createdAt ?: getCurrentTimestamp(),
+                            timestamp = formatToHHmm(dto.createdAt),
                             // ⭐ 초기 로드 시 읽음 상태 결정 로직 개선
                             // 실제로는 서버에서 읽음 상태 정보를 받아와야 하지만,
                             // 임시로 내가 보낸 메시지는 읽음으로, 상대방 메시지도 읽음으로 처리
@@ -328,6 +330,18 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
+
+    private fun formatToHHmm(isoDateTime: String): String {
+        // 입력 문자열 형식을 정의
+        val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+        // 출력 형식 정의 (HH:mm)
+        val outputFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+
+        // 문자열을 Date로 파싱하고 다시 포맷팅
+        val date = inputFormat.parse(isoDateTime)
+        return outputFormat.format(date!!)
+    }
+
 
     private fun addSystemMessage(content: String) {
         val systemMessage = ChatMessage(
