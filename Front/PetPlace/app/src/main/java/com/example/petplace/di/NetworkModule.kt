@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.remote.ChatApiService
 import com.example.petplace.data.remote.FeedApiService
 import com.example.petplace.data.remote.ImageApiService
 import com.example.petplace.data.remote.JoinApiService
@@ -75,7 +76,8 @@ object NetworkModule {
                 override fun authenticate(route: Route?, response: Response): Request? {
                     // 이미 시도했는데 계속 401이면 무한 루프 방지
                     if (response.request.header("Authorization") != null &&
-                        responseCount(response) >= 2) {
+                        responseCount(response) >= 2
+                    ) {
                         return null
                     }
 
@@ -95,7 +97,8 @@ object NetworkModule {
                         if (refreshResponse.isSuccessful) {
                             val body = refreshResponse.body()
                             if (body != null && body.success) {
-                                app.saveLoginData(body.accessToken, body.refreshToken,
+                                app.saveLoginData(
+                                    body.accessToken, body.refreshToken,
                                     app.getUserInfo() ?: return null
                                 )
                                 response.request.newBuilder()
@@ -177,4 +180,12 @@ object NetworkModule {
     fun provideJoinApi(
         @Named("Server") retrofit: Retrofit
     ): JoinApiService = retrofit.create(JoinApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideChatApi(
+        @Named("Server") retrofit: Retrofit
+    ): ChatApiService = retrofit.create(ChatApiService::class.java)
+
+
 }

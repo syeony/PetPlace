@@ -48,7 +48,7 @@ fun ChatItem(chat: ChatRoom, onClick: () -> Unit) {
                 Text(
                     text = chat.name,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 18.sp
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
@@ -72,6 +72,7 @@ fun ChatItem(chat: ChatRoom, onClick: () -> Unit) {
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.align(Alignment.Top)
+                .padding(top = 8.dp)
         ) {
             Text(
                 text = chat.time,
@@ -80,6 +81,7 @@ fun ChatItem(chat: ChatRoom, onClick: () -> Unit) {
             )
 
             if (chat.unreadCount > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
                 Box(
                     modifier = Modifier
                         .size(22.dp)
