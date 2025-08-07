@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -133,4 +134,17 @@ public class SocialAuthService {
 
         return SocialLoginResponse.existingUser(tokenDto);
     }
+
+    public void validateTempToken(String tempToken, SocialSignupRequest request) {
+        Map<String, Object> claims = jwtTokenProvider.getTempTokenClaims(tempToken);
+
+        String tokenSocialId = (String) claims.get("socialId");
+        String tokenProvider = (String) claims.get("provider");
+
+        if (!tokenSocialId.equals(request.getUserInfo().getSocialId()) ||
+                !tokenProvider.equals(request.getProvider().name())) {
+            throw new IllegalArgumentException("임시 토큰 정보가 일치하지 않습니다.");
+        }
+    }
+
 }
