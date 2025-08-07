@@ -226,7 +226,7 @@ public class FeedService {
     @Transactional(readOnly = true)
     public List<FeedDetailResponse> findByIdWhereUserId(Long id) {
 
-        List<Feed> feeds = feedRepository.findByUserIdAndDeletedAtIsNull(id);
+        List<Feed> feeds = feedRepository.findLikedFeedsByUserId(id);
 
         // 2) 각 Feed → FeedDetailResponse 로 매핑
         return feeds.stream()

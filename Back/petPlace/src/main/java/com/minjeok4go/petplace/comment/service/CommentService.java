@@ -44,6 +44,13 @@ public class CommentService {
     }
 
     @Transactional(readOnly = true)
+    public Integer getCommentCountByFeed(Long feedId) {
+        // feed 존재 여부는 전제되었으니 생략 가능
+        List<Comment> comments = commentRepository.findByFeedIdAndDeletedAtIsNull(feedId);
+        return comments.size();
+    }
+
+    @Transactional(readOnly = true)
     public List<MyComment> getCommentsByUser(Long userId) {
         return commentRepository
                 .findByUserIdAndDeletedAtIsNull(userId)
