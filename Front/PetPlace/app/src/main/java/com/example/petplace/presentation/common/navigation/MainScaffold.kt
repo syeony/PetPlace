@@ -39,6 +39,7 @@ import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import androidx.navigation.navigation
 import com.example.petplace.presentation.feature.join.CertificationScreen
 import com.example.petplace.presentation.feature.join.JoinViewModel
+import com.example.petplace.presentation.feature.splash.SplashScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnrememberedGetBackStackEntry")
@@ -65,14 +66,15 @@ fun MainScaffold() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "login",
+            startDestination = "splash",
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable("splash"){ SplashScreen(navController) }
             composable("login") { LoginScreen(navController) }
 //            composable("join") { JoinScreen(navController, viewModel) }
             composable(BottomNavItem.Feed.route) { FeedScreen(navController = navController) }
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
-            composable(BottomNavItem.MyPage.route) { MyPageScreen() }
+            composable(BottomNavItem.MyPage.route) { MyPageScreen(navController) }
             composable(
                 route = "chatDetail/{chatName}",
                 arguments = listOf(navArgument("chatName") { type = NavType.StringType })

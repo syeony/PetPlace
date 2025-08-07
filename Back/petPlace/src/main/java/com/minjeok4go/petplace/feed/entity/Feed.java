@@ -62,6 +62,7 @@ public class Feed {
     @Column(nullable = false)
     private Integer views = 0;
 
+
     @Builder.Default
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")

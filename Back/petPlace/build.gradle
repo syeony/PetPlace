@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.minjeok4go'
-version = '0.0.1-SNAPSHOT'
+version = '0.0.1-SNAPSHOT_ver_0_3_5000'
 
 java {
     toolchain {
@@ -62,6 +62,10 @@ dependencies {
     // 포트원 연동을 위한 WebClient (webflux 스타터 대신 개별 의존성 사용)
     implementation 'org.springframework:spring-webflux'
     implementation 'io.projectreactor.netty:reactor-netty-http'
+
+    // REDIS
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
 
 }
 

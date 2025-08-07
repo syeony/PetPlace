@@ -9,6 +9,7 @@ import com.minjeok4go.petplace.user.dto.UserLoginRequestDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Slf4j
 @Tag(name = "Auth API", description = "인증 관련 API")
@@ -132,5 +135,61 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(SocialLoginResponse.error("계정 확인 중 오류가 발생했습니다."));
         }
+    }
+
+    // ========== 토큰 검증 API ==========
+
+    @GetMapping("/validate")
+    @Operation(summary = "Access Token 유효성 검증", 
+               description = "현재 사용자의 Access Token이 유효한지 확인합니다.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "토큰 검증 완료")
+    public ResponseEntity<TokenValidationResponse> validateToken() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.ok(TokenValidationResponse.invalid("인증되지 않은 요청입니다"));
+            }
+            
+            // 현재 요청의 토큰 추출
+            String token = getCurrentToken();
+            if (token == null) {
+                return ResponseEntity.ok(TokenValidationResponse.invalid("토큰을 찾을 수 없습니다"));
+            }
+            
+            TokenValidationResponse response = authService.validateAccessToken(token);
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("토큰 검증 중 오류 발생: ", e);
+            return ResponseEntity.ok(TokenValidationResponse.invalid("토큰 검증 중 오류가 발생했습니다"));
+        }
+    }
+
+    @PostMapping("/validate-token")
+    @Operation(summary = "특정 토큰 유효성 검증", 
+               description = "제공된 Access Token의 유효성을 확인합니다.")
+    public ResponseEntity<TokenValidationResponse> validateSpecificToken(@RequestBody TokenValidationRequest request) {
+        try {
+            TokenValidationResponse response = authService.validateAccessToken(request.getToken());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("특정 토큰 검증 중 오류 발생: ", e);
+            return ResponseEntity.ok(TokenValidationResponse.invalid("토큰 검증 중 오류가 발생했습니다"));
+        }
+    }
+
+    // 현재 요청의 토큰을 추출하는 헬퍼 메서드
+    private String getCurrentToken() {
+        try {
+            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+            String bearerToken = request.getHeader("Authorization");
+            if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+                return bearerToken.substring(7);
+            }
+        } catch (Exception e) {
+            log.warn("토큰 추출 실패: ", e);
+        }
+        return null;
     }
 }

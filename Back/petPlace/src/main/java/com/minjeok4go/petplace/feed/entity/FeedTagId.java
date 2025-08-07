@@ -12,6 +12,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode
 public class FeedTagId implements Serializable {
     @Column(name = "feed_id")
     private Long feedId;
