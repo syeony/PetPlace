@@ -35,6 +35,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.PrimaryColor
@@ -58,6 +61,28 @@ fun SingleChatScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
+    // 생명주기 관찰자 추가
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    Log.d(TAG, "🔄 화면 Resume - WebSocket 활성화")
+                    viewModel.onScreenVisible()
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    Log.d(TAG, "⏸️ 화면 Pause - WebSocket 대기")
+                    viewModel.onScreenHidden()
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     // 키보드 높이를 감지
     val density = LocalDensity.current
     val imeBottomHeight = WindowInsets.ime.getBottom(density)
@@ -69,6 +94,13 @@ fun SingleChatScreen(
             coroutineScope.launch {
                 listState.animateScrollToItem(index = messages.size - 1)
             }
+        }
+    }
+
+    // 키보드 숨김 처리
+    LaunchedEffect(showAttachmentOptions) {
+        if (showAttachmentOptions) {
+            keyboardController?.hide()
         }
     }
 
@@ -93,31 +125,45 @@ fun SingleChatScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier
-                    .weight(1f) // 남은 공간을 모두 차지
+                    .weight(1f)
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp),
-                contentPadding = PaddingValues(
-                    bottom = 8.dp
-                ),
+                contentPadding = PaddingValues(bottom = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 연결 상태 표시
+                // 연결 상태 표시 개선
                 if (!connectionStatus) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD))
-                        ) {
-                            Text(
-                                text = "서버에 연결 중입니다...",
-                                modifier = Modifier.padding(12.dp),
-                                color = Color(0xFF856404)
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color(0xFFFFF3CD)
                             )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color(0xFF856404)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "서버에 연결 중입니다...",
+                                    color = Color(0xFF856404),
+                                    fontSize = 14.sp
+                                )
+                            }
                         }
                     }
                 }
 
-                items(messages) { msg ->
+                items(
+                    items = messages,
+                    key = { message -> message.id ?: "${message.content}_${message.timestamp}" }
+                ) { msg ->
                     val alignment = if (msg.isFromMe) Arrangement.End else Arrangement.Start
                     val bgColor = if (msg.isFromMe) PrimaryColor else Color.White
                     val textColor = if (msg.isFromMe) Color.White else Color.Black
@@ -137,44 +183,20 @@ fun SingleChatScreen(
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Surface(
-                                    color = bgColor,
-                                    shape = RoundedCornerShape(
-                                        topStart = 18.dp,
-                                        topEnd = 18.dp,
-                                        bottomStart = 18.dp,
-                                        bottomEnd = 4.dp
-                                    ),
-                                    shadowElevation = 1.dp
-                                ) {
-                                    Text(
-                                        text = msg.content,
-                                        color = textColor,
-                                        modifier = Modifier.padding(12.dp),
-                                        fontSize = 14.sp
-                                    )
-                                }
+                                MessageBubble(
+                                    message = msg.content,
+                                    backgroundColor = bgColor,
+                                    textColor = textColor,
+                                    isFromMe = true
+                                )
                             } else {
-                                Surface(
-                                    color = bgColor,
-                                    shape = RoundedCornerShape(
-                                        topStart = 18.dp,
-                                        topEnd = 18.dp,
-                                        bottomStart = 4.dp,
-                                        bottomEnd = 18.dp
-                                    ),
-                                    shadowElevation = 1.dp,
-                                    border = BorderStroke(0.5.dp, Color.Gray.copy(alpha = 0.2f))
-                                ) {
-                                    Text(
-                                        text = msg.content,
-                                        color = textColor,
-                                        modifier = Modifier.padding(12.dp),
-                                        fontSize = 14.sp
-                                    )
-                                }
+                                MessageBubble(
+                                    message = msg.content,
+                                    backgroundColor = bgColor,
+                                    textColor = textColor,
+                                    isFromMe = false
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
-
                                 Text(
                                     text = if (msg.timestamp.isNotEmpty()) msg.timestamp else "방금",
                                     fontSize = 10.sp,
@@ -187,29 +209,31 @@ fun SingleChatScreen(
                 }
             }
 
-            // Bottom Input Area - 수정된 부분: 순서 변경
+            // Bottom Input Area
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White)
                     .imePadding()
             ) {
-                // Input Row - 먼저 배치
+                // Input Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconButton(onClick = {
-                        if (showAttachmentOptions) {
-                            viewModel.toggleAttachmentOptions()
-                        } else {
-                            keyboardController?.hide()
-                            focusRequester.freeFocus()
-                            viewModel.toggleAttachmentOptions()
+                    IconButton(
+                        onClick = {
+                            if (showAttachmentOptions) {
+                                viewModel.closeAttachmentOptions()
+                            } else {
+                                keyboardController?.hide()
+                                focusRequester.freeFocus()
+                                viewModel.toggleAttachmentOptions()
+                            }
                         }
-                    }) {
+                    ) {
                         Icon(
                             imageVector = if (showAttachmentOptions) Icons.Default.Close else Icons.Default.Add,
                             contentDescription = if (showAttachmentOptions) "Close" else "Add",
@@ -237,15 +261,21 @@ fun SingleChatScreen(
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent
-                        )
+                        ),
+                        maxLines = 3
                     )
 
                     Spacer(Modifier.width(10.dp))
 
                     IconButton(
                         onClick = {
-                            if (connectionStatus) {
+                            if (connectionStatus && messageInput.isNotBlank()) {
                                 viewModel.sendMessage()
+                                // 키보드 숨기기 및 첨부 옵션 닫기
+                                keyboardController?.hide()
+                                if (showAttachmentOptions) {
+                                    viewModel.closeAttachmentOptions()
+                                }
                             }
                         },
                         enabled = connectionStatus && messageInput.isNotBlank(),
@@ -268,19 +298,50 @@ fun SingleChatScreen(
                     Spacer(Modifier.width(10.dp))
                 }
 
-                // Attachment Options - 나중에 배치 (입력창 아래에 표시됨)
+                // Attachment Options
                 AnimatedVisibility(
                     visible = showAttachmentOptions,
-                    enter = expandVertically(expandFrom = Alignment.Top), // 위에서 아래로 확장
+                    enter = expandVertically(expandFrom = Alignment.Top),
                     exit = shrinkVertically(shrinkTowards = Alignment.Top)
                 ) {
                     AttachmentOptionsGrid(
                         onCloseClick = { viewModel.closeAttachmentOptions() },
-                        onOptionSelected = { /* Handle option selection */ }
+                        onOptionSelected = { option ->
+                            // 옵션 선택 처리
+                            Log.d(TAG, "첨부 옵션 선택: $option")
+                            viewModel.closeAttachmentOptions()
+                        }
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MessageBubble(
+    message: String,
+    backgroundColor: Color,
+    textColor: Color,
+    isFromMe: Boolean
+) {
+    Surface(
+        color = backgroundColor,
+        shape = RoundedCornerShape(
+            topStart = 18.dp,
+            topEnd = 18.dp,
+            bottomStart = if (isFromMe) 18.dp else 4.dp,
+            bottomEnd = if (isFromMe) 4.dp else 18.dp
+        ),
+        shadowElevation = 1.dp,
+        border = if (!isFromMe) BorderStroke(0.5.dp, Color.Gray.copy(alpha = 0.2f)) else null
+    ) {
+        Text(
+            text = message,
+            color = textColor,
+            modifier = Modifier.padding(12.dp),
+            fontSize = 14.sp
+        )
     }
 }
 
@@ -429,13 +490,27 @@ fun ChatTopAppBar(
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = chatPartnerName,
-                fontSize = 14.sp
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
             )
-            if (!isConnected) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 2.dp)
+            ) {
+                // 연결 상태 표시점
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(
+                            color = if (isConnected) Color.Green else Color.Red,
+                            shape = CircleShape
+                        )
+                )
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "연결 중...",
+                    text = if (isConnected) "연결됨" else "연결 중...",
                     fontSize = 10.sp,
-                    color = Color.Gray
+                    color = if (isConnected) Color.Green else Color.Gray
                 )
             }
         }

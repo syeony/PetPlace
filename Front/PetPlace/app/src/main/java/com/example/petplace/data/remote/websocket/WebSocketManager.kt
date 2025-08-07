@@ -25,7 +25,8 @@ class WebSocketManager {
         private const val TAG = "WebSocketManager"
         private const val SERVER_URL = "ws://43.201.108.195:8081/ws/chat/websocket"
         private const val CONNECTION_TIMEOUT = 10000L // 10초
-        private const val MAX_RETRY_COUNT = 3
+        private const val MAX_RETRY_COUNT = 5
+        private const val SUBSCRIPTION_RETRY_DELAY = 3000L // 구독 재시도 지연
     }
 
     private var stompClient: StompClient? = null
@@ -34,19 +35,20 @@ class WebSocketManager {
 
     // ⭐ 개선: 여러 구독 요청을 큐로 관리
     private val pendingSubscriptions = mutableSetOf<Long>()
+    private val activeSubscriptions = mutableSetOf<Long>() // 활성 구독 추적
     private var retryCount = 0
 
     // 메시지 수신을 위한 Flow - replay를 1로 설정하여 마지막 메시지를 보장
     private val _messageFlow = MutableSharedFlow<ChatMessageDTO>(
-        replay = 0,
-        extraBufferCapacity = 10
+        replay = 1,
+        extraBufferCapacity = 50
     )
     val messageFlow: SharedFlow<ChatMessageDTO> = _messageFlow.asSharedFlow()
 
     // 읽음 알림용 Flow
     private val _readFlow = MutableSharedFlow<ChatReadDTO>(
-        replay = 0,
-        extraBufferCapacity = 10
+        replay = 1,
+        extraBufferCapacity = 20
     )
     val readFlow: SharedFlow<ChatReadDTO> = _readFlow.asSharedFlow()
 
@@ -66,63 +68,66 @@ class WebSocketManager {
     }
 
     fun connect() {
-        if (stompClient != null && _detailedConnectionStatus.value == ConnectionState.CONNECTING) {
-            Log.d(TAG, "이미 연결 중입니다")
-            return
-        }
+        Log.d(TAG, "🔌 연결 요청 - 현재 상태: ${_detailedConnectionStatus.value}")
 
-        if (stompClient?.isConnected == true) {
-            Log.d(TAG, "이미 연결되어 있습니다")
+        // 이미 연결 중이거나 연결됨
+        if (_detailedConnectionStatus.value in listOf(ConnectionState.CONNECTING, ConnectionState.CONNECTED)) {
+            Log.d(TAG, "이미 연결 중이거나 연결된 상태")
             return
         }
 
         Log.d(TAG, "🔌 WebSocket 연결 시작...")
         _detailedConnectionStatus.value = ConnectionState.CONNECTING
-        stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, SERVER_URL)
 
-        // 연결 상태 관찰
-        val lifecycleDisposable = stompClient!!.lifecycle()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe { lifecycleEvent ->
-                handleConnectionEvent(lifecycleEvent)
-//                when (lifecycleEvent.type) {
-//                    LifecycleEvent.Type.OPENED -> {
-//                        Log.d(TAG, "WebSocket 연결됨")
-//                        _connectionStatus.value = true
-//
-//                        // 연결 완료 후 대기 중인 구독 처리
-//                        pendingRoomId?.let { roomId ->
-//                            Log.d(TAG, "연결 완료 후 대기 중인 구독 실행: roomId=$roomId")
-//                            performSubscription(roomId)
-//                            pendingRoomId = null
-//                        }
-//                    }
-//                    LifecycleEvent.Type.CLOSED -> {
-//                        Log.d(TAG, "WebSocket 연결 종료됨")
-//                        _connectionStatus.value = false
-//                    }
-//                    LifecycleEvent.Type.ERROR -> {
-//                        Log.e(TAG, "WebSocket 에러: ${lifecycleEvent.exception}")
-//                        _connectionStatus.value = false
-//                    }
-//                    else -> {
-//                        Log.d(TAG, "기타 상태: ${lifecycleEvent.type}")
-//                    }
-//                }
+        try {
+            // 기존 연결 정리
+            cleanupConnection()
+
+            stompClient = Stomp.over(Stomp.ConnectionProvider.OKHTTP, SERVER_URL).apply {
+                // 하트비트 설정
+                withClientHeartbeat(10000) // 10초
+                withServerHeartbeat(10000) // 10초
             }
 
-        compositeDisposable.add(lifecycleDisposable)
+            // 연결 상태 관찰
+            val lifecycleDisposable = stompClient!!.lifecycle()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(
+                    { lifecycleEvent -> handleConnectionEvent(lifecycleEvent) },
+                    { error ->
+                        Log.e(TAG, "❌ Lifecycle 관찰 에러", error)
+                        handleConnectionFailure(error)
+                    }
+                )
 
-        // 연결 시작
-        stompClient!!.connect()
+            compositeDisposable.add(lifecycleDisposable)
 
-        kotlinx.coroutines.GlobalScope.launch {
-            kotlinx.coroutines.delay(CONNECTION_TIMEOUT)
-            if (_detailedConnectionStatus.value == ConnectionState.CONNECTING) {
-                Log.e(TAG, "❌ 연결 타임아웃")
-                handleConnectionTimeout()
+            // 연결 시작
+            stompClient!!.connect()
+
+            // 연결 타임아웃 처리
+            kotlinx.coroutines.GlobalScope.launch {
+                kotlinx.coroutines.delay(CONNECTION_TIMEOUT)
+                if (_detailedConnectionStatus.value == ConnectionState.CONNECTING) {
+                    Log.e(TAG, "❌ 연결 타임아웃")
+                    handleConnectionTimeout()
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 연결 시작 중 예외", e)
+            handleConnectionFailure(e)
+        }
+    }
+
+    private fun cleanupConnection() {
+        try {
+            compositeDisposable.clear()
+            stompClient?.disconnect()
+            stompClient = null
+            activeSubscriptions.clear()
+        } catch (e: Exception) {
+            Log.w(TAG, "연결 정리 중 경고", e)
         }
     }
 
@@ -142,8 +147,9 @@ class WebSocketManager {
                 Log.d(TAG, "🔌 WebSocket 연결 종료됨")
                 _connectionStatus.value = false
                 _detailedConnectionStatus.value = ConnectionState.DISCONNECTED
+                activeSubscriptions.clear()
 
-                // ⭐ 자동 재연결 시도
+                // 예상치 못한 연결 종료 시 재연결
                 if (retryCount < MAX_RETRY_COUNT) {
                     attemptReconnection()
                 }
@@ -151,18 +157,26 @@ class WebSocketManager {
 
             LifecycleEvent.Type.ERROR -> {
                 Log.e(TAG, "❌ WebSocket 에러: ${lifecycleEvent.exception}")
-                _connectionStatus.value = false
-                _detailedConnectionStatus.value = ConnectionState.FAILED
-
-                // ⭐ 에러 시에도 재연결 시도
-                if (retryCount < MAX_RETRY_COUNT) {
-                    attemptReconnection()
-                }
+                handleConnectionFailure(lifecycleEvent.exception)
             }
 
             else -> {
                 Log.d(TAG, "기타 상태: ${lifecycleEvent.type}")
             }
+        }
+    }
+
+    private fun handleConnectionFailure(error: Throwable?) {
+        _connectionStatus.value = false
+        _detailedConnectionStatus.value = ConnectionState.FAILED
+        activeSubscriptions.clear()
+
+        Log.e(TAG, "연결 실패: ${error?.message}")
+
+        if (retryCount < MAX_RETRY_COUNT) {
+            attemptReconnection()
+        } else {
+            Log.e(TAG, "최대 재시도 횟수 초과 - 연결 포기")
         }
     }
 
@@ -175,31 +189,30 @@ class WebSocketManager {
 
         kotlinx.coroutines.GlobalScope.launch {
             kotlinx.coroutines.delay(delay)
-            disconnect()
-            kotlinx.coroutines.delay(1000L) // 잠깐 대기
             connect()
         }
     }
 
     private fun handleConnectionTimeout() {
         Log.e(TAG, "❌ 연결 타임아웃 발생")
-        _detailedConnectionStatus.value = ConnectionState.FAILED
-        disconnect()
-
-        if (retryCount < MAX_RETRY_COUNT) {
-            attemptReconnection()
-        }
+        handleConnectionFailure(Exception("Connection timeout"))
     }
 
     fun subscribeToChatRoom(roomId: Long) {
         Log.d(TAG, "📡 subscribeToChatRoom 호출됨 - roomId: $roomId")
 
+        // 이미 구독 중인 경우 중복 방지
+        if (activeSubscriptions.contains(roomId)) {
+            Log.d(TAG, "이미 구독 중인 채팅방: $roomId")
+            return
+        }
+
         stompClient?.let { client ->
             if (!client.isConnected) {
-                Log.w(TAG, "⚠️ stompClient가 아직 연결되지 않음. 연결 후 구독 예약")
-                pendingSubscriptions.add(roomId)  // ⭐ Set으로 중복 방지
+                Log.w(TAG, "⚠️ 연결되지 않음. 구독 예약: $roomId")
+                pendingSubscriptions.add(roomId)
 
-                // ⭐ 연결이 안 되어 있으면 연결 시작
+                // 연결이 안 되어 있으면 연결 시작
                 if (_detailedConnectionStatus.value == ConnectionState.DISCONNECTED) {
                     connect()
                 }
@@ -208,29 +221,39 @@ class WebSocketManager {
 
             performSubscription(roomId)
         } ?: run {
-            Log.e(TAG, "❌ stompClient가 null입니다. 연결을 먼저 시작합니다.")
+            Log.e(TAG, "❌ stompClient가 null - 구독 예약 후 연결 시작")
             pendingSubscriptions.add(roomId)
             connect()
         }
     }
 
     private fun processPendingSubscriptions() {
+        if (pendingSubscriptions.isEmpty()) {
+            Log.d(TAG, "대기 중인 구독이 없음")
+            return
+        }
+
         Log.d(TAG, "⏳ 대기 중인 구독 처리: ${pendingSubscriptions.size}개")
 
-        val subscriptionsToProcess = pendingSubscriptions.toSet() // 복사본 생성
+        val subscriptionsToProcess = pendingSubscriptions.toSet()
         pendingSubscriptions.clear()
 
         subscriptionsToProcess.forEach { roomId ->
             Log.d(TAG, "🔄 대기 구독 실행: roomId=$roomId")
-            performSubscription(roomId)
+            kotlinx.coroutines.GlobalScope.launch {
+                // 약간의 지연을 두어 연결 안정화
+                kotlinx.coroutines.delay(500L)
+                performSubscription(roomId)
+            }
         }
     }
 
     private fun performSubscription(roomId: Long) {
-        Log.d(TAG, "✅ 실제 구독 수행 - roomId: $roomId")
+        Log.d(TAG, "✅ 실제 구독 수행 시작 - roomId: $roomId")
 
         val client = stompClient ?: run {
             Log.e(TAG, "❌ stompClient가 null - 구독 실패")
+            pendingSubscriptions.add(roomId)
             return
         }
 
@@ -242,7 +265,7 @@ class WebSocketManager {
 
         try {
             // 메시지 구독
-            val topicDisposable = client.topic("/topic/chat.room.$roomId")
+            val messageTopicDisposable = client.topic("/topic/chat.room.$roomId")
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(
@@ -251,7 +274,7 @@ class WebSocketManager {
                     },
                     { throwable ->
                         Log.e(TAG, "❌ 채팅방 구독 에러 - roomId: $roomId", throwable)
-                        // ⭐ 구독 실패 시 재시도
+                        activeSubscriptions.remove(roomId)
                         retrySubscription(roomId)
                     }
                 )
@@ -269,22 +292,23 @@ class WebSocketManager {
                     }
                 )
 
-            compositeDisposable.add(topicDisposable)
+            compositeDisposable.add(messageTopicDisposable)
             compositeDisposable.add(readTopicDisposable)
 
-            Log.d(TAG, "✅ 구독 완료: roomId=$roomId")
+            // 활성 구독에 추가
+            activeSubscriptions.add(roomId)
+            Log.d(TAG, "✅ 구독 완료: roomId=$roomId, 총 활성 구독: ${activeSubscriptions.size}개")
 
         } catch (e: Exception) {
             Log.e(TAG, "❌ 구독 중 예외 발생 - roomId: $roomId", e)
             retrySubscription(roomId)
         }
-
     }
 
     private fun retrySubscription(roomId: Long) {
         Log.w(TAG, "🔄 구독 재시도 예약: roomId=$roomId")
         kotlinx.coroutines.GlobalScope.launch {
-            kotlinx.coroutines.delay(2000L) // 2초 후 재시도
+            kotlinx.coroutines.delay(SUBSCRIPTION_RETRY_DELAY)
             if (_connectionStatus.value) {
                 performSubscription(roomId)
             } else {
@@ -295,16 +319,18 @@ class WebSocketManager {
 
     private fun handleReceivedMessage(stompMessage: StompMessage, roomId: Long) {
         try {
+            Log.d(TAG, "📨 원시 메시지 수신: roomId=$roomId, payload=${stompMessage.payload}")
+
             val chatMessage = gson.fromJson(stompMessage.payload, ChatMessageDTO::class.java)
-            Log.d(TAG, "📨 메시지 수신 및 UI 전달: ${chatMessage.message} (room: $roomId)")
+            Log.d(TAG, "📨 메시지 파싱 성공: ${chatMessage.message} (room: $roomId)")
 
-            val success = _messageFlow.tryEmit(chatMessage)
-            Log.d(TAG, "💬 메시지 Flow 전달 ${if (success) "성공" else "실패"}")
-
-            if (!success) {
-                Log.w(TAG, "⚠️ 메시지 Flow 버퍼가 가득참. 강제 전달 시도")
-                kotlinx.coroutines.GlobalScope.launch {
+            // 메시지 Flow에 전달 - 강제 emit 사용
+            kotlinx.coroutines.GlobalScope.launch {
+                try {
                     _messageFlow.emit(chatMessage)
+                    Log.d(TAG, "✅ 메시지 Flow 전달 성공")
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ 메시지 Flow 전달 실패", e)
                 }
             }
 
@@ -318,12 +344,12 @@ class WebSocketManager {
             val readDto = gson.fromJson(stompMessage.payload, ChatReadDTO::class.java)
             Log.d(TAG, "📖 읽음 알림 수신: $readDto (room: $roomId)")
 
-            val success = _readFlow.tryEmit(readDto)
-            Log.d(TAG, "✅ 읽음 알림 Flow 전달 ${if (success) "성공" else "실패"}")
-
-            if (!success) {
-                kotlinx.coroutines.GlobalScope.launch {
+            kotlinx.coroutines.GlobalScope.launch {
+                try {
                     _readFlow.emit(readDto)
+                    Log.d(TAG, "✅ 읽음 알림 Flow 전달 성공")
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ 읽음 알림 Flow 전달 실패", e)
                 }
             }
         } catch (e: Exception) {
@@ -332,7 +358,13 @@ class WebSocketManager {
     }
 
     fun sendMessage(messageDTO: ChatMessageDTO) {
-        stompClient?.let { client ->
+        val client = stompClient
+        if (client == null || !client.isConnected) {
+            Log.e(TAG, "❌ 연결되지 않은 상태에서 메시지 전송 시도")
+            return
+        }
+
+        try {
             val json = gson.toJson(messageDTO)
             Log.d(TAG, "📤 메시지 전송 시도: ${messageDTO.message}")
 
@@ -349,12 +381,22 @@ class WebSocketManager {
                 )
 
             compositeDisposable.add(sendDisposable)
-        } ?: Log.e(TAG, "❌ stompClient가 null - 메시지 전송 불가")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 메시지 전송 중 예외", e)
+        }
     }
 
     fun markAsRead(readDTO: ChatReadDTO) {
-        stompClient?.let { client ->
+        val client = stompClient
+        if (client == null || !client.isConnected) {
+            Log.w(TAG, "⚠️ 연결되지 않은 상태에서 읽음 처리 시도")
+            return
+        }
+
+        try {
             val json = gson.toJson(readDTO)
+            Log.d(TAG, "📖 읽음 처리 요청: roomId=${readDTO.chatRoomId}, userId=${readDTO.userId}, lastReadCid=${readDTO.lastReadCid}")
+
             val readDisposable = client.send("/app/chat.updateRead", json)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -368,18 +410,25 @@ class WebSocketManager {
                 )
 
             compositeDisposable.add(readDisposable)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 읽음 처리 중 예외", e)
         }
     }
 
     fun disconnect() {
         Log.d(TAG, "🔌 WebSocket 연결 해제")
-        compositeDisposable.clear()
-        stompClient?.disconnect()
-        stompClient = null
-        pendingSubscriptions.clear()
-        _connectionStatus.value = false
-        _detailedConnectionStatus.value = ConnectionState.DISCONNECTED
-        retryCount = 0
+        try {
+            compositeDisposable.clear()
+            stompClient?.disconnect()
+            stompClient = null
+            pendingSubscriptions.clear()
+            activeSubscriptions.clear()
+            _connectionStatus.value = false
+            _detailedConnectionStatus.value = ConnectionState.DISCONNECTED
+            retryCount = 0
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 연결 해제 중 오류", e)
+        }
     }
 
     fun isConnected(): Boolean {
@@ -394,4 +443,9 @@ class WebSocketManager {
             connect()
         }
     }
+
+    // 구독 상태 확인 메서드 추가
+    fun getActiveSubscriptions(): Set<Long> = activeSubscriptions.toSet()
+
+    fun isSubscribedToRoom(roomId: Long): Boolean = activeSubscriptions.contains(roomId)
 }
