@@ -63,6 +63,10 @@ dependencies {
     implementation 'org.springframework:spring-webflux'
     implementation 'io.projectreactor.netty:reactor-netty-http'
 
+    // REDIS
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+
 }
 
 tasks.named('test') {
