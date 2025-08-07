@@ -108,12 +108,12 @@ public class FeedService {
                 .regionId(req.getRegionId())
                 .category(FeedCategory.valueOf(req.getCategory()))
                 .build();
-        feed = feedRepository.save(feed);
+        Feed saved = feedRepository.saveAndFlush(feed);
 
         // 2) FeedTag / Image 삽입
-        saveRelations(feed, req);
+        saveRelations(saved, req);
 
-        return getFeedDetail(feed.getId());
+        return getFeedDetail(saved.getId());
     }
 
     @Transactional
