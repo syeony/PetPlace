@@ -16,8 +16,11 @@ import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
+import com.minjeok4go.petplace.like.repository.LikeRepository;
+import com.minjeok4go.petplace.like.service.LikeService;
 import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FeedService {
@@ -34,9 +38,10 @@ public class FeedService {
     private final FeedTagRepository feedTagRepository;
     private final TagRepository tagRepository;
     private final ImageRepository imageRepository;
+    private final LikeRepository likeRepository;
 
     @Transactional(readOnly = true)
-    public FeedDetailResponse getFeedDetail(Long feedId) {
+    public FeedDetailResponse getFeedDetail(Long feedId, User user) {
 
         Feed feed = feedRepository.findByIdAndDeletedAtIsNull(feedId)
                 .orElseThrow(() -> new RuntimeException("Feed not found"));
@@ -67,6 +72,7 @@ public class FeedService {
                 .createdAt(feed.getCreatedAt())
                 .updatedAt(feed.getUpdatedAt())
                 .deletedAt(feed.getDeletedAt())
+                .liked(likeRepository.existsByFeedAndUser(feed, user))
                 .likes(feed.getLikes())
                 .views(feed.getViews())
                 .tags(tagDtos)
@@ -113,7 +119,7 @@ public class FeedService {
         // 2) FeedTag / Image 삽입
         saveRelations(saved, req);
 
-        return getFeedDetail(saved.getId());
+        return getFeedDetail(saved.getId(), user);
     }
 
     @Transactional
@@ -135,7 +141,7 @@ public class FeedService {
         // 3) 관계삽입
         saveRelations(feed, req);
 
-        return getFeedDetail(feed.getId());
+        return getFeedDetail(feed.getId(), user);
     }
 
     @Transactional
