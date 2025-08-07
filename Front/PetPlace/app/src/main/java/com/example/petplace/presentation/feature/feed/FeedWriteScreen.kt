@@ -24,6 +24,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -39,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,28 +76,7 @@ fun BoardWriteScreen(
         "리드줄", "하네스", "이동장", "실종"
     )
 
-//    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-//
-//    val galleryLauncher = rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.GetMultipleContents()
-//    ) { uris ->
-//        if (uris.isNotEmpty()) {
-//            imageUris = imageUris + uris
-//            // 서버 전송할 CreateImage 모델로 변환
-//            viewModel.setImages(
-//                imageUris.mapIndexed { index, uri ->
-//                    CreateImage(
-//                        src = uri.toString(),
-//                        sort = index
-//                    )
-//                }
-//            )
-//        }
-//    }
-
     val imageUris by viewModel.imageUris.collectAsState()
-    val scope1 = rememberCoroutineScope()
-    val context = LocalContext.current
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
@@ -161,7 +140,7 @@ fun BoardWriteScreen(
                 onValueChange = { viewModel.updateContent(it) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp),
+                    .height(100.dp),
                 placeholder = { Text("내용을 입력해 주세요...") },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.Transparent,
@@ -185,8 +164,9 @@ fun BoardWriteScreen(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalArrangement = Arrangement.spacedBy(7.dp)
             ) {
-                allTags.forEachIndexed { index, tag ->
-                    val selected = tagIds.contains(index.toLong())
+                allTags.forEachIndexed { idx, tag ->
+                    val tagId = idx + 1  // 인덱스를 1부터 시작!
+                    val selected = tagIds.contains(tagId.toLong())
                     val bgColor = if (selected) Color(0xFFF79800) else Color.White
                     val borderColor = if (selected) Color(0xFFF79800) else Color.LightGray
                     val textColor = if (selected) Color.White else Color.DarkGray
@@ -198,7 +178,7 @@ fun BoardWriteScreen(
                             .border(1.dp, borderColor, RoundedCornerShape(20.dp))
                             .background(bgColor, RoundedCornerShape(20.dp))
                             .clickable {
-                                viewModel.toggleTag(index.toLong())
+                                viewModel.toggleTag(tagId.toLong())
                             }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         fontSize = 15.sp
@@ -213,61 +193,7 @@ fun BoardWriteScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-//            if (imageUris.isNotEmpty()) {
-//                FlowRow(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(bottom = 8.dp),
-//                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-//                    verticalArrangement = Arrangement.spacedBy(8.dp)
-//                ) {
-//                    imageUris.forEach { uri ->
-//                        Box(modifier = Modifier.size(100.dp)) {
-//                            androidx.compose.foundation.Image(
-//                                painter = rememberAsyncImagePainter(model = uri),
-//                                contentDescription = "선택한 이미지",
-//                                modifier = Modifier
-//                                    .size(100.dp)
-//                                    .clip(RoundedCornerShape(10.dp))
-//                                    .border(1.dp, Color.Gray, RoundedCornerShape(10.dp)),
-//                                contentScale = ContentScale.Crop
-//                            )
-//                            IconButton(
-//                                onClick = {
-//                                    imageUris = imageUris - uri
-//                                    viewModel.setImages(
-//                                        imageUris.mapIndexed { index, u ->
-//                                            CreateImage(src = u.toString(), sort = index)
-//                                        }
-//                                    )
-//                                },
-//                                modifier = Modifier
-//                                    .align(Alignment.TopEnd)
-//                                    .size(24.dp)
-//                            ) {
-//                                Icon(
-//                                    Icons.Default.Clear,
-//                                    contentDescription = "삭제",
-//                                    tint = Color.White
-//                                )
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//
-//            IconButton(
-//                onClick = { galleryLauncher.launch("image/*") },
-//                modifier = Modifier.align(Alignment.Start)
-//            ) {
-//                Icon(
-//                    painter = painterResource(id = R.drawable.outline_photo_camera_24),
-//                    contentDescription = "사진 촬영",
-//                    modifier = Modifier.size(28.dp)
-//                )
-//            }
-
-            // 이미지 미리보기
+            // 이미지 미리보기 + 삭제 버튼
             if (imageUris.isNotEmpty()) {
                 FlowRow(
                     modifier = Modifier
@@ -285,10 +211,27 @@ fun BoardWriteScreen(
                                     .size(100.dp)
                                     .clip(RoundedCornerShape(10.dp))
                             )
+                            // 엑스(삭제) 아이콘을 이미지 오른쪽 위에 겹치기
+                            IconButton(
+                                onClick = {
+                                    viewModel.removeImageUri(uri)
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(24.dp)
+                                    .background(Color(0x66000000), RoundedCornerShape(12.dp)) // 살짝 반투명 배경
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "삭제",
+                                    tint = Color.White
+                                )
+                            }
                         }
                     }
                 }
             }
+
             // 이미지 선택 버튼
             IconButton(
                 onClick = { galleryLauncher.launch("image/*") },

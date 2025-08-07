@@ -16,6 +16,7 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface FeedApiService {
+    //사용자 기반 추천 피드들
     @GET("api/feeds/recommend")
     suspend fun getRecommendedFeeds(
         @Query("user_id") userId: LoginApiService.User?, //로그인된 유저 id (필수)
@@ -55,5 +56,7 @@ interface FeedApiService {
 
     //피드id에 따른 댓글목록보기
     @GET("/api/comments/{feed_id}")
-    suspend fun getCommentsByFeedId(@Path("feed_id") feedId: Long): List<CommentRes>
+    suspend fun getCommentsByFeedId(
+        @Path("feed_id") feedId: Long
+    ): List<CommentRes>
 }

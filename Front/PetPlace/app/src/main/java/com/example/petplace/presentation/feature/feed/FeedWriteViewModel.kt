@@ -88,5 +88,14 @@ class BoardWriteViewModel @Inject constructor(
         )
         return feedrepo.createFeed(body)
     }
+
+    // BoardWriteViewModel.kt
+    fun removeImageUri(uri: Uri) {
+        _imageUris.value = _imageUris.value - uri
+        setImages(_imageUris.value.mapIndexed { index, u ->
+            CreateImage(src = u.toString(), sort = index)
+        })
+    }
+
 }
 
