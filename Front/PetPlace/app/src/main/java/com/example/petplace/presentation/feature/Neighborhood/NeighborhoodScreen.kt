@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +45,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -71,6 +74,52 @@ fun NeighborhoodScreen(
 ) {
     val context = LocalContext.current
     val viewModel: NeighborhoodViewModel = hiltViewModel()
+    val showAdoptConfirm by viewModel.showAdoptConfirm.collectAsState()
+
+    //입양처 다이얼로그 확인창
+    if (showAdoptConfirm) {
+        AlertDialog(
+            onDismissRequest = { viewModel.setShowAdoptConfirm(false) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.notification),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(60.dp)
+                )
+            },
+            title = { Text("알림", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+            text = { Text("유기보호동물 보호소 홈페이지로 이동합니다.\n 가족이 되어주세요.",
+                fontSize   = 14.sp,
+                lineHeight = 20.sp,
+                color      = Color.Gray,
+                textAlign  = TextAlign.Center) },
+            confirmButton = {
+                Text(
+                    "확인",
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .clickable {
+                            val url = "https://www.animal.go.kr/front/awtis/public/publicList.do?menuNo=1000000055"
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            context.startActivity(intent)
+                            viewModel.setShowAdoptConfirm(false)
+                        },
+                    color = Color(0xFFF79800)
+                )
+            },
+            dismissButton = {
+                Text(
+                    "취소",
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .clickable { viewModel.setShowAdoptConfirm(false) },
+                    color = Color.Gray
+                )
+            },
+            containerColor = Color.White
+        )
+    }
 
     /* -------- ViewModel state -------- */
     val tags = viewModel.tags                 // List<TagItem>
@@ -158,10 +207,8 @@ fun NeighborhoodScreen(
                                     "실종펫 등록" -> navController.navigate("missing_register")
                                     "실종펫 신고" -> navController.navigate("missing_report")
                                     "돌봄/산책"    -> navController.navigate("walk_and_care")
-                                    "입양처"   -> {
-                                        val url = "https://www.animal.go.kr/front/awtis/public/publicList.do?menuNo=1000000055"
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                                        context.startActivity(intent)
+                                    "입양처" -> {
+                                        viewModel.setShowAdoptConfirm(true)
                                     }
                                     "실종펫 리스트" -> navController.navigate("missing_list")
                                     "동물호텔" -> navController.navigate("hotel_graph")
@@ -223,7 +270,7 @@ fun NeighborhoodScreen(
                 )
                 val style by remember {
                     mutableStateOf(
-                        LabelStyles.from(LabelStyle.from(R.drawable.location_on))
+                        LabelStyles.from(LabelStyle.from(R.drawable.marker_resized_48x48))
                     )
                 }
                 LaunchedEffect(markers) {
@@ -260,10 +307,13 @@ fun NeighborhoodScreen(
                     value = "",
                     onValueChange = {},
                     placeholder = { Text("애견 동반 장소를 검색하세요") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFFF79800)) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(30.dp)),
+                        .clip(RoundedCornerShape(30.dp))
+                        .background(color = Color.White)
+                        .border(1.dp, Color(0xFFFFC981),
+                            shape = RoundedCornerShape(30.dp)),
                     colors = TextFieldDefaults.textFieldColors(
                         containerColor = Color(0xFFF5F5F5),
                         focusedIndicatorColor = Color.Transparent,
@@ -271,12 +321,12 @@ fun NeighborhoodScreen(
                     ),
                     singleLine = true
                 )
-                Spacer(Modifier.height(16.dp))
+
                 /* 태그 리스트 */
                 Row(
                     Modifier
                         .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(vertical = 8.dp)
                 ) {
                     tags.forEach { tagItem ->
                         val isSelected = selectedTag == tagItem
@@ -285,7 +335,12 @@ fun NeighborhoodScreen(
                                 .padding(end = 8.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(
-                                    if (isSelected) Color(0xFFF79800) else Color(0xFFF5F5F5)
+                                    color = if (isSelected) Color(0xFFF79800) else Color.White
+                                )
+                                .border(
+                                    width = if (isSelected) 0.dp else 1.dp,
+                                    color = if (isSelected) Color.Transparent else Color(0xFFFFC981),
+                                    shape = RoundedCornerShape(20.dp)
                                 )
                                 .clickable { viewModel.selectTag(tagItem)
                                     currentLng?.let {

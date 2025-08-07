@@ -1,6 +1,6 @@
 jwt:
   secret: ${JWT_SECRET_KEY}
-  access-token-expiry: 3600000      # Access Token: 1시간
+  access-token-expiry: 10800000      # Access Token: 1시간
   refresh-token-expiry: 604800000   # Refresh Token: 7일
   temp-expiration-time: 900000  # 15분 (새로 추가)
 
@@ -17,6 +17,10 @@ spring:
     user:
       name: user
       password: ssafy123
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   web:
     resources:
       static-locations: file:/home/ubuntu/upload/images/

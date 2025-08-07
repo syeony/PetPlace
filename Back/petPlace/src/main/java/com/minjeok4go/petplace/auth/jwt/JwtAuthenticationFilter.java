@@ -51,6 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 기타 공개 API
             "/api/upload/images",
+            "/images/**",
             "/error",
 
             // WebSocket (채팅) 관련

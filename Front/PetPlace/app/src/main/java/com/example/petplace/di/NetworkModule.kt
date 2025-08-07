@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.remote.FeedApiService
+import com.example.petplace.data.remote.ImageApiService
 import com.example.petplace.data.remote.JoinApiService
 import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.LoginApiService
@@ -13,7 +15,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.Authenticator
-import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -158,6 +159,18 @@ object NetworkModule {
     fun provideServerApi(
         @Named("Server") retrofit: Retrofit
     ): LoginApiService = retrofit.create(LoginApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFeedApi(
+        @Named("Server") retrofit: Retrofit
+    ): FeedApiService = retrofit.create(FeedApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideImageApi(
+        @Named("Server") retrofit: Retrofit
+    ): ImageApiService = retrofit.create(ImageApiService::class.java)
 
     @Provides
     @Singleton
