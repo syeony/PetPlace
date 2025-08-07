@@ -66,6 +66,9 @@ dependencies {
     // REDIS
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+    // FCM (Firebase Cloud Messaging) - 푸시 알림
+    implementation 'com.google.firebase:firebase-admin:9.2.0'
+
 
 }
 
