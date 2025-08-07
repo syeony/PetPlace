@@ -51,6 +51,9 @@ class ChatViewModel @Inject constructor(
     private val _connectionStatus = MutableStateFlow(false)
     val connectionStatus: StateFlow<Boolean> = _connectionStatus.asStateFlow()
 
+    private val _chatPartnerName = MutableStateFlow<String?>(null)
+    val chatPartnerName: StateFlow<String?> = _chatPartnerName.asStateFlow()
+
     private var lastMessageId = 0L
     private var shouldMarkAsRead = true
 
@@ -60,8 +63,39 @@ class ChatViewModel @Inject constructor(
         // 초기 메시지 로드
         loadInitialMessages()
 
+        // 채팅 상대방 정보 로드
+        loadChatPartnerInfo()
+
         // WebSocket 설정
         setupWebSocket()
+    }
+
+    // 채팅 상대방 정보를 로드하는 함수
+    private fun loadChatPartnerInfo() {
+        Log.d(TAG, "👤 채팅 상대방 정보 로드 시작")
+
+        viewModelScope.launch {
+            try {
+                // 채팅방 참가자 목록을 가져와서 상대방 정보 찾기
+                val participants = chatRepository.getParticipants(currentChatRoomId).getOrThrow()
+                Log.d(TAG, "참가자 목록: $participants")
+
+                // 현재 사용자가 아닌 참가자 찾기 (상대방)
+                val partner = participants.firstOrNull { it.userId != currentUserId }
+
+                if (partner != null) {
+                    _chatPartnerName.value = partner.nickname
+                    Log.d(TAG, "✅ 채팅 상대방 정보 로드 완료: ${partner.nickname}")
+                } else {
+                    Log.w(TAG, "⚠️ 채팅 상대방을 찾을 수 없음")
+                    _chatPartnerName.value = "알 수 없는 사용자"
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ 채팅 상대방 정보 로드 실패", e)
+                _chatPartnerName.value = "사용자"
+            }
+        }
     }
 
     private fun setupWebSocket() {

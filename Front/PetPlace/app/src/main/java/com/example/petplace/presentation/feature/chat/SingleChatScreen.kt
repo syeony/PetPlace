@@ -51,6 +51,7 @@ fun SingleChatScreen(
     val showAttachmentOptions by viewModel.showAttachmentOptions.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
+    val chatPartnerName by viewModel.chatPartnerName.collectAsState()
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
@@ -82,7 +83,7 @@ fun SingleChatScreen(
         ) {
             // Top App Bar
             ChatTopAppBar(
-                chatPartnerName = chatRoomId.toString(),
+                chatPartnerName = chatPartnerName ?: "로딩 중...",
                 isConnected = connectionStatus,
                 onBackClick = {
                     navController.popBackStack()
