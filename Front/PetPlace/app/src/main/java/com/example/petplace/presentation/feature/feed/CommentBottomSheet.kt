@@ -1,8 +1,8 @@
 package com.example.petplace.presentation.feature.feed
 
 import android.annotation.SuppressLint
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,10 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -26,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,11 +35,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -45,180 +50,227 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
-import com.example.petplace.data.local.feed.Comment
+import com.example.petplace.data.model.feed.CommentRes
+import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommentBottomSheet(
-    comments: List<Comment>,
-    onDismiss: () -> Unit
+    feedId: Long,
+    comments: List<CommentRes>,
+    onDismiss: () -> Unit,
+    viewModel: BoardViewModel
 ) {
+    /* ───────── bottom sheet state ───────── */
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true, // 부분 확장을 건너뜀
-        confirmValueChange = { true },
+        skipPartiallyExpanded = true,
+        confirmValueChange = { true }
     )
-    //채팅 펼치기
-    val expandedStates = remember { mutableStateListOf<Boolean>().apply {
-        repeat(comments.size) { add(false) }
-    } }
-    var commentText by remember { mutableStateOf("") }
-    val focusManager = LocalFocusManager.current
-    LaunchedEffect(Unit) {
-        sheetState.show() // 강제로 Expanded 상태로
+
+    /* 답글 더보기 토글 상태 → 최상위 댓글 수만큼 */
+    val expandedStates = remember {
+        mutableStateListOf<Boolean>().apply { repeat(comments.size) { add(false) } }
     }
+
+    /* 입력창 & 포커싱 */
+    var commentText   by remember { mutableStateOf("") }
+    val focusManager   = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
+
+    var replyingTo by remember { mutableStateOf<Long?>(null) }  // ★ 답글 다는 대상 id
+    val topLevelComments = comments.filter { it.parentId == null }
+
+    //댓글 전송버튼
+    val coroutineScope = rememberCoroutineScope()
+
+    //댓글 삭제할때
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedCommentId by remember { mutableStateOf<Long?>(null) }
+
+    // AlertDialog - 댓글 삭제 버튼
+    if (showDeleteDialog && selectedCommentId != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("댓글 삭제") },
+            text = { Text("정말 이 댓글을 삭제할까요?") },
+            confirmButton = {
+                Button(onClick = {
+                    // 댓글 삭제
+                    coroutineScope.launch {
+                        viewModel.removeComment(selectedCommentId!!, feedId)
+                        showDeleteDialog = false
+                        selectedCommentId = null
+                    }
+                }) { Text("삭제") }
+            },
+            dismissButton = {
+                Button(onClick = {
+                    showDeleteDialog = false
+                    selectedCommentId = null
+                }) { Text("취소") }
+            }
+        )
+    }
+
+    /* 첫 표시 때 바로 Expanded */
+    LaunchedEffect(Unit) { sheetState.show() }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.White,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        sheetState       = sheetState,
+        containerColor   = Color.White,
+        shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Scaffold(
+            containerColor = Color.White,
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.75f) // 화면 75% 정도 차지
-                .navigationBarsPadding(), // 하단 시스템바까지 패딩
-
+                .fillMaxHeight(0.75f)
+                .navigationBarsPadding(),
+            /* ───────── bottom bar : 댓글 입력 ───────── */
             bottomBar = {
                 Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(8.dp)
                 ) {
-
                     TextField(
                         value = commentText,
                         onValueChange = { commentText = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("댓글을 입력하세요") },
-                        keyboardOptions = KeyboardOptions.Default.copy(
-                            imeAction = ImeAction.Send
+                        placeholder   = { Text(if (replyingTo == null) "댓글을 입력하세요" else "답글을 입력하세요") },
+                        singleLine    = true,
+                        modifier      = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor   = Color.White,
+                            unfocusedContainerColor = Color.White
                         ),
-                        keyboardActions = KeyboardActions(
+                        keyboardOptions  = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions  = KeyboardActions(
                             onSend = {
                                 if (commentText.isNotBlank()) {
-                                    // 전송 로직
-                                    println("전송: $commentText")
-
-                                    // 입력 초기화
+                                    if (replyingTo == null) {
+                                        // ★ 최상위 댓글 등록 로직
+                                        println("최상위 댓글 등록: $commentText")
+                                        // 서버에 parentCommentId = null로 전송
+                                    } else {
+                                        // ★ 대댓글 등록 로직
+                                        println("대댓글 등록: $commentText, parentId=${replyingTo}")
+                                        // 서버에 parentCommentId = replyingTo로 전송
+                                    }
                                     commentText = ""
-
-                                    // 키보드 내리기
+                                    replyingTo = null // 입력 후 리셋
                                     focusManager.clearFocus()
                                 }
                             }
-                        ),
-                        singleLine = true
+                        )
                     )
-//                    Spacer(modifier = Modifier.width(8.dp))
-//                    Button(onClick = { /* 전송 */ }) {
-//                        Text("전송")
-//                    }
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        painter = painterResource(R.drawable.paper_airplane),
+                        contentDescription = "전송",
+                        modifier = Modifier
+                            .size(35.dp)
+                            .padding(end = 12.dp)
+                            .clickable {
+                                if (commentText.isNotBlank()) {
+                                    // 댓글 등록
+                                    coroutineScope.launch {
+                                        viewModel.addComment(feedId, replyingTo, commentText)
+                                        commentText = ""
+                                        replyingTo = null
+                                        focusManager.clearFocus()
+                                    }
+                                }
+                            },
+                        tint = Color.Unspecified
+                    )
                 }
             }
-        ){innerPadding ->
+        ) { inner ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(inner)
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "댓글",
-                    fontSize = 20.sp,
+                    "댓글",
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                LazyColumn(
-//                verticalArrangement = Arrangement.spacedBy(12.dp) // 아이템 간격 12dp
-                ) {
-                    items(comments.size) { index ->
-                        val comment = comments[index]
+                Spacer(Modifier.height(10.dp))
 
-                        Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(comment.profileImage),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(35.dp).clip(CircleShape)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(text = comment.author, fontWeight = FontWeight.Bold)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(text = comment.town, fontSize = 12.sp, color = Color.Gray)
-                                    }
-                                    Text(text = comment.text)
-                                }
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
+                LazyColumn {
+                    items(topLevelComments.size) { idx ->
+                        val comment = topLevelComments[idx]
 
-                            // 답글 버튼
-                            if(comment.replies.isEmpty()){
-                                TextButton(
-                                    onClick = {
-
-                                    }
-                                ) {
-                                    Text("답글 달기", fontSize = 10.sp)
-                                }
-                            }
-                            else{
-                                TextButton(
-                                    onClick = {
-                                        expandedStates[index] = !expandedStates[index]
-                                    }
-                                ) {
-                                    Text("댓글 보기", fontSize = 10.sp)
-                                }
-                            }
-                            // 대댓글 표시 (토글 상태일 때만)
-                            if (expandedStates[index]) {
-                                Column {
-                                    comment.replies.forEach { reply ->
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(start = 36.dp, top = 4.dp, bottom = 4.dp)
-                                        ) {
-                                            Icon(
-                                                painter = painterResource(R.drawable.ic_reply),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(20.dp),
-                                                tint = Color.Gray
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Image(
-                                                painter = rememberAsyncImagePainter(reply.profileImage),
-                                                contentDescription = null,
-                                                modifier = Modifier.size(30.dp).clip(CircleShape)
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Column {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text(text = reply.author, fontWeight = FontWeight.Bold)
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text(text = reply.town, fontSize = 12.sp, color = Color.Gray)
-                                                }
-                                                Text(text = reply.text)
+                        Column(Modifier.padding(vertical = 8.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .pointerInput(comment.id) {
+                                        detectTapGestures(
+                                            onLongPress = {
+                                                selectedCommentId = comment.id
+                                                showDeleteDialog = true
                                             }
-
-                                        }
+                                        )
                                     }
+                            ) {
+                                ProfileImage(comment.userImg)
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(comment.userNick, fontWeight = FontWeight.Bold)
+                                    Text(comment.content)
+                                }
+                            }
+
+                            // "답글 달기" 클릭 시 parent id를 기억!
+                            TextButton(
+                                onClick = {
+                                    commentText = ""
+                                    replyingTo = comment.id    // ★
+                                    focusRequester.requestFocus()
+                                }
+                            ) { Text("답글 달기", fontSize = 10.sp) }
+
+                            // 답글 더보기
+                            if (comment.replies.isNotEmpty()) {
+                                TextButton(onClick = { expandedStates[idx] = !expandedStates[idx] }) {
+                                    Text(
+                                        if (expandedStates[idx]) "          답글 숨기기"
+                                        else                     "          답글 더 보기",
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
+                            if (expandedStates[idx]) {
+                                comment.replies.forEach { reply ->
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .padding(start = 36.dp, top = 4.dp, bottom = 20.dp)
+                                            .pointerInput(reply.id) {
+                                                detectTapGestures(
+                                                    onLongPress = {
+                                                        selectedCommentId = reply.id
+                                                        showDeleteDialog = true
+                                                    }
+                                                )
+                                            }
                                     ) {
-                                        TextButton(
-                                            onClick = {  }
-                                        ) {
-                                            Text("답글 달기", fontSize = 10.sp)
+                                        ProfileImage(reply.userImg)
+                                        Spacer(Modifier.width(8.dp))
+                                        Column {
+                                            Text(reply.userNick, fontWeight = FontWeight.Bold)
+                                            Text(reply.content)
                                         }
                                     }
                                 }
@@ -226,9 +278,7 @@ fun CommentBottomSheet(
                         }
                     }
                 }
-
             }
         }
-
     }
 }
