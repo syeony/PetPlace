@@ -23,11 +23,11 @@ public interface FeedRepository extends JpaRepository<Feed, Long> {
     List<Feed> findByUserIdAndDeletedAtIsNull(Long id);
 
     // 모든 피드 중 좋아요 순 200개
-    List<Feed> findTop200ByOrderByLikeCountDesc();
+//    List<Feed> findTop200ByOrderByLikeCountDesc();
 
 
     // 최근 일주일 내 좋아요 피드 상위 200개
-    List<Feed> findTop200ByCreatedAtAfterOrderByLikeCountDesc(LocalDate recentDay);
+//    List<Feed> findTop200ByCreatedAtAfterOrderByLikeCountDesc(LocalDate recentDay);
 
 
     Optional<Feed> findByIdAndDeletedAtIsNull(Long id);

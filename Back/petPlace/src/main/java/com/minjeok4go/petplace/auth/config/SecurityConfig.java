@@ -59,6 +59,7 @@ public class SecurityConfig {
 
                                 // 기타 공개 API
                                 "/api/upload/images",
+                                "/images/**",
                                 "/error",
 
                                 // 채팅 기능 API

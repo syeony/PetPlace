@@ -1,6 +1,6 @@
 jwt:
   secret: ${JWT_SECRET_KEY}
-  access-token-expiry: 5000      # Access Token: 1시간
+  access-token-expiry: 2000      # Access Token: 1시간
   refresh-token-expiry: 604800000   # Refresh Token: 7일
   temp-expiration-time: 900000  # 15분 (새로 추가)
 
@@ -36,7 +36,7 @@ spring:
     host: localhost
     port: 6379
 server:
-  port: 8081
+  port: 8082
 
 portone:
   api-key: ${PORTONE_API_KEY}
