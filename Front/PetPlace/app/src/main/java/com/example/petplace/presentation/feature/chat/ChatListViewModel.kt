@@ -121,12 +121,17 @@ class ChatListViewModel @Inject constructor(
         }
 
         try {
-            // ISO 8601 형식의 시간을 파싱해서 표시 형식으로 변환
-            // 실제로는 더 정교한 시간 포맷팅이 필요함
-            // 예: "2025-08-05T06:23:23.635Z" -> "오전 6:23" 또는 "8월 5일"
+            // 1. UTC 기준 입력 파싱
+            val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+            inputFormat.timeZone = java.util.TimeZone.getTimeZone("UTC") // 입력은 UTC 기준
 
-            // 임시로 간단한 형식으로 반환
-            return "최근"
+            // 2. KST 기준으로 출력 포맷 정의
+            val outputFormat = java.text.SimpleDateFormat("a hh:mm", java.util.Locale("ko", "KR"))
+            outputFormat.timeZone = java.util.TimeZone.getTimeZone("Asia/Seoul") // 출력은 KST
+
+            // 3. 파싱 및 포맷
+            val date = inputFormat.parse(lastMessageAt)
+            return outputFormat.format(date!!)
         } catch (e: Exception) {
             Log.w(TAG, "시간 포맷팅 실패: $lastMessageAt", e)
             return ""
