@@ -40,6 +40,12 @@ class ChatListViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _isCreatingChatRoom = MutableStateFlow(false)
+    val isCreatingChatRoom: StateFlow<Boolean> = _isCreatingChatRoom.asStateFlow()
+
+    private val _chatRoomCreated = MutableStateFlow<ChatRoomResponse?>(null)
+    val chatRoomCreated: StateFlow<ChatRoomResponse?> = _chatRoomCreated.asStateFlow()
+
     init {
         Log.d(TAG, "ChatListViewModel 초기화")
         loadChatRooms()
@@ -84,6 +90,45 @@ class ChatListViewModel @Inject constructor(
         }
     }
 
+    fun createChatRoom(userId1: String, userId2: String) {
+        viewModelScope.launch {
+            _isCreatingChatRoom.value = true
+            _errorMessage.value = null
+
+            try {
+                val user1Id = userId1.toLongOrNull()
+                val user2Id = userId2.toLongOrNull()
+
+                if (user1Id == null || user2Id == null) {
+                    _errorMessage.value = "올바른 사용자 ID를 입력해주세요"
+                    return@launch
+                }
+
+                Log.d(TAG, "채팅방 생성 요청: userId1=$user1Id, userId2=$user2Id")
+
+                val result = chatRepository.createChatRoom(user1Id, user2Id)
+
+                result.onSuccess { chatRoomResponse ->
+                    Log.d(TAG, "채팅방 생성 성공: ${chatRoomResponse.chatRoomId}")
+                    _chatRoomCreated.value = chatRoomResponse
+
+                    // 채팅방 생성 후 목록 새로고침
+                    loadChatRooms()
+
+                }.onFailure { exception ->
+                    Log.e(TAG, "채팅방 생성 실패", exception)
+                    _errorMessage.value = "채팅방 생성에 실패했습니다: ${exception.message}"
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "채팅방 생성 중 예외 발생", e)
+                _errorMessage.value = "예상치 못한 오류가 발생했습니다: ${e.message}"
+            } finally {
+                _isCreatingChatRoom.value = false
+            }
+        }
+    }
+
     private suspend fun convertToChatRoom(response: ChatRoomResponse): ChatRoom {
         // 상대방 ID 찾기
         val partnerId = if (response.userId1 == currentUserId) {
@@ -92,7 +137,7 @@ class ChatListViewModel @Inject constructor(
             response.userId1
         }
 
-        // 상대방 정보 가져오기 (임시로 하드코딩)
+        // 상대방 정보 가져오기
         val partnerInfo = getPartner(response.chatRoomId, partnerId)
 
         // 안 읽은 메시지 수 가져오기
@@ -149,6 +194,10 @@ class ChatListViewModel @Inject constructor(
 
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    fun clearChatRoomCreated() {
+        _chatRoomCreated.value = null
     }
 
     fun refreshChatRooms() {

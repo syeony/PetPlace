@@ -14,32 +14,42 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallTopAppBar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -48,6 +58,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,7 +79,11 @@ fun ChatListScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
+    val isCreatingChatRoom by viewModel.isCreatingChatRoom.collectAsState()
+    val chatRoomCreated by viewModel.chatRoomCreated.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
+    var showCreateChatDialog by remember { mutableStateOf(false) }
 
     // 에러 메시지 표시
     LaunchedEffect(errorMessage) {
@@ -78,6 +93,17 @@ fun ChatListScreen(
                 duration = SnackbarDuration.Long
             )
             viewModel.clearError()
+        }
+    }
+
+    // 채팅방 생성 성공 메시지 표시
+    LaunchedEffect(chatRoomCreated) {
+        chatRoomCreated?.let { chatRoom ->
+            snackbarHostState.showSnackbar(
+                message = "채팅방이 생성되었습니다! (ID: ${chatRoom.chatRoomId})",
+                duration = SnackbarDuration.Short
+            )
+            viewModel.clearChatRoomCreated()
         }
     }
 
@@ -101,11 +127,35 @@ fun ChatListScreen(
         }
     }
 
+    // 채팅방 생성 다이얼로그
+    if (showCreateChatDialog) {
+        CreateChatRoomDialog(
+            isLoading = isCreatingChatRoom,
+            onDismiss = { showCreateChatDialog = false },
+            onCreateChatRoom = { userId1, userId2 ->
+                viewModel.createChatRoom(userId1, userId2)
+                showCreateChatDialog = false
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             SmallTopAppBar(
                 title = { Text(text = "채팅", fontWeight = FontWeight.Bold) },
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showCreateChatDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "채팅방 생성",
+                    tint = Color.White
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
@@ -186,6 +236,85 @@ fun ChatListScreen(
         }
     }
 }
+
+@Composable
+fun CreateChatRoomDialog(
+    isLoading: Boolean,
+    onDismiss: () -> Unit,
+    onCreateChatRoom: (String, String) -> Unit
+) {
+    var userId1 by remember { mutableStateOf("") }
+    var userId2 by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        title = {
+            Text("채팅방 생성")
+        },
+        text = {
+            Column {
+                Text(
+                    text = "채팅방을 생성할 두 사용자의 ID를 입력해주세요.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                OutlinedTextField(
+                    value = userId1,
+                    onValueChange = { userId1 = it },
+                    label = { Text("첫 번째 사용자 ID") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = userId2,
+                    onValueChange = { userId2 = it },
+                    label = { Text("두 번째 사용자 ID") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (userId1.isNotBlank() && userId2.isNotBlank()) {
+                        onCreateChatRoom(userId1.trim(), userId2.trim())
+                    }
+                },
+                enabled = !isLoading && userId1.isNotBlank() && userId2.isNotBlank()
+            ) {
+                if (isLoading) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .width(16.dp)
+                                .height(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("생성 중...")
+                    }
+                } else {
+                    Text("생성")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isLoading
+            ) {
+                Text("취소")
+            }
+        }
+    )
+}
+
 
 @Composable
 fun MissingPetCard(
