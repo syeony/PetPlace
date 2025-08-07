@@ -97,8 +97,12 @@ class ChatViewModel @Inject constructor(
 
                     // 최신 메시지 ID 업데이트 (읽음 처리용)
                     messageDto.chatId?.let { chatId ->
-                        lastMessageId = chatId
-                        Log.d(TAG, "🔄 최신 메시지 ID 업데이트: $lastMessageId")
+                        if (messageDto.userId != currentUserId) {
+                            // 상대방 메시지를 받았을 때만 읽음 처리
+                            lastMessageId = chatId
+                            markMessagesAsRead()
+                            Log.d(TAG, "🔄 상대방 메시지 읽음 처리: $lastMessageId")
+                        }
                     }
 
                 } catch (e: Exception) {
@@ -113,16 +117,20 @@ class ChatViewModel @Inject constructor(
                 Log.d(TAG, "📖 읽음 알림 수신: userId=${readDto.userId}, lastReadCid=${readDto.lastReadCid}")
 
                 try {
-                    // 읽음 상태 업데이트
-                    val updatedMessages = _messages.value.map { message ->
-                        if (message.id != null && message.id <= readDto.lastReadCid) {
-                            message.copy(isRead = true)
-                        } else {
-                            message
+                    if (readDto.userId != currentUserId) {
+                        val updatedMessages = _messages.value.map { message ->
+                            // 내가 보낸 메시지 중에서 읽음 처리된 ID 이하인 것들만 읽음 처리
+                            if (message.isFromMe &&
+                                message.id != null &&
+                                message.id <= readDto.lastReadCid) {
+                                message.copy(isRead = true)
+                            } else {
+                                message
+                            }
                         }
+                        _messages.value = updatedMessages
+                        Log.d(TAG, "✅ 상대방이 내 메시지 읽음 처리 완료")
                     }
-                    _messages.value = updatedMessages
-                    Log.d(TAG, "✅ 읽음 상태 UI 반영 완료")
 
                 } catch (e: Exception) {
                     Log.e(TAG, "❌ 읽음 상태 처리 중 오류", e)
@@ -138,12 +146,13 @@ class ChatViewModel @Inject constructor(
     // ChatMessageDTO -> ChatMessage 변환
     private fun ChatMessageDTO.toChatMessage(myUserId: Long): ChatMessage {
         Log.d(TAG, "🔄 메시지 변환: dto.userId=${this.userId}, myUserId=$myUserId")
+        val isFromMe = this.userId == myUserId
         return ChatMessage(
             id = this.chatId,
             content = this.message,
             isFromMe = this.userId == myUserId,
             timestamp = this.createdAt ?: getCurrentTimestamp(),
-            isRead = false
+            isRead = !isFromMe
         ).also {
             Log.d(TAG, "🔄 변환 결과: content='${it.content}', isFromMe=${it.isFromMe}")
         }
@@ -199,14 +208,22 @@ class ChatViewModel @Inject constructor(
     }
 
     fun markMessagesAsRead() {
-        if (lastMessageId > 0) {
+        val latestOpponentMessageId = _messages.value
+            .filter { !it.isFromMe && it.id != null }
+            .maxByOrNull { it.id!! }
+            ?.id
+
+        if (latestOpponentMessageId != null && latestOpponentMessageId > 0) {
             val readDTO = ChatReadDTO(
                 chatRoomId = currentChatRoomId,
                 userId = currentUserId,
-                lastReadCid = lastMessageId
+                lastReadCid = latestOpponentMessageId
             )
             webSocketManager.markAsRead(readDTO)
-            Log.d(TAG, "📖 읽음 처리 요청: lastMessageId=$lastMessageId")
+            Log.d(TAG, "📖 읽음 처리 요청: lastMessageId=$latestOpponentMessageId")
+        }
+        else {
+            Log.d(TAG, "읽을 메시지 없음 lastMessageId : $lastMessageId ")
         }
     }
 
@@ -218,12 +235,16 @@ class ChatViewModel @Inject constructor(
                 val result = chatRepository.getChatMessages(currentChatRoomId)
                 result.onSuccess { messageDTOs ->
                     val chatMessages = messageDTOs.map { dto ->
+                        val isFromMe = dto.userId == currentUserId
                         ChatMessage(
                             id = dto.chatId,
                             content = dto.message,
-                            isFromMe = dto.userId == currentUserId,
+                            isFromMe = isFromMe,
                             timestamp = dto.createdAt ?: getCurrentTimestamp(),
-                            isRead = false
+                            // ⭐ 초기 로드 시 읽음 상태 결정 로직 개선
+                            // 실제로는 서버에서 읽음 상태 정보를 받아와야 하지만,
+                            // 임시로 내가 보낸 메시지는 읽음으로, 상대방 메시지도 읽음으로 처리
+                            isRead = true // 이미 저장된 메시지들은 모두 읽음 처리
                         )
                     }
 

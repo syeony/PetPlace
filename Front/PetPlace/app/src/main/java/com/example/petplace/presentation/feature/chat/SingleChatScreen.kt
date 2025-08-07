@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -201,51 +202,53 @@ fun SingleChatScreen(
                 ) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         if (msg.isFromMe) {
-                            // 내가 보낸 메시지일 경우: 읽음/시간 -> 메시지 버블
-                            Column {
-                                Text(
-                                    text = if (msg.isRead) "읽음" else "안읽음",
-                                    fontSize = 10.sp,
-                                    color = Color.Gray,
-                                    modifier = Modifier
-                                        .padding(horizontal = 4.dp)
-                                        .align(Alignment.End)
-                                )
-                                Text(
-                                    text = if (msg.timestamp.isNotEmpty()) msg.timestamp else "방금",
-                                    fontSize = 10.sp,
-                                    color = Color.Gray,
-                                    modifier = Modifier.padding(horizontal = 4.dp)
+                            Column(
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                // 읽음 상태 표시 개선
+                                ReadStatusIndicator(
+                                    isRead = msg.isRead,
+                                    timestamp = msg.timestamp
                                 )
                             }
-                            Spacer(modifier = Modifier.width(2.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Surface(
                                 color = bgColor,
-                                shape = MaterialTheme.shapes.medium,
+                                shape = RoundedCornerShape(
+                                    topStart = 18.dp,
+                                    topEnd = 18.dp,
+                                    bottomStart = 18.dp,
+                                    bottomEnd = 4.dp
+                                ),
                                 shadowElevation = 1.dp
                             ) {
                                 Text(
                                     text = msg.content,
                                     color = textColor,
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(12.dp),
                                     fontSize = 14.sp
                                 )
                             }
                         } else {
-                            // 상대방이 보낸 메시지일 경우: 메시지 버블 -> 읽음/시간
                             Surface(
                                 color = bgColor,
-                                shape = MaterialTheme.shapes.medium,
-                                shadowElevation = 1.dp
+                                shape = RoundedCornerShape(
+                                    topStart = 18.dp,
+                                    topEnd = 18.dp,
+                                    bottomStart = 4.dp,
+                                    bottomEnd = 18.dp
+                                ),
+                                shadowElevation = 1.dp,
+                                border = BorderStroke(0.5.dp, Color.Gray.copy(alpha = 0.2f))
                             ) {
                                 Text(
                                     text = msg.content,
                                     color = textColor,
-                                    modifier = Modifier.padding(10.dp),
+                                    modifier = Modifier.padding(12.dp),
                                     fontSize = 14.sp
                                 )
                             }
-                            Spacer(modifier = Modifier.width(2.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
 
                             Text(
                                 text = if (msg.timestamp.isNotEmpty()) msg.timestamp else "방금",
@@ -261,7 +264,31 @@ fun SingleChatScreen(
     }
 }
 
-// 나머지 기존 함수들은 그대로 유지...
+@Composable
+fun ReadStatusIndicator(
+    isRead: Boolean,
+    timestamp: String
+) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        modifier = Modifier.padding(horizontal = 2.dp)
+    ) {
+        // 읽음 상태 표시
+        Text(
+            text = if (isRead) "읽음" else "", // "1"은 안읽음 표시
+            fontSize = 10.sp,
+            color = if (isRead) Color.Gray else MaterialTheme.colorScheme.primary,
+            fontWeight = if (isRead) FontWeight.Normal else FontWeight.Bold
+        )
+
+        // 시간 표시
+        Text(
+            text = if (timestamp.isNotEmpty()) timestamp else "방금",
+            fontSize = 10.sp,
+            color = Color.Gray
+        )
+    }
+}
 
 @Composable
 fun AttachmentOptionsGrid(
