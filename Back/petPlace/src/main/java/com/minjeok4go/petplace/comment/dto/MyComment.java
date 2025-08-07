@@ -2,31 +2,30 @@ package com.minjeok4go.petplace.comment.dto;
 
 import com.minjeok4go.petplace.comment.entity.Comment;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
+
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class CommentDto {
+@SuperBuilder
+public class MyComment {
 
     private Long id;
-    private Long parentCommentId;   // ✅ cid → parent_comment_id
-    private Long feedId;            // ✅ fid → feed_id
+    private Long parentCommentId;
+    private Long feedId;
     private String content;
-    private Integer userId;            // ✅ uid → user_id (타입 수정: Long → Integer)
+    private Long userId;
     private String userNick;
     private String userImg;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
-    private List<CommentDto> replies;
 
-    public static CommentDto from(Comment comment) {
-        return CommentDto.builder()
+    public static MyComment from(Comment comment) {
+        return MyComment.builder()
                 .id(comment.getId())
                 .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
                 .feedId(comment.getFeed().getId())
@@ -37,9 +36,6 @@ public class CommentDto {
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
                 .deletedAt(comment.getDeletedAt())
-                .replies(comment.getReplies().stream()
-                        .map(CommentDto::from)
-                        .collect(Collectors.toList()))
                 .build();
     }
 }

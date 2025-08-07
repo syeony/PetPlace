@@ -2,20 +2,20 @@ package com.minjeok4go.petplace.common.constant;
 
 import lombok.Getter;
 
+@Getter
 public enum FeedCategory {
-    MYPET, SHARE, INFO, ANY, REVIEW
+    MYPET("내새꾸자랑"),
+    SHARE("나눔"),
+    INFO("정보"),
+    ANY("자유"),
+    REVIEW("후기");
+
+    private final String displayName;
+    FeedCategory(String displayName){
+        this.displayName = displayName;
+    }
 }
 
-//@Getter
 //public enum FeedCategory {
-//    MY_PET("내 펫"),
-//    SHARE("나눔"),
-//    INFO("정보"),
-//    ANY("자유"),
-//    REVIEW("후기");
-//
-//    private final String displayName;
-//    FeedCategory(String displayName){
-//        this.displayName = displayName;
-//    }
+//    MYPET, SHARE, INFO, ANY, REVIEW
 //}

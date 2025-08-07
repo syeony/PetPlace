@@ -29,7 +29,7 @@ public class Feed {
     private String content;
 
     @Column(name = "user_id", nullable = false)
-    private Long userId;  // users.id는 INT 타입
+    private Long userId;
 
     @Column(name = "user_nick", nullable = false)
     private String userNick;
@@ -62,6 +62,31 @@ public class Feed {
     @Column(nullable = false)
     private Integer views = 0;
 
+    private int likeCount;
+
+    public int getLikeCount() {
+        return likeCount;
+    }
+    // 실시간 comment count
+    public int getCommentCount() {
+        return comments == null ? 0 : comments.size();
+    }
+    // DB에 commentCOunt칼럼이 있다면
+//    private int commentCount;
+//
+//    public int getCommentCount() {
+//        return commentCount;
+//    }
+    private boolean dogRelated;
+
+    public boolean isDogRelated() {
+        return dogRelated;
+    }
+    // FeedCatgory가 있다면
+//    public boolean isDogRelated() {
+//        return this.category == FeedCategory.DOG;
+//    }
+
     @Builder.Default
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
@@ -71,6 +96,10 @@ public class Feed {
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
     private Set<Comment> comments = new HashSet<>();
+
+    public Feed(Long feedId) {
+        this.id = feedId;
+    }
 
     public void update() {
         this.updatedAt = LocalDateTime.now();
