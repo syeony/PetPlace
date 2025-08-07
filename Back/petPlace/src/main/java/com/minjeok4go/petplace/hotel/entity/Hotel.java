@@ -53,9 +53,6 @@ public class Hotel {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
-    @Column(nullable = false)
-    private Boolean active = true;
-
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
