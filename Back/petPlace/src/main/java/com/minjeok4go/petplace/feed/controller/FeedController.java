@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.feed.controller;
 
-import com.minjeok4go.petplace.auth.dto.TokenDto;
+import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.feed.dto.CreateFeedRequest;
 import com.minjeok4go.petplace.feed.dto.DeleteFeedResponse;
 import com.minjeok4go.petplace.feed.dto.FeedDetailResponse;
@@ -8,7 +8,6 @@ import com.minjeok4go.petplace.feed.dto.FeedListResponse;
 import com.minjeok4go.petplace.feed.service.FeedService;
 import com.minjeok4go.petplace.feed.service.RecommendationService;
 import com.minjeok4go.petplace.user.entity.User;
-import com.minjeok4go.petplace.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,7 +31,7 @@ public class FeedController {
 
     private final FeedService feedService;
     private final RecommendationService recommendationService;
-    private final UserService userService;
+    private final AuthService authService;
 
     @Operation(
         summary = "피드 단건 조회",
@@ -49,7 +48,7 @@ public class FeedController {
     )
     @GetMapping("/me")
     public List<FeedDetailResponse> getMyFeed(@AuthenticationPrincipal String tokenUserId) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return feedService.findByIdWhereUserId(me.getId());
     }
 
@@ -63,7 +62,7 @@ public class FeedController {
                                                                       @RequestParam(defaultValue = "20") int size,
                                                                       @AuthenticationPrincipal String tokenUserId
     ) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me.getId(), page, size));
     }
 
@@ -75,7 +74,7 @@ public class FeedController {
     @ResponseStatus(HttpStatus.CREATED)
     public FeedDetailResponse createFeed(@Valid @RequestBody CreateFeedRequest req,
                                          @AuthenticationPrincipal String tokenUserId) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return feedService.createFeed(req, me);
     }
 
@@ -89,7 +88,7 @@ public class FeedController {
     public FeedDetailResponse updateFeed(@PathVariable Long id,
                                          @Valid @RequestBody CreateFeedRequest req,
                                          @AuthenticationPrincipal String tokenUserId) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return feedService.updateFeed(id, req, me);
     }
 
@@ -101,7 +100,7 @@ public class FeedController {
     @DeleteMapping("/{id}")
     public DeleteFeedResponse deleteFeed(@PathVariable Long id,
                                          @AuthenticationPrincipal String tokenUserId) {
-        User me = userService.getUserByStringId(tokenUserId);
+        User me = authService.getUserFromToken(tokenUserId);
         return feedService.deleteFeed(id, me);
     }
 }

@@ -54,6 +54,7 @@ public class Comment {
     private LocalDateTime deletedAt;
 
     @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
     private Set<Comment> replies = new HashSet<>();
 
     public Comment(Long parentCommentId) {
