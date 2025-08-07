@@ -32,6 +32,7 @@ data class TokenRefreshResponse(
 )
 
     data class User(
+        val userId: Long,
         val userName: String,
         val nickname: String,
         val userImgSrc: String?,
