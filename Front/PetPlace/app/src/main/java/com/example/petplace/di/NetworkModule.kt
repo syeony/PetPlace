@@ -5,6 +5,7 @@ import android.util.Log
 import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.remote.FeedApiService
+import com.example.petplace.data.remote.ImageApiService
 import com.example.petplace.data.remote.JoinApiService
 import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.LoginApiService
@@ -164,6 +165,12 @@ object NetworkModule {
     fun provideFeedApi(
         @Named("Server") retrofit: Retrofit
     ): FeedApiService = retrofit.create(FeedApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideImageApi(
+        @Named("Server") retrofit: Retrofit
+    ): ImageApiService = retrofit.create(ImageApiService::class.java)
 
     @Provides
     @Singleton

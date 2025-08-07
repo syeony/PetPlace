@@ -14,6 +14,8 @@ import androidx.lifecycle.viewModelScope
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
+import com.example.petplace.data.model.feed.CommentReq
+import com.example.petplace.data.model.feed.CommentRes
 import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.repository.FeedRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,7 +39,7 @@ class BoardViewModel @Inject constructor(
     private val SIZE    = 100
 
     /* ─── UI State ─── */
-    val allCategories = listOf("MYPET", "INFO", "SHARE", "REVIEW", "ANY")
+    val allCategories = listOf("내새꾸자랑", "정보", "나눔", "후기", "자유")
 
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory: StateFlow<String?> = _selectedCategory
@@ -59,6 +61,76 @@ class BoardViewModel @Inject constructor(
     val error: StateFlow<String?> = _error
 
     init { loadFeeds() }
+
+    // 내가 좋아요 누른 피드 id 집합 (앱 단 관리)
+    private val _likedFeeds = MutableStateFlow<Set<Long>>(emptySet())
+    val likedFeeds: StateFlow<Set<Long>> = _likedFeeds
+
+    // 댓글 리스트
+    private val _commentList = MutableStateFlow<List<CommentRes>>(emptyList())
+    val commentList: StateFlow<List<CommentRes>> = _commentList
+
+    // 댓글 새로고침(댓글 등록하거나 삭제할때 바로바로 반영)
+    fun refreshComments(feedId: Long) {
+        viewModelScope.launch {
+            try {
+                val comments = repo.getComments(feedId)
+                _commentList.value = comments
+            } catch (e: Exception) {
+                // 에러 처리(토스트 등)
+            }
+        }
+    }
+
+    fun isFeedLiked(feedId: Long) = _likedFeeds.value.contains(feedId)
+
+    fun toggleLike(feed: FeedRecommendRes) {
+        viewModelScope.launch {
+            try {
+                if (isFeedLiked(feed.id)) {
+                    // 좋아요 취소
+                    repo.unlikeFeed(feed.id) // feed.id 또는 서버에서 받는 likeId
+                    _likedFeeds.update { it - feed.id }
+                } else {
+                    // 좋아요 등록
+                    repo.likeFeed(feed.id)
+                    _likedFeeds.update { it + feed.id }
+                }
+                // 최신 좋아요 수 동기화하려면 서버 feedLikes 받아서 feeds 상태 갱신
+                refreshLikeCount(feed.id)
+            } catch (e: Exception) {
+                // TODO: 에러 처리
+            }
+        }
+    }
+
+    private fun refreshLikeCount(feedId: Long) {
+        // 실제로는 feedRecommendRes의 likes도 최신화 필요!
+        // _remoteFeeds 업데이트 코드 추가!
+        // 아래는 예시. (feedLikes만 바꿔주는 방식)
+        _remoteFeeds.update { feeds ->
+            feeds.map {
+                if (it.id == feedId) it.copy(likes = it.likes + (if (isFeedLiked(feedId)) 1 else -1))
+                else it
+            }
+        }
+        applyFilters() // 화면 반영
+    }
+
+    // 댓글 작성
+    suspend fun addComment(feedId: Long, parentCommentId: Long?, content: String): CommentRes {
+        val result = repo.createComment(
+            CommentReq(feedId = feedId, parentCommentId = parentCommentId, content = content)
+        )
+        refreshComments(feedId) // 댓글 작성 후 바로 새로고침
+        return result
+    }
+
+    // 댓글 삭제
+    suspend fun removeComment(commentId: Long, feedId: Long) {
+        repo.deleteComment(commentId)
+        refreshComments(feedId) // 삭제 후 바로 새로고침
+    }
 
     /** ------------ 서버 호출 ------------ */
     private fun loadFeeds() = viewModelScope.launch {

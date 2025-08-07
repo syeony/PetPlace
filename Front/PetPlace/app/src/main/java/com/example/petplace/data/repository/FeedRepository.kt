@@ -1,8 +1,12 @@
 package com.example.petplace.data.repository
 
+import com.example.petplace.data.model.feed.CommentReq
+import com.example.petplace.data.model.feed.CommentRes
 import com.example.petplace.data.model.feed.FeedCreateReq
 import com.example.petplace.data.model.feed.FeedCreateRes
 import com.example.petplace.data.model.feed.FeedRecommendRes
+import com.example.petplace.data.model.feed.LikeFeedReq
+import com.example.petplace.data.model.feed.LikesRes
 import com.example.petplace.data.remote.FeedApiService
 import com.example.petplace.data.remote.LoginApiService
 import javax.inject.Inject
@@ -23,4 +27,21 @@ class FeedRepository @Inject constructor(
         return api.createFeed(req)
     }
 
+    suspend fun likeFeed(feedId: Long): LikesRes {
+        return api.likeFeed(LikeFeedReq(feedId))
+    }
+    suspend fun unlikeFeed(likeId: Long): LikesRes {
+        return api.unlikeFeed(likeId)
+    }
+
+    suspend fun createComment(req: CommentReq): CommentRes {
+        return api.createComment(req)
+    }
+    suspend fun deleteComment(commentId: Long): Long {
+        return api.deleteComment(commentId).id
+    }
+
+    suspend fun getComments(feedId: Long): List<CommentRes> {
+        return api.getCommentsByFeedId(feedId)
+    }
 }

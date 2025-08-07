@@ -39,7 +39,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -74,7 +73,6 @@ fun FeedScreen(
     modifier:   Modifier = Modifier,
     viewModel:  BoardViewModel = hiltViewModel()
 ) {
-    /* ---------- state ---------- */
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val searchText       by viewModel.searchText.collectAsState()
     val feeds            by viewModel.filteredFeeds.collectAsState()
@@ -86,7 +84,6 @@ fun FeedScreen(
     val hashtagColor = Color(0xFFF79800)
 
     val refreshState = rememberPullToRefreshState()
-    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     if (refreshState.isRefreshing) {
         // 새로고침 시작
         viewModel.refreshFeeds {
@@ -94,9 +91,6 @@ fun FeedScreen(
         }
     }
 
-
-
-    /* ---------- UI ---------- */
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -212,7 +206,6 @@ fun FeedScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-//                    .verticalScroll(rememberScrollState())
                     .nestedScroll(refreshState.nestedScrollConnection)
             ) {
                 LazyColumn {
@@ -220,11 +213,13 @@ fun FeedScreen(
                         FeedItem(
                             feed = feed,
                             hashtagColor = hashtagColor,
-                            onCommentTap = { showCommentsForFeedId = feed.id }
+                            onCommentTap = { showCommentsForFeedId = feed.id },
+                            viewModel = viewModel
                         )
                         Spacer(Modifier.height(6.dp))
                     }
                 }
+                // 이건 그거임. 스크롤 땡기면 업데이트되는거.
                 if (refreshState.isRefreshing || refreshState.progress > 0f) {
                     PullToRefreshContainer(
                         state = refreshState,
@@ -239,8 +234,10 @@ fun FeedScreen(
         /* 댓글 바텀시트 */
         showCommentsForFeedId?.let { fid ->
             CommentBottomSheet(
+                feedId = fid,
                 comments = viewModel.getCommentsForFeed(fid),
-                onDismiss = { showCommentsForFeedId = null }
+                onDismiss = { showCommentsForFeedId = null },
+                viewModel = viewModel
             )
         }
 
@@ -262,8 +259,11 @@ fun FeedScreen(
 private fun FeedItem(
     feed: FeedRecommendRes,
     hashtagColor:  Color,
-    onCommentTap:  () -> Unit
+    onCommentTap:  () -> Unit,
+    viewModel: BoardViewModel
 ) {
+    val liked = viewModel.isFeedLiked(feed.id)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -318,7 +318,7 @@ private fun FeedItem(
 
         /* ───── 이미지 영역 ───── */
         if (feed.images.isNullOrEmpty()) {
-            // 이미지가 없으면 플레이스홀더 1장
+            // 이미지가 없으면
             Image(
                 painter        = painterResource(R.drawable.pp_logo),
                 contentDescription = null,
@@ -370,9 +370,9 @@ private fun FeedItem(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 10.dp)
         ) {
-            var liked by remember { mutableStateOf(false) }
+//            var liked by remember { mutableStateOf(false) }
 
-            IconButton(onClick = { liked = !liked }) {
+            IconButton(onClick = { viewModel.toggleLike(feed) }) {
                 Icon(
                     imageVector = if (liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = "좋아요",

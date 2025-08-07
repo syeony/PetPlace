@@ -18,7 +18,6 @@ data class CreateImage(
     val sort:    Int                          // 1,2,3…(사진 위치)
 )
 
-
 // POST /api/feeds ───────── Response
 // 피드 1개를 그대로 돌려줍니다.
 data class FeedCreateRes(

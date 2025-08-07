@@ -2,6 +2,25 @@ package com.example.petplace.data.model.feed
 
 import com.google.gson.annotations.SerializedName
 
+//댓글
+data class CommentReq(
+    val feedId: Long,
+    val parentCommentId: Long?, // null 가능
+    val content: String
+)
+data class DeleteCommentRes(
+    val id: Long
+)
+
+// 좋아요
+data class LikesRes(
+    val feedId: Long,
+    val feedLikes: Int
+)
+data class LikeFeedReq(
+    val feedId: Long
+)
+
 // 태그
 data class TagRes(
     val id: Long,
@@ -45,7 +64,7 @@ data class FeedRecommendRes(
     val views: Int,
     val score: Double,
     val tags: List<TagRes>,
-    @SerializedName("images") val images: List<ImageRes>,
+    val images: List<ImageRes>,
     val comments: List<CommentRes>,
     val commentCount: Int
 )
