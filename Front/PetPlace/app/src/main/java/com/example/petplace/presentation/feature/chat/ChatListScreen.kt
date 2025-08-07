@@ -34,10 +34,12 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -50,6 +52,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.petplace.R
 import com.example.petplace.data.local.chat.ChatRoom
 
@@ -76,18 +81,30 @@ fun ChatListScreen(
         }
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // 최신 viewModel을 참조하는 안전한 방식
+    val currentViewModel by rememberUpdatedState(viewModel)
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                // 💡 화면이 다시 포커스를 받을 때마다 호출됨
+                currentViewModel.refreshChatRooms()
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     Scaffold(
         topBar = {
             SmallTopAppBar(
                 title = { Text(text = "채팅", fontWeight = FontWeight.Bold) },
-                actions = {
-                    IconButton(onClick = { viewModel.refreshChatRooms() }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "새로고침"
-                        )
-                    }
-                }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
