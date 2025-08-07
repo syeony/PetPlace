@@ -1,5 +1,6 @@
 package com.example.petplace.presentation.feature.splash
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +22,7 @@ import com.example.petplace.presentation.common.navigation.BottomNavItem
 import com.example.petplace.presentation.common.theme.BackgroundColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.log
 
 
 @Composable
@@ -55,15 +57,25 @@ fun SplashScreen(
         val refreshToken = app.getRefreshToken()
 
         val goHome = when {
-            // 1. AccessToken 유효성 검사
-            !accessToken.isNullOrEmpty() -> {
-                viewModel.isTokenValid()
+            accessToken.isNullOrEmpty() -> {
+                Log.d("Token", "SplashScreen: 비어있음 토큰")
+                false
             }
-            // 2. AccessToken이 없고 RefreshToken은 있으면 갱신 시도
+
+            viewModel.isTokenValid(accessToken) -> {
+                Log.d("Token", "SplashScreen: 유효한 토큰")
+                true
+            }
+
             !refreshToken.isNullOrEmpty() -> {
+                Log.d("Token", "SplashScreen: 토큰 만료 → 리프레시 시도")
                 viewModel.refreshToken(refreshToken)
             }
-            else -> false
+
+            else -> {
+                Log.d("Token", "SplashScreen: 리프레시 토큰 없음 → 로그인 이동")
+                false
+            }
         }
 
         if (goHome) {
@@ -76,4 +88,5 @@ fun SplashScreen(
             }
         }
     }
+
 }
