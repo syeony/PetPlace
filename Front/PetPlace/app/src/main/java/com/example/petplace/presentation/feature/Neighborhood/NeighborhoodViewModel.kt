@@ -7,6 +7,7 @@ import com.example.petplace.R
 import com.example.petplace.data.repository.KakaoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -52,20 +53,19 @@ class NeighborhoodViewModel @Inject constructor(
     fun hideBottomSheet() { _showBottomSheet.value = false }
     fun setThanksDialog(visible: Boolean) { _showThanksDialog.value = visible }
 
+    // 입양처 넘어가기 전 다이얼로그창 띄우기
+    private val _showAdoptConfirm = MutableStateFlow(false)
+    val showAdoptConfirm: StateFlow<Boolean> = _showAdoptConfirm
+
+    fun setShowAdoptConfirm(value: Boolean) {
+        _showAdoptConfirm.value = value
+    }
+
     fun searchPlaces(keyword: String, lat: Double, lng: Double) {
         viewModelScope.launch {
             try {
                 var safeKeyword = keyword.replace("#", "")
-//                if (keyword.equals("병원")){
-//                    safeKeyword = "동물병원"
-//                }else{
-//                    safeKeyword = "애견" + keyword
-//                }
-//        TagItem(R.drawable.dinner, "애견동반식당"),
-//        TagItem(R.drawable.coffee,       "애견동반카페"),
-//        TagItem(R.drawable.hospital,   "동물병원"),
-//        TagItem(R.drawable.ball,       "반려동물용품샵"),
-//        TagItem(R.drawable.hospital,        "동물호텔")
+
                 val places = kakaoRepository.searchPlaces(
                     keyword = safeKeyword,
                     x = lng,

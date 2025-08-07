@@ -1,6 +1,7 @@
 package com.minjeok4go.petplace.auth.controller;
 
 import com.minjeok4go.petplace.auth.dto.*;
+import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
 import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.auth.service.RefreshTokenService;
 import com.minjeok4go.petplace.auth.service.SocialAuthService;
@@ -19,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import java.util.Map;
 
 @Slf4j
 @Tag(name = "Auth API", description = "인증 관련 API")
@@ -30,7 +32,8 @@ public class AuthController {
 
     private final AuthService authService;
     private final RefreshTokenService refreshTokenService;
-    private final SocialAuthService socialAuthService; // 추가된 의존성
+    private final SocialAuthService socialAuthService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "로그인 합니다. 추가적인 유저의 정보도 반환합니다.")
@@ -108,8 +111,33 @@ public class AuthController {
     @Operation(summary = "소셜 회원가입", description = "본인인증 완료 후 소셜 계정으로 회원가입합니다.")
     public ResponseEntity<?> socialSignup(@RequestBody SocialSignupRequest request) {
         try {
+            // 1. 임시 토큰 검증 추가
+            if (request.getTempToken() == null || request.getTempToken().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(ApiResponse.failure("임시 토큰이 필요합니다."));
+            }
+
+            // 2. 임시 토큰 유효성 검증
+            try {
+                Map<String, Object> tempTokenClaims = jwtTokenProvider.getTempTokenClaims(request.getTempToken());
+                String tokenSocialId = (String) tempTokenClaims.get("socialId");
+                String tokenProvider = (String) tempTokenClaims.get("provider");
+
+                // 3. 요청의 소셜 정보와 토큰 정보 일치 여부 확인
+                if (!tokenSocialId.equals(request.getUserInfo().getSocialId()) ||
+                        !tokenProvider.equals(request.getProvider().name())) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(ApiResponse.failure("임시 토큰 정보가 일치하지 않습니다."));
+                }
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.failure("유효하지 않은 임시 토큰입니다."));
+            }
+
+            // 4. 기존 회원가입 로직 실행
             TokenDto tokenDto = socialAuthService.processSocialSignup(request);
             return ResponseEntity.ok(tokenDto);
+
         } catch (IllegalArgumentException e) {
             log.warn("소셜 회원가입 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
