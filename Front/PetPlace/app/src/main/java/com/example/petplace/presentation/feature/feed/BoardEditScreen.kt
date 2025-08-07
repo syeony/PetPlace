@@ -41,11 +41,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.petplace.R
 import com.example.petplace.data.model.feed.CreateImage
 import kotlinx.coroutines.launch
 
@@ -239,16 +241,16 @@ fun BoardEditScreen(
             }
 
             // 이미지 선택 버튼
-//            IconButton(
-//                onClick = { galleryLauncher.launch("image/*") },
-//                modifier = Modifier.align(Alignment.Start)
-//            ) {
-//                Icon(
-//                    painter = painterResource(id = R.drawable.outline_photo_camera_24),
-//                    contentDescription = "사진 촬영",
-//                    modifier = Modifier.size(28.dp)
-//                )
-//            }
+            IconButton(
+                onClick = { galleryLauncher.launch("image/*") },
+                modifier = Modifier.align(Alignment.Start)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.outline_photo_camera_24),
+                    contentDescription = "사진 촬영",
+                    modifier = Modifier.size(28.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -259,6 +261,7 @@ fun BoardEditScreen(
                             feedId = feedId,
                             regionId = regionId
                         ) {
+                            navController.previousBackStackEntry?.savedStateHandle?.set("feedEdited", true)
                             navController.popBackStack()
                         }
                     }

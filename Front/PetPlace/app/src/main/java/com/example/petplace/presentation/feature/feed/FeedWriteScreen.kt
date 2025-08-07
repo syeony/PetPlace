@@ -251,7 +251,8 @@ fun BoardWriteScreen(
                     scope.launch {
                         try {
                             val res = viewModel.uploadImagesAndSubmitFeed()
-                            // 성공 시 화면 뒤로 이동
+                            // 등록 성공 시 → FeedScreen에 신호 보내기
+                            navController.previousBackStackEntry?.savedStateHandle?.set("feedWritten", true)
                             navController.popBackStack()
                         } catch (e: Exception) {
                             e.printStackTrace()

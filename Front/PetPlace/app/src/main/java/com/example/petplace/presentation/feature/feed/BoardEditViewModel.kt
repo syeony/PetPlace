@@ -46,7 +46,7 @@ class BoardEditViewModel @Inject constructor(
             content.value = detail.content
             category.value = categoryValue
             tagIds.value = detail.tags.map { it.id.toLong() }
-            images.value = detail.images?.map { CreateImage(src = it.src, sort = it.sort) } ?: emptyList()
+            images.value = detail.images?.map { CreateImage(src = "http://i13d104.p.ssafy.io:8081"+it.src, sort = it.sort) } ?: emptyList()
         }
     }
 

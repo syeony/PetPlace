@@ -70,6 +70,19 @@ class BoardViewModel @Inject constructor(
     private val _commentList = MutableStateFlow<List<CommentRes>>(emptyList())
     val commentList: StateFlow<List<CommentRes>> = _commentList
 
+    /** 피드 삭제 */
+    fun deleteFeed(feedId: Long) {
+        viewModelScope.launch {
+            try {
+                repo.deleteFeed(feedId)
+                _remoteFeeds.update { feeds -> feeds.filterNot { it.id == feedId } }
+                applyFilters() // 화면에 즉시 반영
+            } catch (e: Exception) {
+                // 에러처리(선택)
+            }
+        }
+    }
+
     // 댓글 새로고침(댓글 등록하거나 삭제할때 바로바로 반영)
     fun refreshComments(feedId: Long) {
         viewModelScope.launch {

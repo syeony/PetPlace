@@ -3,6 +3,7 @@ package com.example.petplace.data.remote
 import com.example.petplace.data.model.feed.CommentReq
 import com.example.petplace.data.model.feed.CommentRes
 import com.example.petplace.data.model.feed.DeleteCommentRes
+import com.example.petplace.data.model.feed.DeleteFeedRes
 import com.example.petplace.data.model.feed.FeedCreateReq
 import com.example.petplace.data.model.feed.FeedCreateRes
 import com.example.petplace.data.model.feed.FeedRecommendRes
@@ -71,4 +72,9 @@ interface FeedApiService {
         @Path("id") feedId: Long,
         @Body body: FeedCreateReq
     ): FeedRecommendRes
+
+    @DELETE("/api/feeds/{id}")
+    suspend fun deleteFeed(
+        @Path("id") feedId: Long
+    ): DeleteFeedRes // ← 아래 data class 참고
 }

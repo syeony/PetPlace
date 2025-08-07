@@ -54,4 +54,8 @@ class FeedRepository @Inject constructor(
     suspend fun editFeed(feedId: Long, req: FeedCreateReq): FeedRecommendRes {
         return api.editFeed(feedId, req)
     }
+
+    suspend fun deleteFeed(feedId: Long): Long {
+        return api.deleteFeed(feedId).id
+    }
 }
