@@ -5,6 +5,8 @@ import android.util.Log
 import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.remote.ChatApiService
+import com.example.petplace.data.remote.FeedApiService
+import com.example.petplace.data.remote.ImageApiService
 import com.example.petplace.data.remote.JoinApiService
 import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.LoginApiService
@@ -14,7 +16,6 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import okhttp3.Authenticator
-import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -75,7 +76,8 @@ object NetworkModule {
                 override fun authenticate(route: Route?, response: Response): Request? {
                     // 이미 시도했는데 계속 401이면 무한 루프 방지
                     if (response.request.header("Authorization") != null &&
-                        responseCount(response) >= 2) {
+                        responseCount(response) >= 2
+                    ) {
                         return null
                     }
 
@@ -94,8 +96,9 @@ object NetworkModule {
 
                         if (refreshResponse.isSuccessful) {
                             val body = refreshResponse.body()
-                            if (body != null && body.success == 1) {
-                                app.saveLoginData(body.accessToken, body.refreshToken,
+                            if (body != null && body.success) {
+                                app.saveLoginData(
+                                    body.accessToken, body.refreshToken,
                                     app.getUserInfo() ?: return null
                                 )
                                 response.request.newBuilder()
@@ -159,6 +162,18 @@ object NetworkModule {
     fun provideServerApi(
         @Named("Server") retrofit: Retrofit
     ): LoginApiService = retrofit.create(LoginApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFeedApi(
+        @Named("Server") retrofit: Retrofit
+    ): FeedApiService = retrofit.create(FeedApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideImageApi(
+        @Named("Server") retrofit: Retrofit
+    ): ImageApiService = retrofit.create(ImageApiService::class.java)
 
     @Provides
     @Singleton

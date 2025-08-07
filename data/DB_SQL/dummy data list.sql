@@ -6,18 +6,30 @@ INSERT INTO `regions` (`id`, `name`, `parent_id`, `geometry`) VALUES
 (1004, '인천광역시', NULL, ST_GeomFromText('POINT(126.7052 37.4563)')),
 (1005, '광주광역시', NULL, ST_GeomFromText('POINT(126.8530 35.1595)'));
 
+-- 기본 광역시/도
+INSERT INTO regions (id, name, parent_id, geometry) VALUES 
+(1100000000, '서울특별시', NULL, ST_GeomFromText('POINT(126.9784 37.5667)')),
+(4100000000, '경기도', NULL, ST_GeomFromText('POINT(127.5183 37.2741)')),
+(4700000000, '경상북도', NULL, ST_GeomFromText('POINT(128.9056 36.4919)'));
+
+-- 주요 시군구 (구미 포함)
+INSERT INTO regions (id, name, parent_id, geometry) VALUES 
+(1111000000, '종로구', 1100000000, ST_GeomFromText('POINT(126.9792 37.5730)')),
+(4111000000, '수원시', 4100000000, ST_GeomFromText('POINT(127.0286 37.2636)')),
+(4719000000, '구미시', 4700000000, ST_GeomFromText('POINT(128.3445 36.1190)'));
+
 -- ✅ 유저 더미 데이터
 INSERT INTO `users` (
     `user_name`, `password`, `name`, `nickname`, `created_at`, `region_id`,
-    `default_pet_id`, `kakao_oauth`, `user_img_src`, `pet_smell`,
+    `default_pet_id`, `user_img_src`, `pet_smell`,
     `default_badge_id`, `ci`, `phone_number`, `gender`, `birthday`,
-    `is_foreigner`, `level`, `experience`
+    `is_foreigner`, `level`, `experience`, `login_type`
 ) VALUES
-('user01', 'pass1234', '김철수', '철수', NOW(), 1001, NULL, NULL, NULL, 36.5, NULL, 'CI_USER_001', '01012345678', 'male', '1990-01-15', 0, 1, 0),
-('user02', 'pass1234', '이영희', '영희', NOW(), 1002, NULL, NULL, NULL, 36.7, NULL, 'CI_USER_002', '01023456789', 'female', '1992-03-10', 0, 1, 0),
-('user03', 'pass1234', '박민수', '민수', NOW(), 1003, NULL, NULL, NULL, 36.4, NULL, 'CI_USER_003', '01034567890', 'male', '1988-07-22', 0, 1, 0),
-('user04', 'pass1234', '최지혜', '지혜', NOW(), 1004, NULL, NULL, NULL, 36.6, NULL, 'CI_USER_004', '01045678901', 'female', '1995-11-05', 0, 1, 0),
-('user05', 'pass1234', '정우성', '우성', NOW(), 1005, NULL, NULL, NULL, 36.5, NULL, 'CI_USER_005', '01056789012', 'male', '1985-05-30', 0, 1, 0);
+('user01', 'pass1234', '김철수', '철수', NOW(), 1001, NULL, NULL, 36.5, NULL, 'CI_USER_001', '01012345678', 'male', '1990-01-15', 0, 1, 0, 'EMAIL'),
+('user02', 'pass1234', '이영희', '영희', NOW(), 1002, NULL, NULL, 36.7, NULL, 'CI_USER_002', '01023456789', 'female', '1992-03-10', 0, 1, 0, 'EMAIL'),
+('user03', 'pass1234', '박민수', '민수', NOW(), 1003, NULL, NULL, 36.4, NULL, 'CI_USER_003', '01034567890', 'male', '1988-07-22', 0, 1, 0, 'EMAIL'),
+('user04', 'pass1234', '최지혜', '지혜', NOW(), 1004, NULL, NULL, 36.6, NULL, 'CI_USER_004', '01045678901', 'female', '1995-11-05', 0, 1, 0, 'EMAIL'),
+('user05', 'pass1234', '정우성', '우성', NOW(), 1005, NULL, NULL, 36.5, NULL, 'CI_USER_005', '01056789012', 'male', '1985-05-30', 0, 1, 0, 'EMAIL');
 
 -- ✅ 펫 더미 데이터
 INSERT INTO `pets` (`user_id`, `name`, `animal`, `breed`, `sex`, `birthday`) VALUES

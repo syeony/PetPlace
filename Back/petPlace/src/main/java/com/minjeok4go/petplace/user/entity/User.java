@@ -116,10 +116,11 @@ public class User {
     // [개선] 신규 소셜 회원가입용 팩토리 메서드 추가
     public static User createSocialUser(String name, String nickname, Long regionId, String ci,
                                         String phoneNumber, String gender, LocalDate birthday,
-                                        String socialId, String socialEmail, String profileImageUrl, LoginType loginType) {
+                                        String socialId, String socialEmail, String profileImageUrl, 
+                                        LoginType loginType, String encodedRandomPassword) {
         User user = new User();
         user.userName = loginType.name().toLowerCase() + "_" + socialId; // e.g., "kakao_12345"
-        user.password = null; // 소셜 가입자는 비밀번호를 null로 설정
+        user.password = encodedRandomPassword; // 랜덤 패스워드 설정 (null 대신)
         user.name = name;
         user.nickname = nickname;
         user.regionId = regionId;

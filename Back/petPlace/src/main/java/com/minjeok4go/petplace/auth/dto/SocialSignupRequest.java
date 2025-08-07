@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SocialSignupRequest {
+    private String tempToken;
     private SocialProvider provider;        // 소셜 플랫폼
     private KakaoUserInfo userInfo;         // 소셜 사용자 정보
     private String impUid;                  // 본인인증 거래번호

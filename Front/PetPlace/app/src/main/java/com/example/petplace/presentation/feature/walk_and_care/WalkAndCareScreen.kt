@@ -3,7 +3,6 @@ package com.example.petplace.presentation.feature.walk_and_care
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,31 +16,35 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.petplace.R
-import com.example.petplace.presentation.feature.feed.hashtagStyles
+import com.example.petplace.data.local.Walk.Post
+import com.example.petplace.presentation.feature.feed.categoryStyles
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -50,9 +53,12 @@ fun WalkAndCareScreen(
     modifier: Modifier = Modifier,
     viewModel: WalkAndCareViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
-    val search = viewModel.searchText
-    val posts = viewModel.postList
-    val tags = viewModel.tags
+    val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val search = viewModel.searchText.collectAsState()
+    val posts by viewModel.filteredPosts.collectAsState()
+    val tags = viewModel.allCategories
+
+    val hashtagColor = Color(0xFFF79800)
 
     Scaffold(
         floatingActionButton = {
@@ -70,43 +76,78 @@ fun WalkAndCareScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp) // innerPadding 제거
+                .padding(vertical = 8.dp, horizontal = 16.dp) // innerPadding 제거
         ) {
-            Row(){
+            Row(modifier = Modifier
+                .padding(start = 8.dp)){
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_location_on), contentDescription = "위치")
+                    painter = painterResource(id = R.drawable.location_marker),
+                    contentDescription = "위치",
+                    modifier = Modifier
+                        .size(16.dp), // 원하는 크기로 조절
+                    tint = Color.Unspecified // 원본 이미지 색상 유지
+                )
                 Text(" 구미시 인의동", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
-                value = search,
-                onValueChange = { viewModel.updateSearchText(it) },
-                placeholder = { Text("게시물 검색...") },
-                trailingIcon = {
-                    IconButton(onClick = { viewModel.applySearch() }) {
-                        Icon(Icons.Default.Search, contentDescription = "검색")
-                    }
-                },
+                value = search.value,
+                onValueChange = viewModel::updateSearchText,
+                placeholder = { Text("찾으시는 단어를 입력하세요") },
+                modifier = Modifier
+                    .fillMaxWidth(),
+                singleLine = true,
                 shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedBorderColor = Color(0xFFFFA500)
+                    focusedBorderColor   = hashtagColor,
+                    unfocusedBorderColor = hashtagColor,
+                    cursorColor          = hashtagColor,
+                    focusedContainerColor   = Color.White,
+                    unfocusedContainerColor = Color.White
                 )
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                tags.forEach {
-                    AssistChip(
-                        onClick = { viewModel.filterByTag(it) },
-                        label = { Text(it) },
-                        shape = RoundedCornerShape(50.dp),
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
+            val screenWidth = LocalConfiguration.current.screenWidthDp
+            val columns = 4  // 한 줄에 2개 또는 3개 원하시는 개수 설정
+
+            Column(modifier = Modifier.fillMaxWidth()) {
+                viewModel.allCategories.chunked(columns).forEach { rowItems ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        rowItems.forEach { cat ->
+                            val picked   = selectedCategory == cat
+                            val bg       = if (picked) MaterialTheme.colorScheme.primary else Color(0xFFFFFDF9)
+                            val txtColor = if (picked) Color.White else Color(0xFF374151)
+
+                            Button(
+                                onClick = { viewModel.toggleCategory(cat) },
+                                colors = ButtonDefaults.buttonColors(containerColor = bg),
+                                border = if (picked) null else ButtonDefaults.outlinedButtonBorder.copy(
+                                    brush = Brush.linearGradient(listOf(hashtagColor, hashtagColor))
+                                ),
+                                shape = RoundedCornerShape(14.dp),
+                                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(36.dp) // 버튼 높이 고정
+                            ) {
+                                Text(cat, color = txtColor, fontSize = 12.sp)
+                            }
+                        }
+
+                        // 빈 공간 채우기 (아이템 수가 columns보다 적을 경우)
+                        repeat(columns - rowItems.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
 
@@ -135,7 +176,7 @@ fun PostCard(post: Post) {
     ) {
         Row(modifier = Modifier.padding(16.dp)) {
             Column(modifier = Modifier.weight(1f)) {
-                val style = hashtagStyles[post.category] ?: Pair(Color.LightGray, Color.DarkGray)
+                val style = categoryStyles[post.category] ?: Pair(Color.LightGray, Color.DarkGray)
 
                 Text(
                     post.category,
@@ -182,11 +223,3 @@ fun PostCard(post: Post) {
     }
 }
 
-data class Post(
-    val category: String,
-    val title: String,
-    val body: String,
-    val meta: String,
-    val commentCount: Int,
-    val imageRes: Int
-)

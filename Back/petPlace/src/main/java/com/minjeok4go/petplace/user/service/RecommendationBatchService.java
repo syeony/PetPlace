@@ -37,29 +37,30 @@ public class RecommendationBatchService {
             String groupKey = userGroupService.determineGroupKey(user, pets);
 
             // 4) 이 그룹에 맞는 피드 선정 (여기선 일단 전체 인기 피드 예시)
-            List<Feed> feeds = feedRepository.findTop200ByOrderByLikeCountDesc(); // 최신순·인기순 등 조합 가능
+//            List<Feed> feeds = feedRepository.findTop200ByOrderByLikeCountDesc(); // 최신순·인기순 등 조합 가능
 
             // 5) 피드별 추천 점수 계산 & Redis 저장
-            for (Feed feed : feeds) {
-                double score = calculateScore(user, pets, feed); // 점수 산정 함수
-                // Redis: group:{groupKey} => (feedId, score)
-                redisTemplate.opsForZSet().add("group:" + groupKey, String.valueOf(feed.getId()), score); // groupkey를 redis에 저장
+//            for (Feed feed : feeds) {
+//                double score = calculateScore(user, pets, feed); // 점수 산정 함수
+//                // Redis: group:{groupKey} => (feedId, score)
+//                redisTemplate.opsForZSet().add("group:" + groupKey, String.valueOf(feed.getId()), score); // groupkey를 redis에 저장
             }
         }
     }
 
-    // 피드별 추천 점수 계산 로직
-    private double calculateScore(User user, List<Pet> pets, Feed feed) {
-        double score = 0;
-        score += feed.getLikeCount() * 2; // 좋아요 개수 *2
-        score += feed.getCommentCount();  // 댓글수
-        if (feed.isDogRelated() && pets.stream().anyMatch(pet -> pet.getAnimal() == Animal.DOG)) {
-            score += 20; // 유저가 강아지 키우면 강아지 피드 가산점
-        }
-        if (feed.getCreatedAt().isAfter(LocalDate.now().minusDays(2).atStartOfDay())) {
-            score += 10;
-        }
-        // 기타 룰 추가 가능
-        return score;
-    }
-}
+//    // 피드별 추천 점수 계산 로직
+//    private double calculateScore(User user, List<Pet> pets, Feed feed) {
+//        double score = 0;
+//        score += feed.getLikes() * 2; // 좋아요 개수 *2
+//        score += feed.getViews();
+////        score += feed.getCommentCount();  // 댓글수
+////        if (feed.isDogRelated() && pets.stream().anyMatch(pet -> pet.getAnimal() == Animal.DOG)) {
+////            score += 20; // 유저가 강아지 키우면 강아지 피드 가산점
+////        }
+//        if (feed.getCreatedAt().isAfter(LocalDate.now().minusDays(2).atStartOfDay())) {
+//            score += 10;
+//        }
+//        // 기타 룰 추가 가능
+//        return score;
+//    }
+//}

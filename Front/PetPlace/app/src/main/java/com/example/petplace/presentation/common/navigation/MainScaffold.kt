@@ -2,14 +2,15 @@ package com.example.petplace.presentation.common.navigation
 
 import android.annotation.SuppressLint
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -17,7 +18,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.petplace.presentation.common.theme.PetPlaceTheme
 import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
 import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
@@ -36,9 +36,13 @@ import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
-import androidx.navigation.navigation
+import androidx.navigation.compose.navigation
+import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
 import com.example.petplace.presentation.feature.join.CertificationScreen
 import com.example.petplace.presentation.feature.join.JoinViewModel
+import com.example.petplace.presentation.feature.join.KakaoCertificationScreen
+import com.example.petplace.presentation.feature.join.KakaoJoinCheckScreen
+import com.example.petplace.presentation.feature.join.KakaoJoinScreen
 import com.example.petplace.presentation.feature.splash.SplashScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -98,6 +102,10 @@ fun MainScaffold() {
                     initialShowDialog = showDialog
                 )
             }
+
+
+
+
             composable("missing_report") { ReportScreen(navController) }
             composable("missing_map") { MissingMapScreen(navController) }
             composable("missing_register") { RegisterScreen(navController) }
@@ -147,7 +155,63 @@ fun MainScaffold() {
                     val viewModel = hiltViewModel<JoinViewModel>(parentEntry)
                     JoinScreen(navController, viewModel)
                 }
+
             }
+
+            navigation(
+                route = "kakao_join_graph",
+                startDestination = "kakao_join_check/{socialId}/{tempToken}"
+            ) {
+                // 3-1) 가입 여부 체크 화면
+                composable(
+                    route = "kakao_join_check/{socialId}/{tempToken}",
+                    arguments = listOf(
+                        navArgument("socialId")  { type = NavType.StringType },
+                        navArgument("tempToken") { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    // 여기 안에서는 @Composable 이므로 뷰모델을 안전하게 가져올 수 있습니다.
+                    val parentEntry = navController.getBackStackEntry("kakao_join_graph")
+                    val kakaoVm = hiltViewModel<KakaoJoinViewModel>(parentEntry)
+
+                    val sidString = backStackEntry.arguments!!.getString("socialId")!!
+
+                    // Long 으로 변환
+                    val sid: Long = sidString.toLong()
+                    val tmp = backStackEntry.arguments!!.getString("tempToken")!!
+                    Log.d("tempToken", "MainScaffold: tmp = $tmp ")
+                    KakaoJoinCheckScreen(
+                        socialId = sid,
+                        tempToken = tmp,
+                        navController = navController,
+                        viewModel = kakaoVm
+                    )
+                }
+                // 인증
+                composable("kakao_join_form") { backStackEntry ->
+                    // 역시 여기서 parentEntry 로 같은 뷰모델을 가져옵니다.
+                    val parentEntry = navController.getBackStackEntry("kakao_join_graph")
+                    val kakaoVm = hiltViewModel<KakaoJoinViewModel>(parentEntry)
+
+                    KakaoCertificationScreen(
+                        viewModel = kakaoVm,
+                        navController = navController
+                    )
+                }
+
+                composable("kakao_join_main") { backStackEntry ->
+                    // 역시 여기서 parentEntry 로 같은 뷰모델을 가져옵니다.
+                    val parentEntry = navController.getBackStackEntry("kakao_join_graph")
+                    val kakaoVm = hiltViewModel<KakaoJoinViewModel>(parentEntry)
+
+                    KakaoJoinScreen(
+                        viewModel = kakaoVm,
+                        navController = navController
+                    )
+                }
+            }
+
+
         }
     }
 }

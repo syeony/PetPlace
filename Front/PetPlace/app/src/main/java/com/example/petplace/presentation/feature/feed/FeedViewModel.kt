@@ -1,173 +1,209 @@
 package com.example.petplace.presentation.feature.feed
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.petplace.data.local.feed.Comment
-import com.example.petplace.data.local.feed.Post
-import com.example.petplace.data.local.feed.Reply
+import coil.compose.rememberAsyncImagePainter
+import com.example.petplace.PetPlaceApp
+import com.example.petplace.R
+import com.example.petplace.data.model.feed.CommentReq
+import com.example.petplace.data.model.feed.CommentRes
+import com.example.petplace.data.model.feed.FeedRecommendRes
+import com.example.petplace.data.repository.FeedRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@HiltViewModel
+class BoardViewModel @Inject constructor(
+    private val repo: FeedRepository
+) : ViewModel() {
 
-class BoardViewModel : ViewModel() {
-    val allCategories = listOf("내새꾸자랑", "나눔", "공구", "정보", "자유")
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val userInfo = app.getUserInfo()
 
-    private val _selectedCategories = MutableStateFlow<Set<String>>(emptySet())
-    val selectedCategories: StateFlow<Set<String>> = _selectedCategories
+    /* ─── 상수 ─── */
+    private val USER_ID = userInfo         // ← 로그인 완료되면 Token or DataStore 에서 꺼내 쓰면 됨
+    private val PAGE    = 0
+    private val SIZE    = 100
+
+    /* ─── UI State ─── */
+    val allCategories = listOf("내새꾸자랑", "정보", "나눔", "후기", "자유")
+
+    private val _selectedCategory = MutableStateFlow<String?>(null)
+    val selectedCategory: StateFlow<String?> = _selectedCategory
 
     private val _searchText = MutableStateFlow("")
     val searchText: StateFlow<String> = _searchText
 
-    private val _allPosts = MutableStateFlow(samplePosts)
-    private val _filteredPosts = MutableStateFlow(samplePosts)
-    val filteredPosts: StateFlow<List<Post>> = _filteredPosts
+    /** 서버-원본 */
+    private val _remoteFeeds = MutableStateFlow<List<FeedRecommendRes>>(emptyList())
 
-    private val _comments = MutableStateFlow(sampleComments)
+    /** 로컬 필터 결과 */
+    private val _filteredFeeds = MutableStateFlow<List<FeedRecommendRes>>(emptyList())
+    val filteredFeeds: StateFlow<List<FeedRecommendRes>> = _filteredFeeds
 
-    init {
-        applyFilters()
-    }
+    /** 로딩 & 에러 (선택) */
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
 
-    fun toggleCategory(category: String) {
-        _selectedCategories.update { current ->
-            if (current.contains(category)) current - category else current + category
+    init { loadFeeds() }
+
+    // 내가 좋아요 누른 피드 id 집합 (앱 단 관리)
+    private val _likedFeeds = MutableStateFlow<Set<Long>>(emptySet())
+    val likedFeeds: StateFlow<Set<Long>> = _likedFeeds
+
+    // 댓글 리스트
+    private val _commentList = MutableStateFlow<List<CommentRes>>(emptyList())
+    val commentList: StateFlow<List<CommentRes>> = _commentList
+
+    // 댓글 새로고침(댓글 등록하거나 삭제할때 바로바로 반영)
+    fun refreshComments(feedId: Long) {
+        viewModelScope.launch {
+            try {
+                val comments = repo.getComments(feedId)
+                _commentList.value = comments
+            } catch (e: Exception) {
+                // 에러 처리(토스트 등)
+            }
         }
+    }
+
+    fun isFeedLiked(feedId: Long) = _likedFeeds.value.contains(feedId)
+
+    fun toggleLike(feed: FeedRecommendRes) {
+        viewModelScope.launch {
+            try {
+                if (isFeedLiked(feed.id)) {
+                    // 좋아요 취소
+                    repo.unlikeFeed(feed.id) // feed.id 또는 서버에서 받는 likeId
+                    _likedFeeds.update { it - feed.id }
+                } else {
+                    // 좋아요 등록
+                    repo.likeFeed(feed.id)
+                    _likedFeeds.update { it + feed.id }
+                }
+                // 최신 좋아요 수 동기화하려면 서버 feedLikes 받아서 feeds 상태 갱신
+                refreshLikeCount(feed.id)
+            } catch (e: Exception) {
+                // TODO: 에러 처리
+            }
+        }
+    }
+
+    private fun refreshLikeCount(feedId: Long) {
+        // 실제로는 feedRecommendRes의 likes도 최신화 필요!
+        // _remoteFeeds 업데이트 코드 추가!
+        // 아래는 예시. (feedLikes만 바꿔주는 방식)
+        _remoteFeeds.update { feeds ->
+            feeds.map {
+                if (it.id == feedId) it.copy(likes = it.likes + (if (isFeedLiked(feedId)) 1 else -1))
+                else it
+            }
+        }
+        applyFilters() // 화면 반영
+    }
+
+    // 댓글 작성
+    suspend fun addComment(feedId: Long, parentCommentId: Long?, content: String): CommentRes {
+        val result = repo.createComment(
+            CommentReq(feedId = feedId, parentCommentId = parentCommentId, content = content)
+        )
+        refreshComments(feedId) // 댓글 작성 후 바로 새로고침
+        return result
+    }
+
+    // 댓글 삭제
+    suspend fun removeComment(commentId: Long, feedId: Long) {
+        repo.deleteComment(commentId)
+        refreshComments(feedId) // 삭제 후 바로 새로고침
+    }
+
+    /** ------------ 서버 호출 ------------ */
+    private fun loadFeeds() = viewModelScope.launch {
+        _loading.value = true
+        _error.value = null
+        try {
+            val result = repo.fetchRecommendedFeeds(USER_ID, PAGE, SIZE)
+            _remoteFeeds.value = result
+            applyFilters()                 // 원본 들어온 뒤 화면에 반영
+        } catch (e: Exception) {
+            _error.value = e.message ?: "알 수 없는 오류"
+        } finally {
+            _loading.value = false
+        }
+    }
+
+    /** ------------ 카테고리 토글 ------------ */
+    fun toggleCategory(cat: String) {
+        _selectedCategory.update { if (it == cat) null else cat }
         applyFilters()
     }
 
+    /** ------------ 검색어 업데이트 ------------ */
     fun updateSearchText(text: String) {
         _searchText.value = text
         applyFilters()
     }
 
+    /** ------------ 필터링 ------------ */
     private fun applyFilters() {
-        viewModelScope.launch {
-            val categories = _selectedCategories.value
-            val query = _searchText.value.lowercase()
+        val cat   = _selectedCategory.value
+        val query = _searchText.value.trim().lowercase()
 
-            _filteredPosts.value = _allPosts.value.filter { post ->
-                (categories.isEmpty() || categories.contains(post.category)) &&
-                        (query.isBlank() || post.content.lowercase().contains(query))
-            }
+        _filteredFeeds.value = _remoteFeeds.value.filter { f ->
+            (cat == null || f.category == cat) &&
+                    (query.isBlank() || f.content.lowercase().contains(query))
         }
     }
 
-    fun getCommentsForPost(postId: String): List<Comment> {
-        return _comments.value.filter { it.postId == postId }
+    /** ------------ 댓글 가져오기 ------------ */
+    fun getCommentsForFeed(feedId: Long) =
+        _remoteFeeds.value.firstOrNull { it.id == feedId }?.comments ?: emptyList()
+
+    fun refreshFeeds(onFinish: () -> Unit) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                val result = repo.fetchRecommendedFeeds(USER_ID, PAGE, SIZE)
+                _remoteFeeds.value = result
+                applyFilters()
+            } catch (e: Exception) {
+                _error.value = e.message ?: "알 수 없는 오류"
+            } finally {
+                _loading.value = false
+                onFinish()
+            }
+        }
     }
 }
 
-val samplePosts = listOf(
-    Post(
-        id = "1",
-        profileImage = "https://randomuser.me/api/portraits/women/1.jpg",
-        category = "내새꾸자랑",
-        author = "이도형",
-        content = "오늘 처음으로 집에서 목욕시켜봤는데 생각보다 순했어요! 처음엔 무서워했지만 금세 적응하더라구요 ㅎㅎ",
-        hashtags = listOf("#골든리트리버", "#목욕", "#첫경험", "#귀여워"),
-        imageUrls = listOf(
-            "https://lh4.googleusercontent.com/proxy/d9kCctaZDANtXrlzOCIfN9dV8y0d0wD75pIdJ7RVeebztPErjpoy-oskh3PGWrm8jHuDDhNjMCzzD4PJ1RPFF4HRZckQcCEQfxyMWPQ-",
-            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/640px-Felis_catus-cat_on_snow.jpg"
-        ),
-        location = "인의동",
-        likes = 24,
-        comments = 8
-    ),
-    Post(
-        id = "2",
-        profileImage = "https://randomuser.me/api/portraits/men/2.jpg",
-        category = "나눔",
-        author = "송정현",
-        content = "집에 쌓여있는 고양이 장난감들 나눔합니다! 우리 냥이가 안 가지고 놀아서... 필요하신 분 댓글 남겨주세요",
-        hashtags = listOf("#고양이", "#장난감", "#나눔", "#무료"),
-        imageUrls = listOf(
-            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Felis_catus-cat_on_snow.jpg/640px-Felis_catus-cat_on_snow.jpg",
-        ),
-        location = "인의동",
-        likes = 12,
-        comments = 15
-    ),
-    Post(
-        id = "3",
-        profileImage = "https://randomuser.me/api/portraits/women/3.jpg",
-        category = "내새꾸자랑",
-        author = "정유진",
-        content = "오늘도 열심히 해바라기씨 까먹는 우리 햄찌 ㅋㅋ 볼주머니 가득 채우고 뿌듯한 표정이에요",
-        hashtags = listOf("#햄스터", "#간식", "#cute", "#해바라기씨"),
-        imageUrls = listOf(
-            "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/PhodopusSungorus_2.jpg/640px-PhodopusSungorus_2.jpg",
-            ),
-        location = "인의동",
-        likes = 31,
-        comments = 6
+/* 작고 반복되는 프로필 이미지 렌더링 */
+@Composable
+fun ProfileImage(url: String?) {
+    val painter = url?.let { rememberAsyncImagePainter("http://i13d104.p.ssafy.io:8081"+it) }
+        ?: painterResource(R.drawable.pp_logo)
+
+    Image(
+        painter = painter,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(35.dp)
+            .clip(CircleShape)
     )
-)
-val sampleComments = listOf(
-    Comment(
-        postId = "1",
-        author = "김지은",
-        profileImage = "https://randomuser.me/api/portraits/women/10.jpg",
-        town = "인의동",
-        text = "너무 귀엽네요!",
-        isMine = false,
-        replies = listOf(
-            Reply(
-                author = "나",
-                profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
-                town = "인의동",
-                text = "감사합니다! 😆",
-                isMine = true
-            ),
-            Reply(
-                author = "박민수",
-                profileImage = "https://randomuser.me/api/portraits/men/12.jpg",
-                town = "인의동",
-                text = "저도 귀엽다고 생각해요!",
-                isMine = false
-            )
-        )
-    ),
-    Comment(
-        postId = "1",
-        author = "나",
-        profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
-        town = "인의동",
-        text = "감사해요!",
-        isMine = true
-    ),
-    Comment(
-        postId = "1",
-        author = "이수현",
-        profileImage = "https://randomuser.me/api/portraits/women/20.jpg",
-        town = "인의동",
-        text = "강아지 종이 뭐에요?",
-        isMine = false,
-        replies = listOf(
-            Reply(
-                author = "나",
-                profileImage = "https://randomuser.me/api/portraits/men/5.jpg",
-                town = "인의동",
-                text = "말티즈에요!",
-                isMine = true
-            )
-        )
-    ),
-    Comment(
-        postId = "1",
-        author = "최유진",
-        profileImage = "https://randomuser.me/api/portraits/women/30.jpg",
-        town = "인의동",
-        text = "저희 집 강아지도 친구하고 싶어할 듯! 🐶",
-        isMine = false
-    ),
-    Comment(
-        postId = "1",
-        author = "박성민",
-        profileImage = "https://randomuser.me/api/portraits/men/15.jpg",
-        town = "인의동",
-        text = "귀엽네요 ㅎㅎ",
-        isMine = false
-    )
-)
+}

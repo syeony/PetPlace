@@ -1,8 +1,8 @@
 package com.example.petplace.presentation.feature.feed
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,7 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -33,45 +32,78 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BoardWriteScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    viewModel: BoardViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: BoardWriteViewModel = hiltViewModel()
 ) {
-    val allCategories = viewModel.allCategories
-    val allTags = listOf(
-        "1111", "2222", "3333", "4444", "5555", "6666", "7777", "8888", "9999", "1010",
-        "11111", "1212", "1313", "1414", "1515", "1616", "1717", "1818", "1919", "2020"
+    val content by viewModel.content.collectAsState()
+    val category by viewModel.category.collectAsState()
+    val tagIds by viewModel.tagIds.collectAsState()
+    val images by viewModel.images.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    val allCategories = listOf(
+        "내새꾸자랑" to "MYPET",
+        "정보" to "INFO",
+        "나눔" to "SHARE",
+        "후기" to "REVIEW",
+        "자유" to "ANY"
     )
 
-    var selectedCategory by remember { mutableStateOf<String?>(null) }
-    var selectedTags by remember { mutableStateOf<List<String>>(emptyList()) }
-    var content by remember { mutableStateOf("") }
-    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    val allTags = listOf(
+        "산책", "목욕", "미용", "사료", "간식", "놀이", "훈련", "건강관리", "동물병원",
+        "호텔", "유치원", "캣타워", "펫시터", "입양", "보험", "장난감", "케어",
+        "리드줄", "하네스", "이동장", "실종"
+    )
+
+//    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+//
+//    val galleryLauncher = rememberLauncherForActivityResult(
+//        contract = ActivityResultContracts.GetMultipleContents()
+//    ) { uris ->
+//        if (uris.isNotEmpty()) {
+//            imageUris = imageUris + uris
+//            // 서버 전송할 CreateImage 모델로 변환
+//            viewModel.setImages(
+//                imageUris.mapIndexed { index, uri ->
+//                    CreateImage(
+//                        src = uri.toString(),
+//                        sort = index
+//                    )
+//                }
+//            )
+//        }
+//    }
+
+    val imageUris by viewModel.imageUris.collectAsState()
+    val scope1 = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         if (uris.isNotEmpty()) {
-            imageUris = imageUris + uris
+            viewModel.setImageUris(uris)
         }
     }
 
@@ -81,7 +113,7 @@ fun BoardWriteScreen(
                 .fillMaxSize()
                 .background(Color.White)
                 .padding(16.dp)
-                .padding(bottom = 160.dp) // 여유 패딩
+                .padding(bottom = 160.dp)
         ) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -95,8 +127,8 @@ fun BoardWriteScreen(
                     .horizontalScroll(rememberScrollState())
                     .padding(start = 16.dp)
             ) {
-                allCategories.forEach { category ->
-                    val selected = selectedCategory == category
+                allCategories.forEach { (label, apiValue) ->
+                    val selected = category == apiValue
                     val bgColor = if (selected) Color(0xFFF79800) else Color.White
                     val textColor = if (selected) Color.White else Color.DarkGray
                     val borderColor = if (selected) Color.Transparent else Color.DarkGray
@@ -106,22 +138,27 @@ fun BoardWriteScreen(
                             .padding(end = 8.dp)
                             .border(1.dp, borderColor, RoundedCornerShape(20.dp))
                             .background(bgColor, RoundedCornerShape(20.dp))
-                            .clickable { selectedCategory = category }
+                            .clickable { viewModel.pickCategory(apiValue) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Text(text = category, color = textColor, fontSize = 14.sp)
+                        Text(text = label, color = textColor, fontSize = 14.sp)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            Text("카테고리를 하나 선택해주세요.", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(start = 16.dp))
+            Text(
+                "카테고리를 하나 선택해주세요.",
+                fontSize = 12.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(start = 16.dp)
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedTextField(
                 value = content,
-                onValueChange = { content = it },
+                onValueChange = { viewModel.updateContent(it) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp),
@@ -148,8 +185,8 @@ fun BoardWriteScreen(
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                 verticalArrangement = Arrangement.spacedBy(7.dp)
             ) {
-                allTags.forEach { tag ->
-                    val selected = tag in selectedTags
+                allTags.forEachIndexed { index, tag ->
+                    val selected = tagIds.contains(index.toLong())
                     val bgColor = if (selected) Color(0xFFF79800) else Color.White
                     val borderColor = if (selected) Color(0xFFF79800) else Color.LightGray
                     val textColor = if (selected) Color.White else Color.DarkGray
@@ -161,26 +198,10 @@ fun BoardWriteScreen(
                             .border(1.dp, borderColor, RoundedCornerShape(20.dp))
                             .background(bgColor, RoundedCornerShape(20.dp))
                             .clickable {
-                                selectedTags = if (selected) {
-                                    selectedTags - tag
-                                } else if (selectedTags.size < 4) {
-                                    selectedTags + tag
-                                } else selectedTags
+                                viewModel.toggleTag(index.toLong())
                             }
                             .padding(horizontal = 12.dp, vertical = 6.dp),
                         fontSize = 15.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(modifier = Modifier.padding(horizontal = 16.dp)) {
-                selectedTags.forEach {
-                    Text(
-                        text = "#${it}",
-                        color = Color(0xFFF79800),
-                        modifier = Modifier.padding(end = 8.dp),
-                        fontSize = 14.sp
                     )
                 }
             }
@@ -192,6 +213,61 @@ fun BoardWriteScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
+//            if (imageUris.isNotEmpty()) {
+//                FlowRow(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(bottom = 8.dp),
+//                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+//                    verticalArrangement = Arrangement.spacedBy(8.dp)
+//                ) {
+//                    imageUris.forEach { uri ->
+//                        Box(modifier = Modifier.size(100.dp)) {
+//                            androidx.compose.foundation.Image(
+//                                painter = rememberAsyncImagePainter(model = uri),
+//                                contentDescription = "선택한 이미지",
+//                                modifier = Modifier
+//                                    .size(100.dp)
+//                                    .clip(RoundedCornerShape(10.dp))
+//                                    .border(1.dp, Color.Gray, RoundedCornerShape(10.dp)),
+//                                contentScale = ContentScale.Crop
+//                            )
+//                            IconButton(
+//                                onClick = {
+//                                    imageUris = imageUris - uri
+//                                    viewModel.setImages(
+//                                        imageUris.mapIndexed { index, u ->
+//                                            CreateImage(src = u.toString(), sort = index)
+//                                        }
+//                                    )
+//                                },
+//                                modifier = Modifier
+//                                    .align(Alignment.TopEnd)
+//                                    .size(24.dp)
+//                            ) {
+//                                Icon(
+//                                    Icons.Default.Clear,
+//                                    contentDescription = "삭제",
+//                                    tint = Color.White
+//                                )
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//
+//            IconButton(
+//                onClick = { galleryLauncher.launch("image/*") },
+//                modifier = Modifier.align(Alignment.Start)
+//            ) {
+//                Icon(
+//                    painter = painterResource(id = R.drawable.outline_photo_camera_24),
+//                    contentDescription = "사진 촬영",
+//                    modifier = Modifier.size(28.dp)
+//                )
+//            }
+
+            // 이미지 미리보기
             if (imageUris.isNotEmpty()) {
                 FlowRow(
                     modifier = Modifier
@@ -202,34 +278,18 @@ fun BoardWriteScreen(
                 ) {
                     imageUris.forEach { uri ->
                         Box(modifier = Modifier.size(100.dp)) {
-                            androidx.compose.foundation.Image(
+                            Image(
                                 painter = rememberAsyncImagePainter(model = uri),
-                                contentDescription = "선택한 이미지",
+                                contentDescription = null,
                                 modifier = Modifier
                                     .size(100.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .border(1.dp, Color.Gray, RoundedCornerShape(10.dp)),
-                                contentScale = ContentScale.Crop
                             )
-                            IconButton(
-                                onClick = {
-                                    imageUris = imageUris - uri
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .size(24.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Clear,
-                                    contentDescription = "삭제",
-                                    tint = Color.White
-                                )
-                            }
                         }
                     }
                 }
             }
-
+            // 이미지 선택 버튼
             IconButton(
                 onClick = { galleryLauncher.launch("image/*") },
                 modifier = Modifier.align(Alignment.Start)
@@ -245,8 +305,15 @@ fun BoardWriteScreen(
 
             Button(
                 onClick = {
-                    // TODO: 등록 처리
-                    navController.popBackStack()
+                    scope.launch {
+                        try {
+                            val res = viewModel.uploadImagesAndSubmitFeed()
+                            // 성공 시 화면 뒤로 이동
+                            navController.popBackStack()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

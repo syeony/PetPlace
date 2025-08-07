@@ -40,6 +40,9 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/favicon.ico",
 
+                                // 테스트 페이지 (개발용)
+                                "/test/**",
+
                                 // 사용자 API
                                 "/api/user/signup",
                                 "/api/user/check-username",
@@ -59,12 +62,20 @@ public class SecurityConfig {
 
                                 // 기타 공개 API
                                 "/api/upload/images",
+                                "/images/**",
                                 "/error",
 
                                 // 채팅 기능 API
                                 "/api/chat/**",
                                 "/ws/**",
-                                "/ws/chat/**"
+                                "/ws/chat/**",
+
+                                // 호텔 API
+                                "/api/hotels/**",
+                                "/api/reservations/**",
+                                "/api/payments/**"
+
+
                         ).permitAll()
 
                         // 나머지는 인증 필요
