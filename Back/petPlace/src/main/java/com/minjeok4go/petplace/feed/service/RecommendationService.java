@@ -8,6 +8,9 @@ import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.repository.FeedRepository;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
+import com.minjeok4go.petplace.like.repository.LikeRepository;
+import com.minjeok4go.petplace.like.service.LikeService;
+import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +24,11 @@ public class RecommendationService {
 
     private final FeedRepository feedRepository;
     private final ImageRepository imageRepository;
+    private final LikeRepository likeRepository;
 
     @Transactional(readOnly = true)
-    public List<FeedListResponse> getRecommendedFeeds(Long userId, int page, int size) {
+    public List<FeedListResponse> getRecommendedFeeds(User user, int page, int size) {
+        Long userId = user.getId();
         boolean isColdStart = checkColdStart(userId);
 
         List<Feed> allFeeds = feedRepository.findAllByDeletedAtIsNull();
@@ -72,6 +77,7 @@ public class RecommendationService {
                             .createdAt(feed.getCreatedAt())
                             .updatedAt(feed.getUpdatedAt())
                             .deletedAt(feed.getDeletedAt())
+                            .liked(likeRepository.existsByFeedAndUser(feed, user))
                             .likes(feed.getLikes())
                             .views(feed.getViews())
                             .score(hybridScore)

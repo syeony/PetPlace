@@ -38,8 +38,10 @@ public class FeedController {
         description = "Path 변수로 넘어온 피드 ID 에 해당하는 피드를 상세 정보와 함께 반환합니다."
     )
     @GetMapping("/{id}")
-    public FeedDetailResponse getFeed(@PathVariable Long id) {
-        return feedService.getFeedDetail(id);
+    public FeedDetailResponse getFeed(@PathVariable Long id,
+                                      @AuthenticationPrincipal String tokenUserId) {
+        User me = authService.getUserFromToken(tokenUserId);
+        return feedService.getFeedDetail(id, me);
     }
 
     @Operation(
@@ -63,7 +65,7 @@ public class FeedController {
                                                                       @AuthenticationPrincipal String tokenUserId
     ) {
         User me = authService.getUserFromToken(tokenUserId);
-        return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me.getId(), page, size));
+        return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me, page, size));
     }
 
     @Operation(

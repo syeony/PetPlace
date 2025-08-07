@@ -1,6 +1,8 @@
 package com.example.petplace.presentation.feature.login
 
 import android.app.Activity
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
@@ -27,11 +29,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.petplace.R
+import com.example.petplace.data.model.login.KakaoLoginRequest
 import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.BackgroundSoft
 import com.example.petplace.presentation.common.theme.DividerColor
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import com.example.petplace.presentation.common.theme.TextSecondary
+import com.kakao.sdk.auth.model.OAuthToken
+import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -184,7 +189,77 @@ fun LoginScreen(
 
             Button(
                 onClick = {
-                    // TODO: 카카오 로그인 처리
+                    // 1) 콜백 정의
+                    val kakaoCallback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
+                        when {
+                            error != null -> {
+                                Toast.makeText(
+                                    activity,
+                                    "카카오 로그인 실패: ${error.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            token != null -> {
+                                // 2) 프로필 정보 조회
+                                UserApiClient.instance.me { user, meError ->
+                                    when {
+                                        meError != null -> {
+                                            Toast.makeText(
+                                                activity,
+                                                "사용자 정보 요청 실패: ${meError.message}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                        user != null -> {
+                                            // 3) DTO 생성
+                                            val request = KakaoLoginRequest(
+                                                provider = "KAKAO",
+                                                userInfo = KakaoLoginRequest.UserInfo(
+                                                    socialId     = user.id.toString(),
+                                                    email        = user.kakaoAccount?.email.orEmpty(),
+                                                    nickname     = user.kakaoAccount?.profile?.nickname.orEmpty(),
+                                                    profileImage = user.kakaoAccount?.profile?.profileImageUrl.orEmpty()
+                                                )
+                                            )
+                                            // 4) 서버 인증 & 분기
+                                            coroutineScope.launch {
+                                                Log.d("KakaoNav", "서버 로그인 요청: $request")
+                                                val success = viewModel.loginWithKakao(request)
+                                                Log.d("KakaoNav", "loginWithKakao returned: $success")
+                                                if (success) {
+                                                    // 기존 사용자: 홈으로
+                                                    navController.navigate("nav_feed") {
+                                                        popUpTo("login") { inclusive = true }
+                                                    }
+                                                } else {
+                                                    // 신규 사용자: tempToken 꺼내고 회원가입 체크 화면으로
+                                                    val sid = Uri.encode(user.id.toString())
+                                                    val tmp = Uri.encode(viewModel.tempToken.value)
+                                                    Log.d("tempToken", "LoginScreen:$tmp ")
+                                                    Log.d("tempToken", "LoginScreen:kakao_join_check/$sid/$tmp")
+                                                    navController.navigate("kakao_join_check/$sid/$tmp") { popUpTo("login") { inclusive = true } }
+
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 5) 카카오톡/계정 로그인 UI 호출
+                    if (UserApiClient.instance.isKakaoTalkLoginAvailable(activity)) {
+                        UserApiClient.instance.loginWithKakaoTalk(
+                            context = activity,
+                            callback = kakaoCallback
+                        )
+                    } else {
+                        UserApiClient.instance.loginWithKakaoAccount(
+                            context = activity,
+                            callback = kakaoCallback
+                        )
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -201,6 +276,8 @@ fun LoginScreen(
                 )
             }
 
+
+
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = buildAnnotatedString {
@@ -214,7 +291,7 @@ fun LoginScreen(
                 fontSize = 14.sp,
                 lineHeight = 20.sp
             )
-        }
+
     }
 
     // 로그인 상태에 따른 처리
@@ -240,10 +317,11 @@ fun LoginScreen(
             }
         }
     }
+    }
 }
-
-@Preview(showBackground = true, backgroundColor = 0xFFFEF9F0)
-@Composable
-fun LoginPreview() {
-    LoginScreen(navController = rememberNavController())
-}
+//
+//@Preview(showBackground = true, backgroundColor = 0xFFFEF9F0)
+//@Composable
+//fun LoginPreview() {
+//    LoginScreen(navController = rememberNavController())
+//}

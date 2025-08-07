@@ -8,10 +8,7 @@ import java.io.Serializable;
 
 @Embeddable
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @EqualsAndHashCode
 public class FeedTagId implements Serializable {
     @Column(name = "feed_id")
@@ -19,4 +16,9 @@ public class FeedTagId implements Serializable {
 
     @Column(name = "tag_id")
     private Long tagId;
+
+    FeedTagId(Long feedId, Long tagId){
+        this.feedId = feedId;
+        this.tagId = tagId;
+    }
 }

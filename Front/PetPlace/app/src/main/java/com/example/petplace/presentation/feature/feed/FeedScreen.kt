@@ -79,6 +79,7 @@ fun FeedScreen(
     modifier:   Modifier = Modifier,
     viewModel:  BoardViewModel = hiltViewModel()
 ) {
+
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val searchText       by viewModel.searchText.collectAsState()
     val feeds            by viewModel.filteredFeeds.collectAsState()

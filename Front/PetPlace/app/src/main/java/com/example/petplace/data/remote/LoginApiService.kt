@@ -1,6 +1,8 @@
 package com.example.petplace.data.remote
 
 import com.example.petplace.data.model.join.CertificationResponse
+import com.example.petplace.data.model.login.KakaoLoginRequest
+import com.example.petplace.data.model.login.KakaoLoginResponse
 import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
@@ -28,7 +30,7 @@ data class TokenRefreshResponse(
     val accessToken: String,
     val refreshToken: String,
     val message: String,
-    val success: Int
+    val success: Boolean
 )
 
     data class User(
@@ -59,7 +61,18 @@ data class TokenRefreshResponse(
         @Body request: TokenRefreshRequest
     ): Call<TokenRefreshResponse>
 
-    @GET("/api/user/test-auth")
-    fun isTokenValid() : Response<CertificationResponse>
+//    @GET("api/user/test-auth")
+//    fun isTokenValid() : Response<CertificationResponse>
+
+    @GET("api/auth/validate-token")
+    fun isTokenValid(
+        @Query("access_token") accessToken: String
+    ) : Response<CertificationResponse>
+
+    @POST("api/auth/social/login")
+    suspend fun loginWithKakao(
+        @Body request: KakaoLoginRequest
+    ) : Response<KakaoLoginResponse>
+
 
 }

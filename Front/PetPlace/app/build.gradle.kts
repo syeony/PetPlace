@@ -78,6 +78,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.navigation.runtime.android)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
@@ -135,8 +136,24 @@ dependencies {
     // Compose BOM (일부 의존성 통일)
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
 
+
+    // WebSocket 및 STOMP 클라이언트
+    implementation("org.java-websocket:Java-WebSocket:1.5.3")
+    implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
+
+    // JSON 처리
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // 네트워크 상태 확인 (선택적)
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+
+    // RxJava (STOMP 라이브러리에서 사용)
+    implementation("io.reactivex.rxjava2:rxjava:2.2.21")
+    implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
+
     // 달력 Kizitonwose
     implementation("com.kizitonwose.calendar:compose:2.0.0") // 최신 버전 확인
+
 
     // 테스트
     testImplementation(libs.junit)

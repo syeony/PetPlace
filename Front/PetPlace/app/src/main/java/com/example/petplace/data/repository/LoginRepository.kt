@@ -1,5 +1,7 @@
 package com.example.petplace.data.repository
 
+import com.example.petplace.data.model.login.KakaoLoginRequest
+import com.example.petplace.data.model.login.KakaoLoginResponse
 import com.example.petplace.data.remote.LoginApiService
 import com.example.petplace.data.remote.LoginApiService.TokenRefreshRequest
 import com.example.petplace.data.remote.LoginApiService.TokenRefreshResponse
@@ -27,8 +29,11 @@ class LoginRepository @Inject constructor(
 
 
     suspend fun refreshToken(refreshToken: TokenRefreshRequest) = api.refreshToken(refreshToken)
-    suspend fun isTokenValid() = api.isTokenValid()
+//    suspend fun isTokenValid() = api.isTokenValid()
+    suspend fun isTokenValid(accessToken : String) = api.isTokenValid(accessToken)
 
     suspend fun refreshTokenBlocking(request: TokenRefreshRequest) = api.refreshTokenBlocking(request)
+
+    suspend fun loginWithKakao(request: KakaoLoginRequest) =api.loginWithKakao(request)
 
 }
