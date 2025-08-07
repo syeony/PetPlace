@@ -52,10 +52,10 @@ public class RecommendationBatchService {
     private double calculateScore(User user, List<Pet> pets, Feed feed) {
         double score = 0;
         score += feed.getLikeCount() * 2; // 좋아요 개수 *2
-        score += feed.getCommentCount();  // 댓글수
-        if (feed.isDogRelated() && pets.stream().anyMatch(pet -> pet.getAnimal() == Animal.DOG)) {
-            score += 20; // 유저가 강아지 키우면 강아지 피드 가산점
-        }
+//        score += feed.getCommentCount();  // 댓글수
+//        if (feed.isDogRelated() && pets.stream().anyMatch(pet -> pet.getAnimal() == Animal.DOG)) {
+//            score += 20; // 유저가 강아지 키우면 강아지 피드 가산점
+//        }
         if (feed.getCreatedAt().isAfter(LocalDate.now().minusDays(2).atStartOfDay())) {
             score += 10;
         }

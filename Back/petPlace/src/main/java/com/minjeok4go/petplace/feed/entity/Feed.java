@@ -64,29 +64,6 @@ public class Feed {
 
     private int likeCount;
 
-    public int getLikeCount() {
-        return likeCount;
-    }
-    // 실시간 comment count
-    public int getCommentCount() {
-        return comments == null ? 0 : comments.size();
-    }
-    // DB에 commentCOunt칼럼이 있다면
-//    private int commentCount;
-//
-//    public int getCommentCount() {
-//        return commentCount;
-//    }
-    private boolean dogRelated;
-
-    public boolean isDogRelated() {
-        return dogRelated;
-    }
-    // FeedCatgory가 있다면
-//    public boolean isDogRelated() {
-//        return this.category == FeedCategory.DOG;
-//    }
-
     @Builder.Default
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("id ASC")
