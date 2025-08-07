@@ -44,4 +44,14 @@ class FeedRepository @Inject constructor(
     suspend fun getComments(feedId: Long): List<CommentRes> {
         return api.getCommentsByFeedId(feedId)
     }
+
+    // 피드 상세 조회
+    suspend fun getFeedDetail(feedId: Long): FeedRecommendRes {
+        return api.getFeedDetail(feedId)
+    }
+
+    // 피드 수정
+    suspend fun editFeed(feedId: Long, req: FeedCreateReq): FeedRecommendRes {
+        return api.editFeed(feedId, req)
+    }
 }

@@ -12,6 +12,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -59,4 +60,15 @@ interface FeedApiService {
     suspend fun getCommentsByFeedId(
         @Path("feed_id") feedId: Long
     ): List<CommentRes>
+
+    // 피드 상세 조회 (수정시 기존 데이터 불러오기용)
+    @GET("/api/feeds/{id}")
+    suspend fun getFeedDetail(@Path("id") feedId: Long): FeedRecommendRes
+
+    // 피드 수정
+    @PUT("/api/feeds/{id}")
+    suspend fun editFeed(
+        @Path("id") feedId: Long,
+        @Body body: FeedCreateReq
+    ): FeedRecommendRes
 }

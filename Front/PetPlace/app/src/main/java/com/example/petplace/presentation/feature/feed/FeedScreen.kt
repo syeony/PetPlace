@@ -27,9 +27,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -90,6 +93,17 @@ fun FeedScreen(
             refreshState.endRefresh()  // 새로고침 종료 시점에서 호출!
         }
     }
+
+    // 피드 수정으로 이동
+    fun moveToEditFeed(feedId: Long, regionId: Long) {
+        navController.navigate("board/edit/$feedId/$regionId")
+    }
+
+    // 피드 삭제 로직(예시, 실제 삭제 API 연결 필요)
+    fun deleteFeed(feedId: Long) {
+        // 삭제 다이얼로그 → 확인 누르면 viewModel.deleteFeed(feedId) 호출 등
+    }
+
 
     Box(
         modifier = modifier
@@ -214,7 +228,9 @@ fun FeedScreen(
                             feed = feed,
                             hashtagColor = hashtagColor,
                             onCommentTap = { showCommentsForFeedId = feed.id },
-                            viewModel = viewModel
+                            viewModel = viewModel,
+                            onEditFeed = { moveToEditFeed(feed.id, feed.regionId) },   // 수정 콜백
+                            onDeleteFeed = { deleteFeed(it) }      // 삭제 콜백
                         )
                         Spacer(Modifier.height(6.dp))
                     }
@@ -252,7 +268,10 @@ fun FeedScreen(
                 .padding(16.dp)
         ) { Icon(Icons.Default.Add, contentDescription = "글쓰기") }
     }
+
 }
+
+
 
 //피드
 @Composable
@@ -260,9 +279,12 @@ private fun FeedItem(
     feed: FeedRecommendRes,
     hashtagColor:  Color,
     onCommentTap:  () -> Unit,
-    viewModel: BoardViewModel
+    viewModel: BoardViewModel,
+    onEditFeed: (Long) -> Unit,      // <-- 수정페이지 이동 콜백 추가!
+    onDeleteFeed: (Long) -> Unit     // <-- 삭제 콜백도 추가
 ) {
     val liked = viewModel.isFeedLiked(feed.id)
+    var showMenu by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -277,7 +299,6 @@ private fun FeedItem(
         ) {
             ProfileImage(feed.userImg)
             Spacer(Modifier.width(8.dp))
-
             Column {
                 val (bgCol, txtCol) = categoryStyles[feed.category]
                     ?: (Color.LightGray to Color.DarkGray)
@@ -291,7 +312,37 @@ private fun FeedItem(
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
                 Spacer(Modifier.height(4.dp))
-                Text(feed.userNick, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(feed.userNick, fontWeight = FontWeight.Bold)
+                    // ─── 점 세개 버튼(⋮) : 본인 글만 노출하도록
+                    if (viewModel.userInfo?.userId == feed.userId) {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "더보기"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("수정") },
+                                onClick = {
+                                    showMenu = false
+                                    onEditFeed(feed.id)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("삭제", color = Color.Red) },
+                                onClick = {
+                                    showMenu = false
+                                    onDeleteFeed(feed.id)
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
 
