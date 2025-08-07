@@ -331,14 +331,17 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    private fun formatToHHmm(isoDateTime: String): String {
-        // 입력 문자열 형식을 정의
+    private fun formatToHHmm(utcDateTime: String): String {
+        // 1. UTC 기준 입력 파싱
         val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
-        // 출력 형식 정의 (HH:mm)
-        val outputFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        inputFormat.timeZone = java.util.TimeZone.getTimeZone("UTC") // 입력은 UTC 기준
 
-        // 문자열을 Date로 파싱하고 다시 포맷팅
-        val date = inputFormat.parse(isoDateTime)
+        // 2. KST 기준으로 출력 포맷 정의
+        val outputFormat = java.text.SimpleDateFormat("a hh:mm", java.util.Locale("ko", "KR"))
+        outputFormat.timeZone = java.util.TimeZone.getTimeZone("Asia/Seoul") // 출력은 KST
+
+        // 3. 파싱 및 포맷
+        val date = inputFormat.parse(utcDateTime)
         return outputFormat.format(date!!)
     }
 
