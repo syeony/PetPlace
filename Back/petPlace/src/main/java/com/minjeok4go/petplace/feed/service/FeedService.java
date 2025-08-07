@@ -25,8 +25,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -161,9 +161,7 @@ public class FeedService {
         // --- tags
         if (req.getTagIds() != null && !req.getTagIds().isEmpty()) {
             // 1) 요청된 태그 리스트에서 중복 제거
-            List<Long> requested = req.getTagIds().stream()
-                    .distinct()
-                    .toList();
+            Set<Long> requested = new HashSet<>(req.getTagIds());
 
             // 2) DB에 이미 저장된 tagId 목록 조회
             List<Long> existing = feedTagRepository.findByFeedId(feedId).stream()
@@ -176,36 +174,48 @@ public class FeedService {
                     .toList();
 
             // 4) 나머지에 대해서만 insert
+            List<Tag> tags = tagRepository.findByIdIn(toAdd);
+
+            Map<Long, Tag> idToTag = tags.stream().collect(Collectors.toMap(Tag::getId, tag -> tag));
+
             List<FeedTag> feedTags = toAdd.stream()
                     .map(tagId -> {
-                        Tag tag = tagRepository.findById(tagId)
-                                .orElseThrow(() -> new IllegalArgumentException("Invalid tag ID: " + tagId));
+                        Tag tag = idToTag.get(tagId);
                         return new FeedTag(feed, tag);
                     })
                     .toList();
-            feedTagRepository.saveAll(feedTags);
+
+            if(!feedTags.isEmpty()) {
+                feedTagRepository.saveAll(feedTags);
+            }
         }
 
         // --- images
         if (req.getImages() != null && !req.getImages().isEmpty()) {
             // 요청된 이미지 src+sort 조합 중복 제거
-            List<FeedImageRequest> requested = req.getImages().stream()
-                    .distinct()
-                    .toList();
+            Set<FeedImageRequest> requested = new HashSet<>(req.getImages());
 
             // 이미 DB에 저장된 이미지들의 (src, sort) 키 조회
-            List<Image> existImgs = imageRepository.findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feedId);
-            List<String> existKeys = existImgs.stream()
+            List<String> existKeys = imageRepository
+                    .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feedId)
+                    .stream()
                     .map(img -> img.getSrc() + "#" + img.getSort())
                     .toList();
 
-            // toAdd 는 존재하지 않는 키만
-            List<Image> toAdd = requested.stream()
-                    .filter(ir -> !existKeys.contains(ir.getSrc() + "#" + ir.getSort()))
+            Map<String, FeedImageRequest> reqMap = requested.stream()
+                    .collect(Collectors.toMap(ir -> ir.getSrc() + "#" + ir.getSort(), ir -> ir));
+
+            // 4) 기존 키 제거
+            existKeys.forEach(reqMap.keySet()::remove);
+
+            // 5) 남은 요청만 Image 로 변환
+            List<Image> toAdd = reqMap.values().stream()
                     .map(ir -> new Image(feedId, ImageType.FEED, ir.getSrc(), ir.getSort()))
                     .toList();
 
-            imageRepository.saveAll(toAdd);
+            if (!toAdd.isEmpty()) {
+                imageRepository.saveAll(toAdd);
+            }
         }
     }
 
