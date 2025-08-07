@@ -136,12 +136,12 @@ public class FeedService {
         feed.setRegionId(req.getRegionId());
         feed.setCategory(FeedCategory.valueOf(req.getCategory()));
         feed.update();
-        feedRepository.save(feed);
+        Feed saved = feedRepository.saveAndFlush(feed);
 
-        // 3) 관계삽입
-        saveRelations(feed, req);
+        // 2) FeedTag / Image 삽입
+        saveRelations(saved, req);
 
-        return getFeedDetail(feed.getId(), user);
+        return getFeedDetail(saved.getId(), user);
     }
 
     @Transactional
@@ -214,6 +214,7 @@ public class FeedService {
         return feedRepository.findById(id);
     }
 
+    @Transactional
     public FeedLikeResponse increaseLike(Feed feed) {
         feed.increaseLikes();
         feedRepository.save(feed);
@@ -221,11 +222,21 @@ public class FeedService {
         return new FeedLikeResponse(feed.getId(), feed.getLikes());
     }
 
+    @Transactional
     public FeedLikeResponse decreaseLike(Feed feed) {
         feed.decreaseLikes();
         feedRepository.save(feed);
 
         return new FeedLikeResponse(feed.getId(), feed.getLikes());
+    }
+
+    @Transactional(readOnly = true)
+    public List<FeedDetailResponse> findByUserId(Long id) {
+
+        List<Feed> feeds = feedRepository.findByUserId(id);
+
+        // 2) 각 Feed → FeedDetailResponse 로 매핑
+        return feedtoFeedDetail(feeds);
     }
 
 
@@ -235,6 +246,10 @@ public class FeedService {
         List<Feed> feeds = feedRepository.findLikedFeedsByUserId(id);
 
         // 2) 각 Feed → FeedDetailResponse 로 매핑
+        return feedtoFeedDetail(feeds);
+    }
+
+    public List<FeedDetailResponse> feedtoFeedDetail(List<Feed> feeds){
         return feeds.stream()
                 .map(feed -> {
                     // 태그 DTO
