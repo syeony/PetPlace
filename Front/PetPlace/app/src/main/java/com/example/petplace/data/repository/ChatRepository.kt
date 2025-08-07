@@ -141,5 +141,31 @@ class ChatRepository(
         }
     }
 
+    suspend fun getParticipants(chatRoomId: Long): Result<List<ChatPartnerResponse>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "채팅방 참가자 목록 요청: chatRoomId=$chatRoomId")
+
+                val response = chatApiService.getParticipants(chatRoomId)
+
+                if (response.isSuccessful) {
+                    val participants = response.body()
+                    if (participants != null) {
+                        Log.d(TAG, "참가자 목록 가져오기 성공: ${participants.size}명")
+                        Result.success(participants)
+                    } else {
+                        Log.e(TAG, "응답은 성공했지만 body가 null")
+                        Result.failure(Exception("응답은 성공했지만 body가 null"))
+                    }
+                } else {
+                    Log.e(TAG, "참가자 목록 가져오기 실패: ${response.code()} ${response.message()}")
+                    Result.failure(Exception("참가자 목록 가져오기 실패: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "참가자 목록 가져오기 중 오류", e)
+                Result.failure(e)
+            }
+        }
+    }
 
 }

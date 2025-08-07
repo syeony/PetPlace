@@ -1,6 +1,7 @@
 package com.example.petplace.data.remote
 
 import com.example.petplace.data.model.chat.ChatMessageResponse
+import com.example.petplace.data.model.chat.ChatPartnerResponse
 import com.example.petplace.data.model.chat.ChatRoomResponse
 import com.example.petplace.data.model.chat.CreateChatRoomRequest
 import retrofit2.Response
@@ -40,4 +41,10 @@ interface ChatApiService {
         @Path("chatRoomId") chatRoomId: Long,
         @Query("userId") userId: Long
     ): Response<Int>
+
+    // 채팅방 참여자 정보 조회
+    @GET("/api/chat/rooms/{chatRoomId}/participants")
+    suspend fun getParticipants(
+        @Path("chatRoomId") chatRoomId: Long
+    ): Response<List<ChatPartnerResponse>>
 }

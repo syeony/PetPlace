@@ -4,7 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.R
 import com.example.petplace.data.local.chat.ChatRoom
+import com.example.petplace.data.model.chat.ChatPartnerResponse
 import com.example.petplace.data.model.chat.ChatRoomResponse
 import com.example.petplace.data.repository.ChatRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -91,7 +93,7 @@ class ChatListViewModel @Inject constructor(
         }
 
         // 상대방 정보 가져오기 (임시로 하드코딩)
-        val partnerInfo = getUser(partnerId)
+        val partnerInfo = getPartner(response.chatRoomId, partnerId)
 
         // 안 읽은 메시지 수 가져오기
         val unreadCount = chatRepository.getUnreads(response.chatRoomId, currentUserId)
@@ -100,16 +102,16 @@ class ChatListViewModel @Inject constructor(
                 0 // 실패 시 0으로 설정
             }
 
-        Log.d(TAG, "채팅방 변환: chatRoomId=${response.chatRoomId}, partner=${partnerInfo.name}")
+        Log.d(TAG, "채팅방 변환: chatRoomId=${response.chatRoomId}, partner=${partnerInfo.nickname}")
 
         return ChatRoom(
             id = response.chatRoomId,
-            name = partnerInfo.name,
+            name = partnerInfo.nickname,
             region = partnerInfo.region ?: "알 수 없음",
             lastMessage = response.lastMessage ?: "아직 메시지가 없습니다.",
             time = formatLastMessageTime(response.lastMessageAt),
-            unreadCount = unreadCount, // 일단 0으로 설정 (나중에 API 추가 시 수정)
-            profileImageUrl = partnerInfo.profileImageUrl
+            unreadCount = unreadCount,
+            profileImageUrl = R.drawable.ic_mypage
         )
     }
 
@@ -131,13 +133,13 @@ class ChatListViewModel @Inject constructor(
         }
     }
 
-    // 임시 사용자 정보 (실제로는 UserRepository에서 가져와야 함)
-    private fun getUser(userId: Long): User {
-        return when (userId) {
-            3L -> User(3L, "김철수", com.example.petplace.R.drawable.ic_mypage, "인의동")
-            6L -> User(6L, "나", com.example.petplace.R.drawable.ic_mypage, "진평동")
-            else -> User(userId, "사용자$userId", com.example.petplace.R.drawable.ic_mypage, "알 수 없음")
-        }
+    private suspend fun getPartner(chatRoomId: Long, partnerId: Long): ChatPartnerResponse {
+        val participants = chatRepository.getParticipants(chatRoomId).getOrThrow()
+        Log.d(TAG, "partner id: $partnerId")
+        val partner = participants.firstOrNull { it.userId == partnerId }
+            ?: throw IllegalStateException("해당 userId에 해당하는 참가자가 존재하지 않습니다.")
+        Log.d(TAG, "getPartner: $partner")
+        return partner
     }
 
     fun clearError() {
@@ -150,10 +152,4 @@ class ChatListViewModel @Inject constructor(
     }
 }
 
-// 사용자 정보 (임시)
-data class User(
-    val userId: Long,
-    val name: String,
-    val profileImageUrl: Int? = null,
-    val region: String? = null
-)
+
