@@ -222,9 +222,12 @@ public class JwtTokenProvider {
                     .parseClaimsJws(tempToken)
                     .getBody();
 
-            if (!"TEMP_SOCIAL".equals(claims.get("type"))) {
+            String tokenType = (String) claims.get("type"); // 토큰의 타입을 가져옴
+            if (!"TEMP_SOCIAL".equals(tokenType) && !"TEMP_SOCIAL_WITH_INFO".equals(tokenType)) {
+                // "TEMP_SOCIAL"도 아니고, "TEMP_SOCIAL_WITH_INFO"도 아니면 에러 발생
                 throw new IllegalArgumentException("유효하지 않은 임시 토큰입니다.");
             }
+
 
             Map<String, Object> result = new HashMap<>();
             result.put("provider", claims.get("provider"));

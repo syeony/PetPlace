@@ -110,6 +110,8 @@ public class AuthController {
     @PostMapping("/social/signup")
     @Operation(summary = "소셜 회원가입", description = "본인인증 완료 후 소셜 계정으로 회원가입합니다.")
     public ResponseEntity<?> socialSignup(@RequestBody SocialSignupRequest request) {
+        log.info("Signup 요청으로 들어온 tempToken: {}", request.getTempToken());
+
         try {
             // 1. 임시 토큰 검증
             if (request.getTempToken() == null || request.getTempToken().isEmpty()) {
