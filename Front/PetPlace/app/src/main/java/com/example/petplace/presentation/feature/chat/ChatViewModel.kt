@@ -50,6 +50,7 @@ class ChatViewModel @Inject constructor(
     val connectionStatus: StateFlow<Boolean> = _connectionStatus.asStateFlow()
 
     private var lastMessageId = 0L
+    private var shouldMarkAsRead = true
 
     init {
         Log.d(TAG, "🚀 ChatViewModel 초기화 - 사용자: $currentUserId, 채팅방: $currentChatRoomId")
@@ -99,7 +100,11 @@ class ChatViewModel @Inject constructor(
                     messageDto.chatId?.let { chatId ->
                         if (messageDto.userId != currentUserId) {
                             // 상대방 메시지를 받았을 때만 읽음 처리
-                            lastMessageId = chatId
+                            Log.d(TAG, "📖 상대방 메시지 수신 - 읽음 처리 예약: chatId=$chatId")
+                            lastMessageId = maxOf(lastMessageId, chatId)
+
+                            // ⭐ 지연 후 읽음 처리 (UI 업데이트 완료 후)
+                            kotlinx.coroutines.delay(500L)
                             markMessagesAsRead()
                             Log.d(TAG, "🔄 상대방 메시지 읽음 처리: $lastMessageId")
                         }
@@ -208,23 +213,63 @@ class ChatViewModel @Inject constructor(
     }
 
     fun markMessagesAsRead() {
+        if (!shouldMarkAsRead) {
+            Log.d(TAG, "📖 읽음 처리가 비활성화됨")
+            return
+        }
+
+        if (!_connectionStatus.value) {
+            Log.w(TAG, "⚠️ 연결되지 않은 상태 - 읽음 처리 연기")
+            return
+        }
+
         val latestOpponentMessageId = _messages.value
-            .filter { !it.isFromMe && it.id != null }
+            .filter { !it.isFromMe && it.id != null && it.id > 0 }
             .maxByOrNull { it.id!! }
             ?.id
 
-        if (latestOpponentMessageId != null && latestOpponentMessageId > 0) {
+        Log.d(TAG, "📊 읽음 처리 대상 조사: latestOpponentMessageId=$latestOpponentMessageId, lastMessageId=$lastMessageId")
+
+        val targetMessageId = when {
+            latestOpponentMessageId != null -> latestOpponentMessageId
+            lastMessageId > 0 -> lastMessageId
+            else -> {
+                Log.d(TAG, "📖 읽음 처리할 메시지가 없음")
+                return
+            }
+        }
+
+        if (targetMessageId > 0) {
+            Log.d(TAG, "📖 읽음 처리 실행: targetMessageId=$targetMessageId")
+
             val readDTO = ChatReadDTO(
                 chatRoomId = currentChatRoomId,
                 userId = currentUserId,
-                lastReadCid = latestOpponentMessageId
+                lastReadCid = targetMessageId
             )
-            webSocketManager.markAsRead(readDTO)
-            Log.d(TAG, "📖 읽음 처리 요청: lastMessageId=$latestOpponentMessageId")
+
+            try {
+                webSocketManager.markAsRead(readDTO)
+                Log.d(TAG, "✅ 읽음 처리 요청 전송 완료")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ 읽음 처리 요청 실패", e)
+            }
+        } else {
+            Log.d(TAG, "📖 유효하지 않은 메시지 ID: $targetMessageId")
         }
-        else {
-            Log.d(TAG, "읽을 메시지 없음 lastMessageId : $lastMessageId ")
-        }
+    }
+
+    // ⭐ 화면이 활성화될 때 호출되는 메서드 (Compose에서 사용)
+    fun onScreenVisible() {
+        Log.d(TAG, "👀 화면이 보임 - 읽음 처리 활성화")
+        shouldMarkAsRead = true
+        markMessagesAsRead()
+    }
+
+    // ⭐ 화면이 비활성화될 때 호출되는 메서드
+    fun onScreenHidden() {
+        Log.d(TAG, "🙈 화면이 숨겨짐 - 읽음 처리 비활성화")
+        shouldMarkAsRead = false
     }
 
     private fun loadInitialMessages() {
@@ -255,6 +300,21 @@ class ChatViewModel @Inject constructor(
 
                     if (messageDTOs.isNotEmpty()) {
                         lastMessageId = messageDTOs.last().chatId ?: 0L
+                    }
+
+                    // ⭐ 초기 메시지 로드 후 읽음 처리
+                    val latestMessageId = messageDTOs
+                        .filter { it.userId != currentUserId } // 상대방 메시지만
+                        .maxByOrNull { it.chatId ?: 0L }
+                        ?.chatId
+
+                    if (latestMessageId != null && latestMessageId > 0) {
+                        lastMessageId = latestMessageId
+                        Log.d(TAG, "📝 초기 로드 완료 - 최신 상대방 메시지 ID: $lastMessageId")
+
+                        // ⭐ 초기 로드 완료 후 읽음 처리 (연결 완료를 기다림)
+                        kotlinx.coroutines.delay(2000L)
+                        markMessagesAsRead()
                     }
 
                     Log.d(TAG, "✅ 초기 메시지 로드 완료: ${chatMessages.size}개")
@@ -296,6 +356,7 @@ class ChatViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         try {
+            shouldMarkAsRead = false
             webSocketManager.disconnect()
             Log.d(TAG, "🧹 ViewModel 정리 완료")
         } catch (e: Exception) {
