@@ -94,7 +94,7 @@ object NetworkModule {
 
                         if (refreshResponse.isSuccessful) {
                             val body = refreshResponse.body()
-                            if (body != null && body.success == 1) {
+                            if (body != null && body.success) {
                                 app.saveLoginData(body.accessToken, body.refreshToken,
                                     app.getUserInfo() ?: return null
                                 )
