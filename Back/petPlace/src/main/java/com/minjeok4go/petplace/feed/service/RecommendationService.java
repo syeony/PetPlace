@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.feed.service;
 
-import com.minjeok4go.petplace.comment.dto.CommentDto;
+import com.minjeok4go.petplace.comment.dto.FeedComment;
 import com.minjeok4go.petplace.common.constant.ImageType;
 import com.minjeok4go.petplace.feed.dto.FeedListResponse;
 import com.minjeok4go.petplace.feed.dto.TagResponse;
@@ -26,7 +26,7 @@ public class RecommendationService {
     public List<FeedListResponse> getRecommendedFeeds(Long userId, int page, int size) {
         boolean isColdStart = checkColdStart(userId);
 
-        List<Feed> allFeeds = feedRepository.findAll();
+        List<Feed> allFeeds = feedRepository.findAllByDeletedAtIsNull();
 
         List<FeedListResponse> scoredFeedDtos = allFeeds.stream()
                 .map(feed -> {
@@ -56,8 +56,8 @@ public class RecommendationService {
                             .collect(Collectors.toList());
 
                     // 3) CommentDto 리스트
-                    List<CommentDto> comments = feed.getComments().stream()
-                            .map(CommentDto::from)
+                    List<FeedComment> comments = feed.getComments().stream()
+                            .map(FeedComment::from)
                             .collect(Collectors.toList());
 
                     // 4) 최종 FeedDto 빌드
@@ -68,7 +68,7 @@ public class RecommendationService {
                             .userNick(feed.getUserNick())
                             .userImg(feed.getUserImg())
                             .regionId(feed.getRegionId())
-                            .category(feed.getCategory().name())
+                            .category(feed.getCategory().getDisplayName())
                             .createdAt(feed.getCreatedAt())
                             .updatedAt(feed.getUpdatedAt())
                             .deletedAt(feed.getDeletedAt())

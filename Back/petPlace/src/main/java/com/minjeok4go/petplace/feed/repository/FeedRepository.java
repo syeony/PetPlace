@@ -4,8 +4,11 @@ import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.common.constant.FeedCategory;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface FeedRepository extends JpaRepository<Feed, Long> {
 
@@ -17,6 +20,25 @@ public interface FeedRepository extends JpaRepository<Feed, Long> {
 //            "LEFT JOIN FETCH c.replies " +
 //            "WHERE f.id = :feedId")
 //    Optional<Feed> findFeedWithTagsAndComments(@Param("feedId") Long feedId);
+    @Query("SELECT f FROM Likes l " +
+           "JOIN l.feed f " +
+           "WHERE l.user.id = :userId " +
+           "AND f.deletedAt IS NULL")
+    List<Feed> findLikedFeedsByUserId(Long userId);
+
+    // 모든 피드 중 좋아요 순 200개
+//    List<Feed> findTop200ByOrderByLikeCountDesc();
+
+
+    // 최근 일주일 내 좋아요 피드 상위 200개
+//    List<Feed> findTop200ByCreatedAtAfterOrderByLikeCountDesc(LocalDate recentDay);
+
+
+    Optional<Feed> findByIdAndDeletedAtIsNull(Long id);
+
+    List<Feed> findAllByDeletedAtIsNull();
+
+    Optional<Feed> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
 
     List<Feed> findByCategory(FeedCategory category);
 

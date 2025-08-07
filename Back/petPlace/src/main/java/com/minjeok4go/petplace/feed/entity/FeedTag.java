@@ -6,10 +6,7 @@ import lombok.*;
 @Entity
 @Table(name = "feed_tags")
 @Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class FeedTag {
 
     @EmbeddedId
@@ -28,5 +25,6 @@ public class FeedTag {
     public FeedTag(Feed feed, Tag tag) {
         this.feed = feed;
         this.tag = tag;
+        this.id = new FeedTagId(feed.getId(), tag.getId());
     }
 }

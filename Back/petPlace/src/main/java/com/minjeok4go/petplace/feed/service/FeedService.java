@@ -1,27 +1,29 @@
 package com.minjeok4go.petplace.feed.service;
 
-import com.minjeok4go.petplace.comment.dto.CommentDto;
+import com.minjeok4go.petplace.comment.dto.FeedComment;
 import com.minjeok4go.petplace.comment.entity.Comment;
+import com.minjeok4go.petplace.common.constant.FeedCategory;
 import com.minjeok4go.petplace.common.constant.ImageType;
-import com.minjeok4go.petplace.feed.dto.CreateFeedRequest;
-import com.minjeok4go.petplace.feed.dto.DeleteFeedResponse;
-import com.minjeok4go.petplace.feed.dto.FeedDetailResponse;
-import com.minjeok4go.petplace.feed.dto.TagResponse;
+import com.minjeok4go.petplace.feed.dto.*;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.entity.FeedTag;
 import com.minjeok4go.petplace.feed.entity.Tag;
 import com.minjeok4go.petplace.feed.repository.FeedRepository;
 import com.minjeok4go.petplace.feed.repository.FeedTagRepository;
 import com.minjeok4go.petplace.feed.repository.TagRepository;
+import com.minjeok4go.petplace.image.dto.FeedImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
+import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,14 +38,14 @@ public class FeedService {
     @Transactional(readOnly = true)
     public FeedDetailResponse getFeedDetail(Long feedId) {
 
-        Feed feed = feedRepository.findById(feedId)
+        Feed feed = feedRepository.findByIdAndDeletedAtIsNull(feedId)
                 .orElseThrow(() -> new RuntimeException("Feed not found"));
 
         List<TagResponse> tagDtos = feed.getFeedTags().stream()
                 .map(ft -> new TagResponse(ft.getTag().getId(), ft.getTag().getName()))
                 .toList();
 
-        List<CommentDto> commentDtos = feed.getComments().stream()
+        List<FeedComment> commentDtos = feed.getComments().stream()
                 .filter(c -> c.getParentComment() == null)
                 .map(this::mapCommentWithReplies)
                 .toList();
@@ -61,7 +63,7 @@ public class FeedService {
                 .userNick(feed.getUserNick())
                 .userImg(feed.getUserImg())
                 .regionId(feed.getRegionId())
-                .category(feed.getCategory())
+                .category(feed.getCategory().getDisplayName())
                 .createdAt(feed.getCreatedAt())
                 .updatedAt(feed.getUpdatedAt())
                 .deletedAt(feed.getDeletedAt())
@@ -74,12 +76,12 @@ public class FeedService {
                 .build();
     }
 
-    private CommentDto mapCommentWithReplies(Comment comment) {
-        List<CommentDto> replyDtos = comment.getReplies().stream()
+    private FeedComment mapCommentWithReplies(Comment comment) {
+        List<FeedComment> replyDtos = comment.getReplies().stream()
                 .map(this::mapCommentWithReplies)
                 .toList();
 
-        return CommentDto.builder()
+        return FeedComment.builder()
                 .id(comment.getId())
                 .parentCommentId(comment.getParentComment() != null
                         ? comment.getParentComment().getId()
@@ -96,14 +98,15 @@ public class FeedService {
                 .build();
     }
     @Transactional
-    public FeedDetailResponse createFeed(CreateFeedRequest req) {
-        // 1) 피드 저장 (insert)
+    public FeedDetailResponse createFeed(CreateFeedRequest req, User user) {
+        // 1) 피드 저장
         Feed feed = Feed.builder()
                 .content(req.getContent())
-                .userId(req.getUserId())
-                .userNick(req.getUserNick())
+                .userId(user.getId())
+                .userNick(user.getNickname())
+                .userImg(user.getUserImgSrc())
                 .regionId(req.getRegionId())
-                .category(req.getCategory())
+                .category(FeedCategory.valueOf(req.getCategory()))
                 .build();
         feed = feedRepository.save(feed);
 
@@ -114,30 +117,35 @@ public class FeedService {
     }
 
     @Transactional
-    public FeedDetailResponse updateFeed(Long id, CreateFeedRequest req) {
-        // 1) 기존 피드 조회 & 수정
-        Feed feed = feedRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Feed not found"));
-        feed.setContent(req.getContent());
-        feed.setUserNick(req.getUserNick());
-        feed.setRegionId(req.getRegionId());
-        feed.setCategory(req.getCategory());
-        feed.update();
-        feed = feedRepository.save(feed);
+    public FeedDetailResponse updateFeed(Long id, CreateFeedRequest req, User user) {
+        // 1) 한 번에 조회 + 권한검사
+        Feed feed = feedRepository
+                .findByIdAndUserIdAndDeletedAtIsNull(id, user.getId())
+                .orElseThrow(() -> new AccessDeniedException("해당 피드를 찾을 수 없거나, 삭제 권한이 없습니다."));
 
-        // 2) FeedTag / Image 삽입
+        // 2) 실제 수정
+        feed.setContent(req.getContent());
+        feed.setUserNick(user.getNickname());
+        feed.setUserImg(user.getUserImgSrc());
+        feed.setRegionId(req.getRegionId());
+        feed.setCategory(FeedCategory.valueOf(req.getCategory()));
+        feed.update();
+        feedRepository.save(feed);
+
+        // 3) 관계삽입
         saveRelations(feed, req);
 
-        return getFeedDetail(id);
+        return getFeedDetail(feed.getId());
     }
 
-    public DeleteFeedResponse deleteFeed(Long id) {
-
-        Feed feed = feedRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Feed not found"));
+    @Transactional
+    public DeleteFeedResponse deleteFeed(Long id, User user) {
+        Feed feed = feedRepository
+                .findByIdAndUserIdAndDeletedAtIsNull(id, user.getId())
+                .orElseThrow(() -> new AccessDeniedException("해당 피드를 찾을 수 없거나, 삭제 권한이 없습니다."));
 
         feed.delete();
-
+        feedRepository.save(feed);
         return new DeleteFeedResponse(id);
     }
 
@@ -175,7 +183,7 @@ public class FeedService {
         // --- images
         if (req.getImages() != null && !req.getImages().isEmpty()) {
             // 요청된 이미지 src+sort 조합 중복 제거
-            List<ImageRequest> requested = req.getImages().stream()
+            List<FeedImageRequest> requested = req.getImages().stream()
                     .distinct()
                     .toList();
 
@@ -193,5 +201,74 @@ public class FeedService {
 
             imageRepository.saveAll(toAdd);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Feed> findById(Long id) {
+        return feedRepository.findById(id);
+    }
+
+    public FeedLikeResponse increaseLike(Feed feed) {
+        feed.increaseLikes();
+        feedRepository.save(feed);
+
+        return new FeedLikeResponse(feed.getId(), feed.getLikes());
+    }
+
+    public FeedLikeResponse decreaseLike(Feed feed) {
+        feed.decreaseLikes();
+        feedRepository.save(feed);
+
+        return new FeedLikeResponse(feed.getId(), feed.getLikes());
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<FeedDetailResponse> findByIdWhereUserId(Long id) {
+
+        List<Feed> feeds = feedRepository.findLikedFeedsByUserId(id);
+
+        // 2) 각 Feed → FeedDetailResponse 로 매핑
+        return feeds.stream()
+                .map(feed -> {
+                    // 태그 DTO
+                    List<TagResponse> tagDtos = feed.getFeedTags().stream()
+                            .map(ft -> new TagResponse(ft.getTag().getId(), ft.getTag().getName()))
+                            .toList();
+
+                    // 댓글 DTO (최상위 댓글만)
+                    List<FeedComment> commentDtos = feed.getComments().stream()
+                            .filter(c -> c.getParentComment() == null)
+                            .map(this::mapCommentWithReplies)
+                            .toList();
+
+                    // 이미지 DTO
+                    List<ImageResponse> imageDtos = imageRepository
+                            .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feed.getId())
+                            .stream()
+                            .map(img -> new ImageResponse(img.getSrc(), img.getSort()))
+                            .toList();
+
+                    // 빌더로 조립
+                    return FeedDetailResponse.builder()
+                            .id(feed.getId())
+                            .content(feed.getContent())
+                            .userId(feed.getUserId())
+                            .userNick(feed.getUserNick())
+                            .userImg(feed.getUserImg())
+                            .regionId(feed.getRegionId())
+                            .category(feed.getCategory().getDisplayName())
+                            .createdAt(feed.getCreatedAt())
+                            .updatedAt(feed.getUpdatedAt())
+                            .deletedAt(feed.getDeletedAt())
+                            .likes(feed.getLikes())
+                            .views(feed.getViews())
+                            .tags(tagDtos)
+                            .images(imageDtos)
+                            .commentCount(feed.getComments().size())
+                            .comments(commentDtos)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }

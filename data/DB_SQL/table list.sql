@@ -14,7 +14,7 @@ CREATE TABLE `regions` (
 
 -- ✅ User
 CREATE TABLE `users` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_name` VARCHAR(20) NOT NULL,
     `password` VARCHAR(200) NOT NULL,
     `name` VARCHAR(20) NOT NULL,
@@ -22,11 +22,15 @@ CREATE TABLE `users` (
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `deleted_at` DATETIME NULL,
     `region_id` BIGINT NOT NULL,
-    `default_pet_id` INT NULL,
-    `kakao_oauth` VARCHAR(200) NULL,
+    `default_pet_id` BIGINT NULL,
+    -- [수정] 소셜 로그인 관련 컬럼들
+    `login_type` ENUM('EMAIL', 'KAKAO', 'NAVER', 'GOOGLE') NOT NULL DEFAULT 'EMAIL' COMMENT '로그인 타입',
+    `social_id` VARCHAR(200) NULL COMMENT '소셜 플랫폼 고유 ID',
+    `social_email` VARCHAR(100) NULL COMMENT '소셜 계정 이메일',
+    
     `user_img_src` VARCHAR(500) NULL,
     `pet_smell` DECIMAL(4,1) NOT NULL DEFAULT 36.5,
-    `default_badge_id` INT NULL,
+    `default_badge_id` BIGINT NULL,
     `ci` VARCHAR(88) NOT NULL UNIQUE,
     `phone_number` VARCHAR(20) NOT NULL,
     `gender` ENUM('male', 'female') NOT NULL,
@@ -38,6 +42,8 @@ CREATE TABLE `users` (
     UNIQUE KEY uq_user_user_name (`user_name`),
     UNIQUE KEY uq_user_nickname (`nickname`),
     UNIQUE KEY uq_user_phone (`phone_number`),
+    UNIQUE KEY uq_user_ci (`ci`),
+    UNIQUE KEY uq_user_social_id (`social_id`), -- 소셜 ID 고유 제약
     CHECK (`phone_number` REGEXP '^[0-9]+$'),
     FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
 );
@@ -45,21 +51,20 @@ CREATE TABLE `users` (
 -- ✅ RefreshToken
 CREATE TABLE `refresh_tokens` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `user_id` VARCHAR(20) NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `refresh_token` VARCHAR(500) NOT NULL UNIQUE,
     `expires_at` DATETIME NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`),
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`user_name`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     INDEX idx_user_id (`user_id`),
     INDEX idx_refresh_token (`refresh_token`)
 );
 
-
 -- ✅ Pet
 CREATE TABLE `pets` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
     `name` VARCHAR(20) NOT NULL,
 	`animal` ENUM(
 		'DOG','CAT','RABBIT','HAMSTER','GUINEA_PIG','HEDGEHOG','FERRET',
@@ -89,9 +94,9 @@ CREATE TABLE `pets` (
 
 -- ✅ ChatRoom
 CREATE TABLE `chat_rooms` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `user_id_1` INT NOT NULL,
-    `user_id_2` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id_1` BIGINT NOT NULL,
+    `user_id_2` BIGINT NOT NULL,
     `last_message` VARCHAR(1000) NOT NULL DEFAULT '',
     `last_message_at` DATETIME NULL,
     PRIMARY KEY (`id`),
@@ -102,9 +107,9 @@ CREATE TABLE `chat_rooms` (
 
 -- ✅ Chat
 CREATE TABLE `chats` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `chat_rooms_id` INT NOT NULL,
-    `user_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `chat_rooms_id` BIGINT NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `message` VARCHAR(1000) NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`),
@@ -114,9 +119,9 @@ CREATE TABLE `chats` (
 
 -- ✅ Feed
 CREATE TABLE `feeds` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `content` TEXT NOT NULL,
-    `user_id` INT NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `user_nick` VARCHAR(200) NOT NULL,
     `user_img` VARCHAR(500) NULL,
     `region_id` BIGINT NOT NULL,
@@ -133,11 +138,11 @@ CREATE TABLE `feeds` (
 
 -- ✅ Comment
 CREATE TABLE `comments` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `parent_comment_id` INT NULL,
-    `feed_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `parent_comment_id` BIGINT NULL,
+    `feed_id` BIGINT NOT NULL,
     `content` VARCHAR(200) NOT NULL,
-    `user_id` INT NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `user_nick` VARCHAR(200) NOT NULL,
     `user_img` VARCHAR(500) NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
@@ -152,10 +157,10 @@ CREATE TABLE `comments` (
 
 -- ✅ Care
 CREATE TABLE `cares` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(200) NOT NULL,
     `content` TEXT NOT NULL,
-    `user_id` INT NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `user_nick` VARCHAR(200) NOT NULL,
     `user_img` VARCHAR(500) NULL,
     `region_id` BIGINT NOT NULL,
@@ -174,7 +179,7 @@ CREATE TABLE `cares` (
 
 -- ✅ Hotel
 CREATE TABLE `hotels` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `description` VARCHAR(1000) NOT NULL,
     `price_per_night` INT NOT NULL,
     `field` ENUM('CAT','DOG') NOT NULL,
@@ -183,10 +188,10 @@ CREATE TABLE `hotels` (
 
 -- ✅ Hotel Reservation
 CREATE TABLE `hotel_reservations` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
-    `hotel_id` INT NOT NULL,
-    `pet_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `hotel_id` BIGINT NOT NULL,
+    `pet_id` BIGINT NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY uq_hotel_reservation (`user_id`, `hotel_id`, `pet_id`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
@@ -196,7 +201,7 @@ CREATE TABLE `hotel_reservations` (
 
 -- ✅ Badge
 CREATE TABLE `badges` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(20) NOT NULL,
     `description` VARCHAR(200) NOT NULL,
     PRIMARY KEY (`id`)
@@ -204,9 +209,9 @@ CREATE TABLE `badges` (
 
 -- ✅ BadgeList
 CREATE TABLE `badge_lists` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
-    `bedge_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
+    `bedge_id` BIGINT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
@@ -217,8 +222,8 @@ CREATE TABLE `badge_lists` (
 
 -- ✅ Image
 CREATE TABLE `images` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `ref_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `ref_id` BIGINT NOT NULL,
     `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT') NOT NULL,
     `src` VARCHAR(500) NOT NULL,
     `sort` INT NOT NULL,
@@ -228,10 +233,10 @@ CREATE TABLE `images` (
 
 -- ✅ UserChatRoom
 CREATE TABLE `user_chat_rooms` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `chat_room_id` INT NOT NULL,  -- 채팅방 인덱스
-    `user_id` INT NOT NULL,   -- 유저 인덱스
-    `last_read_cid` INT NULL,   -- 마지막으로 읽은 메시지의 id
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `chat_room_id` BIGINT NOT NULL,  -- 채팅방 인덱스
+    `user_id` BIGINT NOT NULL,   -- 유저 인덱스
+    `last_read_cid` BIGINT NULL,   -- 마지막으로 읽은 메시지의 id
     `leave_at` DATETIME NULL,   -- 방 나간 시간 (참여중이면 NULL)
     PRIMARY KEY (`id`),
     UNIQUE KEY uq_crid_uid (`chat_room_id`, `user_id`),
@@ -242,9 +247,9 @@ CREATE TABLE `user_chat_rooms` (
 
 -- ✅ Like
 CREATE TABLE `likes` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `feed_id` INT NOT NULL,
-    `user_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `feed_id` BIGINT NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `liked_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`),
     UNIQUE KEY uq_uid_fid (`user_id`, `feed_id`),
@@ -254,7 +259,7 @@ CREATE TABLE `likes` (
 
 -- ✅ Place
 CREATE TABLE `places` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `region_id` BIGINT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `category` ENUM('HOTEL', 'HOSPITAL', 'BEAUTY', 'CAFE', 'PARK') NOT NULL,
@@ -273,10 +278,10 @@ CREATE TABLE `places` (
 
 -- ✅ Review
 CREATE TABLE `reviews` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `place_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `place_id` BIGINT NOT NULL,
     `region_id` BIGINT NOT NULL,
-    `user_id` INT NOT NULL,
+    `user_id` BIGINT NOT NULL,
     `title` VARCHAR(100) NOT NULL,
     `content` TEXT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
@@ -291,7 +296,7 @@ CREATE TABLE `reviews` (
 
 -- ✅ Tag
 CREATE TABLE `tags` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(50) NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY uq_tag_name (`name`)
@@ -299,8 +304,8 @@ CREATE TABLE `tags` (
 
 -- ✅ FeedTag
 CREATE TABLE `feed_tags` (
-    `feed_id` INT NOT NULL,
-    `tag_id` INT NOT NULL,
+    `feed_id` BIGINT NOT NULL,
+    `tag_id` BIGINT NOT NULL,
     PRIMARY KEY (`feed_id`, `tag_id`),
     FOREIGN KEY (`feed_id`) REFERENCES `feeds`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON DELETE CASCADE
@@ -308,8 +313,8 @@ CREATE TABLE `feed_tags` (
 
 -- ✅ Introduction
 CREATE TABLE `introduction` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `user_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `user_id` BIGINT NOT NULL,
     `content` VARCHAR(2000) NOT NULL DEFAULT '',
     PRIMARY KEY (`id`),
     UNIQUE KEY uq_intro_uid (`user_id`),

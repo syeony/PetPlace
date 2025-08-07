@@ -6,18 +6,30 @@ INSERT INTO `regions` (`id`, `name`, `parent_id`, `geometry`) VALUES
 (1004, '인천광역시', NULL, ST_GeomFromText('POINT(126.7052 37.4563)')),
 (1005, '광주광역시', NULL, ST_GeomFromText('POINT(126.8530 35.1595)'));
 
+-- 기본 광역시/도
+INSERT INTO regions (id, name, parent_id, geometry) VALUES 
+(1100000000, '서울특별시', NULL, ST_GeomFromText('POINT(126.9784 37.5667)')),
+(4100000000, '경기도', NULL, ST_GeomFromText('POINT(127.5183 37.2741)')),
+(4700000000, '경상북도', NULL, ST_GeomFromText('POINT(128.9056 36.4919)'));
+
+-- 주요 시군구 (구미 포함)
+INSERT INTO regions (id, name, parent_id, geometry) VALUES 
+(1111000000, '종로구', 1100000000, ST_GeomFromText('POINT(126.9792 37.5730)')),
+(4111000000, '수원시', 4100000000, ST_GeomFromText('POINT(127.0286 37.2636)')),
+(4719000000, '구미시', 4700000000, ST_GeomFromText('POINT(128.3445 36.1190)'));
+
 -- ✅ 유저 더미 데이터
 INSERT INTO `users` (
     `user_name`, `password`, `name`, `nickname`, `created_at`, `region_id`,
-    `default_pet_id`, `kakao_oauth`, `user_img_src`, `pet_smell`,
+    `default_pet_id`, `user_img_src`, `pet_smell`,
     `default_badge_id`, `ci`, `phone_number`, `gender`, `birthday`,
-    `is_foreigner`, `level`, `experience`
+    `is_foreigner`, `level`, `experience`, `login_type`
 ) VALUES
-('user01', 'pass1234', '김철수', '철수', NOW(), 1001, NULL, NULL, NULL, 36.5, NULL, 'CI_USER_001', '01012345678', 'male', '1990-01-15', 0, 1, 0),
-('user02', 'pass1234', '이영희', '영희', NOW(), 1002, NULL, NULL, NULL, 36.7, NULL, 'CI_USER_002', '01023456789', 'female', '1992-03-10', 0, 1, 0),
-('user03', 'pass1234', '박민수', '민수', NOW(), 1003, NULL, NULL, NULL, 36.4, NULL, 'CI_USER_003', '01034567890', 'male', '1988-07-22', 0, 1, 0),
-('user04', 'pass1234', '최지혜', '지혜', NOW(), 1004, NULL, NULL, NULL, 36.6, NULL, 'CI_USER_004', '01045678901', 'female', '1995-11-05', 0, 1, 0),
-('user05', 'pass1234', '정우성', '우성', NOW(), 1005, NULL, NULL, NULL, 36.5, NULL, 'CI_USER_005', '01056789012', 'male', '1985-05-30', 0, 1, 0);
+('user01', 'pass1234', '김철수', '철수', NOW(), 1001, NULL, NULL, 36.5, NULL, 'CI_USER_001', '01012345678', 'male', '1990-01-15', 0, 1, 0, 'EMAIL'),
+('user02', 'pass1234', '이영희', '영희', NOW(), 1002, NULL, NULL, 36.7, NULL, 'CI_USER_002', '01023456789', 'female', '1992-03-10', 0, 1, 0, 'EMAIL'),
+('user03', 'pass1234', '박민수', '민수', NOW(), 1003, NULL, NULL, 36.4, NULL, 'CI_USER_003', '01034567890', 'male', '1988-07-22', 0, 1, 0, 'EMAIL'),
+('user04', 'pass1234', '최지혜', '지혜', NOW(), 1004, NULL, NULL, 36.6, NULL, 'CI_USER_004', '01045678901', 'female', '1995-11-05', 0, 1, 0, 'EMAIL'),
+('user05', 'pass1234', '정우성', '우성', NOW(), 1005, NULL, NULL, 36.5, NULL, 'CI_USER_005', '01056789012', 'male', '1985-05-30', 0, 1, 0, 'EMAIL');
 
 -- ✅ 펫 더미 데이터
 INSERT INTO `pets` (`user_id`, `name`, `animal`, `breed`, `sex`, `birthday`) VALUES
@@ -189,10 +201,10 @@ INSERT INTO `likes` (`feed_id`, `user_id`) VALUES
 
 -- ✅ 태그 & 해시태그 더미 데이터
 INSERT INTO `tags` (`name`) VALUES
-('강아지'), ('고양이'), ('토끼'), ('햄스터'), ('파충류'),
-('반려동물용품'), ('훈련팁'), ('건강관리'), ('산책코스'), ('입양후기'),
-('간식추천'), ('사료후기'), ('미용'), ('동물병원'), ('호텔리뷰'),
-('일상공유'), ('귀여움주의'), ('사진공유'), ('초보집사'), ('경험담');
+('산책'), ('목욕'), ('미용'), ('사료'), ('간식'),
+('놀이'), ('훈련'), ('건강관리'), ('동물병원'), ('호텔'),
+('유치원'), ('캣타워'), ('펫시터'), ('입양'), ('보험'),
+('장난감'), ('케어'), ('리드줄'), ('하네스'), ('이동장'), ('실종');
 
 INSERT INTO `feed_tags` (`feed_id`, `tag_id`) VALUES
 (1, 1), (1, 9), (1, 11),
@@ -245,5 +257,16 @@ INSERT INTO `feed_tags` (`feed_id`, `tag_id`) VALUES
 (48, 5), (48, 8), (48, 14),
 (49, 5), (49, 9), (49, 11),
 (50, 5), (50, 16);
+
+-- 1) feed_id별 선택 횟수 집계
+UPDATE feeds AS f
+JOIN (
+  SELECT
+    feed_id,
+    COUNT(*) AS cnt
+  FROM likes
+  GROUP BY feed_id
+) AS a ON f.id = a.feed_id
+SET f.likes = f.likes + a.cnt;
 
 commit;

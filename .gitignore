@@ -517,7 +517,7 @@ obj/
 .idea/gradle.xml
 .idea/jarRepositories.xml
 .idea/navEditor.xml
-
+gradle.properties
 # Legacy Eclipse project files
 .cproject
 .settings/

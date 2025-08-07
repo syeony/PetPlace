@@ -23,7 +23,7 @@ public class UserChatRoomService {
      * 읽음 처리: 사용자가 마지막으로 읽은 메시지 ID를 갱신합니다.
      */
     @Transactional
-    public void updateLastRead(Integer userId, Integer chatRoomId, Integer lastReadCid) {
+    public void updateLastRead(Long userId, Long chatRoomId, Long lastReadCid) {
         UserChatRoom ucr = ucrRepo.findByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new IllegalStateException("UserChatRoom not found"));
         ucr.setLastReadCid(lastReadCid);
@@ -34,7 +34,7 @@ public class UserChatRoomService {
      * 퇴장 처리: 사용자가 채팅방을 완전히 나간 시각을 기록합니다.
      */
     @Transactional
-    public void leaveChatRoom(Integer userId, Integer chatRoomId) {
+    public void leaveChatRoom(Long userId, Long chatRoomId) {
         UserChatRoom ucr = ucrRepo.findByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new IllegalStateException("UserChatRoom not found"));
         ucr.setLeaveAt(java.time.LocalDateTime.now());
@@ -45,7 +45,7 @@ public class UserChatRoomService {
      * Unread count 조회: 사용자가 아직 읽지 않은 메시지 개수를 반환합니다.
      */
     @Transactional(readOnly = true)
-    public int getUnreadCount(Integer userId, Integer chatRoomId) {
+    public int getUnreadCount(Long userId, Long chatRoomId) {
         UserChatRoom ucr = ucrRepo.findByUserIdAndChatRoomId(userId, chatRoomId)
                 .orElseThrow(() -> new IllegalStateException("UserChatRoom not found"));
         long lastRead = ucr.getLastReadCid() != null ? ucr.getLastReadCid() : 0L;
@@ -54,7 +54,7 @@ public class UserChatRoomService {
     }
 
     @Transactional
-    public void joinChatRoom(Integer userId, Integer chatRoomId) {
+    public void joinChatRoom(Long userId, Long chatRoomId) {
         if (ucrRepo.findByUserIdAndChatRoomId(userId, chatRoomId).isEmpty()) {
             // 1. user, chatRoom 찾아서 변수에 저장
             User user = userRepository.findById(userId).orElseThrow(() -> new IllegalStateException("User not found"));
@@ -68,7 +68,7 @@ public class UserChatRoomService {
             UserChatRoom ucr = new UserChatRoom();
             ucr.setUser(user);
             ucr.setChatRoom(chatRoom);
-            ucr.setLastReadCid(0);
+            ucr.setLastReadCid(0L);
             ucrRepo.save(ucr);
         }
     }
