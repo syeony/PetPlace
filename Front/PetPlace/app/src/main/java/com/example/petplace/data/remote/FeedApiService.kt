@@ -56,10 +56,16 @@ interface FeedApiService {
         @Path("id") commentId: Long
     ): DeleteCommentRes
 
-    //피드id에 따른 댓글목록보기
+    //댓글 단건 조회
     @GET("/api/comments/{feed_id}")
-    suspend fun getCommentsByFeedId(
+    suspend fun getComment(
         @Path("feed_id") feedId: Long
+    ): List<CommentRes>
+
+    //피드id로 피드댓글목록조회
+    @GET("/api/comments/feed_id")
+    suspend fun getCommentsByFeedId(
+        @Query("feed_id") feedId: Long
     ): List<CommentRes>
 
     // 피드 상세 조회 (수정시 기존 데이터 불러오기용)

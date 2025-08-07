@@ -42,6 +42,10 @@ class FeedRepository @Inject constructor(
     }
 
     suspend fun getComments(feedId: Long): List<CommentRes> {
+        return api.getComment(feedId)
+    }
+
+    suspend fun fetchComments(feedId: Long): List<CommentRes> {
         return api.getCommentsByFeedId(feedId)
     }
 

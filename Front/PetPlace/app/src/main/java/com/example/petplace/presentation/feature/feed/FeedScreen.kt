@@ -276,7 +276,7 @@ fun FeedScreen(
         showCommentsForFeedId?.let { fid ->
             CommentBottomSheet(
                 feedId = fid,
-                comments = viewModel.getCommentsForFeed(fid),
+//                comments = viewModel.getCommentsForFeed(fid),
                 onDismiss = { showCommentsForFeedId = null },
                 viewModel = viewModel
             )
