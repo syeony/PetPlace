@@ -12,12 +12,10 @@ import com.minjeok4go.petplace.feed.repository.FeedRepository;
 import com.minjeok4go.petplace.feed.repository.FeedTagRepository;
 import com.minjeok4go.petplace.feed.repository.TagRepository;
 import com.minjeok4go.petplace.image.dto.FeedImageRequest;
-import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
 import com.minjeok4go.petplace.like.repository.LikeRepository;
-import com.minjeok4go.petplace.like.service.LikeService;
 import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -117,7 +114,7 @@ public class FeedService {
         Feed saved = feedRepository.saveAndFlush(feed);
 
         // 2) FeedTag / Image 삽입
-        saveRelations(saved, req);
+        updateFeedTags(saved, req);
 
         return getFeedDetail(saved.getId(), user);
     }
@@ -139,7 +136,7 @@ public class FeedService {
         Feed saved = feedRepository.saveAndFlush(feed);
 
         // 2) FeedTag / Image 삽입
-        saveRelations(saved, req);
+        updateFeedTags(saved, req);
 
         return getFeedDetail(saved.getId(), user);
     }
@@ -155,7 +152,7 @@ public class FeedService {
         return new DeleteFeedResponse(id);
     }
 
-    private void saveRelations(Feed feed, CreateFeedRequest req) {
+    private void updateFeedTags(Feed feed, CreateFeedRequest req) {
         Long feedId = feed.getId();
 
         // --- tags
@@ -164,30 +161,28 @@ public class FeedService {
             Set<Long> requested = new HashSet<>(req.getTagIds());
 
             // 2) DB에 이미 저장된 tagId 목록 조회
-            List<Long> existing = feedTagRepository.findByFeedId(feedId).stream()
-                    .map(ft -> ft.getTag().getId())
-                    .toList();
+            List<Long> existing = feedTagRepository.findTagIdByFeedId(feedId);
 
             // 3) 새로 추가할 tagId = requested – existing
-            List<Long> toAdd = requested.stream()
+            List<Long> willAddedTagIds = requested.stream()
                     .filter(id -> !existing.contains(id))
                     .toList();
 
+            if(willAddedTagIds.isEmpty()) return;
+
             // 4) 나머지에 대해서만 insert
-            List<Tag> tags = tagRepository.findByIdIn(toAdd);
+            List<Tag> tags = tagRepository.findByIdIn(willAddedTagIds);
 
             Map<Long, Tag> idToTag = tags.stream().collect(Collectors.toMap(Tag::getId, tag -> tag));
 
-            List<FeedTag> feedTags = toAdd.stream()
+            List<FeedTag> feedTags = willAddedTagIds.stream()
                     .map(tagId -> {
                         Tag tag = idToTag.get(tagId);
                         return new FeedTag(feed, tag);
                     })
                     .toList();
 
-            if(!feedTags.isEmpty()) {
-                feedTagRepository.saveAll(feedTags);
-            }
+            feedTagRepository.saveAll(feedTags);
         }
 
         // --- images
@@ -213,9 +208,7 @@ public class FeedService {
                     .map(ir -> new Image(feedId, ImageType.FEED, ir.getSrc(), ir.getSort()))
                     .toList();
 
-            if (!toAdd.isEmpty()) {
-                imageRepository.saveAll(toAdd);
-            }
+            imageRepository.saveAll(toAdd);
         }
     }
 
