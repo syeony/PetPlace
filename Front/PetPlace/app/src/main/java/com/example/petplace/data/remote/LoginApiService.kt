@@ -1,9 +1,12 @@
 package com.example.petplace.data.remote
 
+import com.example.petplace.data.model.join.CertificationResponse
 import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 interface LoginApiService {
 
@@ -29,6 +32,7 @@ data class TokenRefreshResponse(
 )
 
     data class User(
+        val userId: Long,
         val userName: String,
         val nickname: String,
         val userImgSrc: String?,
@@ -54,5 +58,8 @@ data class TokenRefreshResponse(
     fun refreshTokenBlocking(
         @Body request: TokenRefreshRequest
     ): Call<TokenRefreshResponse>
+
+    @GET("/api/user/test-auth")
+    fun isTokenValid() : Response<CertificationResponse>
 
 }
