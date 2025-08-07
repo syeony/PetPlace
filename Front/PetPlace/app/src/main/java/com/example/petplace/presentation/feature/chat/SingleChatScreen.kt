@@ -57,8 +57,13 @@ fun SingleChatScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // 메시지 목록이 변경되거나 키보드 높이가 변경될 때마다 마지막으로 스크롤
-    LaunchedEffect(messages.size, WindowInsets.ime.getBottom(LocalDensity.current)) {
+    // ⭐ 키보드 높이를 감지하는 방법을 개선
+    val density = LocalDensity.current
+    val imeBottomHeight = WindowInsets.ime.getBottom(density)
+    val isKeyboardVisible = imeBottomHeight > 0
+
+    // 메시지 목록이 변경되거나 키보드가 나타날 때마다 마지막으로 스크롤
+    LaunchedEffect(messages.size, isKeyboardVisible) {
         if (messages.isNotEmpty()) {
             coroutineScope.launch {
                 listState.animateScrollToItem(index = messages.size - 1)
@@ -66,19 +71,130 @@ fun SingleChatScreen(
         }
     }
 
-    
-
-    Scaffold(
-        topBar = {
+    // ⭐ Box로 전체 화면을 감싸고 키보드 처리를 개선
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Top App Bar
             ChatTopAppBar(
-                chatPartnerName = chatRoomId.toString(),// 추후 닉네임으로 변경
+                chatPartnerName = chatRoomId.toString(),
                 isConnected = connectionStatus,
                 onBackClick = {
                     navController.popBackStack()
-                })
-        },
-        bottomBar = {
-            Column {
+                }
+            )
+
+            // Messages List
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .weight(1f) // ⭐ weight 사용으로 공간 분배
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                contentPadding = PaddingValues(
+                    bottom = 8.dp // ⭐ 하단 패딩 추가
+                ),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 연결 상태 표시
+                if (!connectionStatus) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD))
+                        ) {
+                            Text(
+                                text = "서버에 연결 중입니다...",
+                                modifier = Modifier.padding(12.dp),
+                                color = Color(0xFF856404)
+                            )
+                        }
+                    }
+                }
+
+                items(messages) { msg ->
+                    val alignment = if (msg.isFromMe) Arrangement.End else Arrangement.Start
+                    val bgColor = if (msg.isFromMe) PrimaryColor else Color.White
+                    val textColor = if (msg.isFromMe) Color.White else Color.Black
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = alignment
+                    ) {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            if (msg.isFromMe) {
+                                Column(
+                                    horizontalAlignment = Alignment.End
+                                ) {
+                                    ReadStatusIndicator(
+                                        isRead = msg.isRead,
+                                        timestamp = msg.timestamp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Surface(
+                                    color = bgColor,
+                                    shape = RoundedCornerShape(
+                                        topStart = 18.dp,
+                                        topEnd = 18.dp,
+                                        bottomStart = 18.dp,
+                                        bottomEnd = 4.dp
+                                    ),
+                                    shadowElevation = 1.dp
+                                ) {
+                                    Text(
+                                        text = msg.content,
+                                        color = textColor,
+                                        modifier = Modifier.padding(12.dp),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            } else {
+                                Surface(
+                                    color = bgColor,
+                                    shape = RoundedCornerShape(
+                                        topStart = 18.dp,
+                                        topEnd = 18.dp,
+                                        bottomStart = 4.dp,
+                                        bottomEnd = 18.dp
+                                    ),
+                                    shadowElevation = 1.dp,
+                                    border = BorderStroke(0.5.dp, Color.Gray.copy(alpha = 0.2f))
+                                ) {
+                                    Text(
+                                        text = msg.content,
+                                        color = textColor,
+                                        modifier = Modifier.padding(12.dp),
+                                        fontSize = 14.sp
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+
+                                Text(
+                                    text = if (msg.timestamp.isNotEmpty()) msg.timestamp else "방금",
+                                    fontSize = 10.sp,
+                                    color = Color.Gray,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Bottom Input Area
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .imePadding() // ⭐ imePadding을 여기에 적용
+            ) {
+                // Attachment Options
                 AnimatedVisibility(
                     visible = showAttachmentOptions,
                     enter = expandVertically(expandFrom = Alignment.Bottom),
@@ -90,10 +206,10 @@ fun SingleChatScreen(
                     )
                 }
 
+                // Input Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.White)
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -127,7 +243,7 @@ fun SingleChatScreen(
                                 color = Color(0xFFADAEBC)
                             )
                         },
-                        enabled = connectionStatus, // 연결상태에 따라 입력 가능/불가능
+                        enabled = connectionStatus,
                         colors = TextFieldDefaults.textFieldColors(
                             containerColor = Color(0xFFF3F4F6),
                             focusedIndicatorColor = Color.Transparent,
@@ -165,102 +281,6 @@ fun SingleChatScreen(
                 }
             }
         }
-    ) { innerPadding ->
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 8.dp)
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            // 연결 상태 표시
-            if (!connectionStatus) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3CD))
-                    ) {
-                        Text(
-                            text = "서버에 연결 중입니다...",
-                            modifier = Modifier.padding(12.dp),
-                            color = Color(0xFF856404)
-                        )
-                    }
-                }
-            }
-
-            items(messages) { msg ->
-                val alignment = if (msg.isFromMe) Arrangement.End else Arrangement.Start
-                val bgColor = if (msg.isFromMe) PrimaryColor else Color.White
-                val textColor = if (msg.isFromMe) Color.White else Color.Black
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = alignment
-                ) {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        if (msg.isFromMe) {
-                            Column(
-                                horizontalAlignment = Alignment.End
-                            ) {
-                                // 읽음 상태 표시 개선
-                                ReadStatusIndicator(
-                                    isRead = msg.isRead,
-                                    timestamp = msg.timestamp
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Surface(
-                                color = bgColor,
-                                shape = RoundedCornerShape(
-                                    topStart = 18.dp,
-                                    topEnd = 18.dp,
-                                    bottomStart = 18.dp,
-                                    bottomEnd = 4.dp
-                                ),
-                                shadowElevation = 1.dp
-                            ) {
-                                Text(
-                                    text = msg.content,
-                                    color = textColor,
-                                    modifier = Modifier.padding(12.dp),
-                                    fontSize = 14.sp
-                                )
-                            }
-                        } else {
-                            Surface(
-                                color = bgColor,
-                                shape = RoundedCornerShape(
-                                    topStart = 18.dp,
-                                    topEnd = 18.dp,
-                                    bottomStart = 4.dp,
-                                    bottomEnd = 18.dp
-                                ),
-                                shadowElevation = 1.dp,
-                                border = BorderStroke(0.5.dp, Color.Gray.copy(alpha = 0.2f))
-                            ) {
-                                Text(
-                                    text = msg.content,
-                                    color = textColor,
-                                    modifier = Modifier.padding(12.dp),
-                                    fontSize = 14.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-
-                            Text(
-                                text = if (msg.timestamp.isNotEmpty()) msg.timestamp else "방금",
-                                fontSize = 10.sp,
-                                color = Color.Gray,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -275,7 +295,7 @@ fun ReadStatusIndicator(
     ) {
         // 읽음 상태 표시
         Text(
-            text = if (isRead) "읽음" else "", // "1"은 안읽음 표시
+            text = if (isRead) "읽음" else "1",
             fontSize = 10.sp,
             color = if (isRead) Color.Gray else MaterialTheme.colorScheme.primary,
             fontWeight = if (isRead) FontWeight.Normal else FontWeight.Bold
@@ -295,7 +315,6 @@ fun AttachmentOptionsGrid(
     onCloseClick: () -> Unit,
     onOptionSelected: (String) -> Unit
 ) {
-    // 기존 AttachmentOptionsGrid 코드 그대로 사용
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -449,7 +468,6 @@ fun ChatTopAppBar(
                 text = chatPartnerName,
                 fontSize = 14.sp
             )
-            // 연결 상태 표시
             if (!isConnected) {
                 Text(
                     text = "연결 중...",
