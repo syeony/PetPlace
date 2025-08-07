@@ -58,7 +58,7 @@ fun SingleChatScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // ⭐ 키보드 높이를 감지하는 방법을 개선
+    // 키보드 높이를 감지
     val density = LocalDensity.current
     val imeBottomHeight = WindowInsets.ime.getBottom(density)
     val isKeyboardVisible = imeBottomHeight > 0
@@ -72,7 +72,6 @@ fun SingleChatScreen(
         }
     }
 
-    // ⭐ Box로 전체 화면을 감싸고 키보드 처리를 개선
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -94,11 +93,11 @@ fun SingleChatScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier
-                    .weight(1f) // ⭐ weight 사용으로 공간 분배
+                    .weight(1f) // 남은 공간을 모두 차지
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp),
                 contentPadding = PaddingValues(
-                    bottom = 8.dp // ⭐ 하단 패딩 추가
+                    bottom = 8.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -188,26 +187,14 @@ fun SingleChatScreen(
                 }
             }
 
-            // Bottom Input Area
+            // Bottom Input Area - 수정된 부분: 순서 변경
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.White)
-                    .imePadding() // ⭐ imePadding을 여기에 적용
+                    .imePadding()
             ) {
-                // Attachment Options
-                AnimatedVisibility(
-                    visible = showAttachmentOptions,
-                    enter = expandVertically(expandFrom = Alignment.Bottom),
-                    exit = shrinkVertically(shrinkTowards = Alignment.Bottom)
-                ) {
-                    AttachmentOptionsGrid(
-                        onCloseClick = { viewModel.closeAttachmentOptions() },
-                        onOptionSelected = { /* Handle option selection */ }
-                    )
-                }
-
-                // Input Row
+                // Input Row - 먼저 배치
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -280,6 +267,18 @@ fun SingleChatScreen(
 
                     Spacer(Modifier.width(10.dp))
                 }
+
+                // Attachment Options - 나중에 배치 (입력창 아래에 표시됨)
+                AnimatedVisibility(
+                    visible = showAttachmentOptions,
+                    enter = expandVertically(expandFrom = Alignment.Top), // 위에서 아래로 확장
+                    exit = shrinkVertically(shrinkTowards = Alignment.Top)
+                ) {
+                    AttachmentOptionsGrid(
+                        onCloseClick = { viewModel.closeAttachmentOptions() },
+                        onOptionSelected = { /* Handle option selection */ }
+                    )
+                }
             }
         }
     }
@@ -322,43 +321,6 @@ fun AttachmentOptionsGrid(
             .background(Color.White)
             .padding(top = 16.dp, bottom = 8.dp, start = 16.dp, end = 16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onCloseClick) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "닫기",
-                    tint = Color.Black
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "메시지 보내기",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(modifier = Modifier.width(24.dp))
-
-            Icon(
-                painter = painterResource(id = R.drawable.ic_mypage),
-                contentDescription = "이모티콘",
-                tint = Color.Gray,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(onClick = { /* 전송 로직 */ }) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = "전송",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         val options = listOf(
             AttachmentOption("앨범", R.drawable.ic_mypage, "album"),
