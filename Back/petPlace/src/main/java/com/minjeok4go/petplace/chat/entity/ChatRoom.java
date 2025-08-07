@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ChatRoom {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY) // 지연 로딩 / 실제로 접근할 때 까지  DB에서 조회하지 않고 대기함 (불필요한 쿼리/조인을 막아서 성능 최적화)
     @JoinColumn(name = "user_id_1")

@@ -2,6 +2,7 @@ package com.minjeok4go.petplace.chat.controller;
 
 import com.minjeok4go.petplace.chat.dto.ChatMessageDTO;
 import com.minjeok4go.petplace.chat.dto.ChatRoomDTO;
+import com.minjeok4go.petplace.chat.dto.ChatRoomParticipantDTO;
 import com.minjeok4go.petplace.chat.dto.CreateChatRoomRequest;
 import com.minjeok4go.petplace.chat.service.ChatRoomService;
 import com.minjeok4go.petplace.chat.service.ChatService;
@@ -44,7 +45,7 @@ public class ChatRoomController {
     // 채팅방 목록 조회
     @Operation(summary = "채팅방 목록 조회")
     @GetMapping("/rooms")
-    public ResponseEntity<?> getChatRooms(@RequestParam Integer userId) {
+    public ResponseEntity<?> getChatRooms(@RequestParam Long userId) {
         List<ChatRoomDTO> rooms = chatRoomService.getChatRoomsByUser(userId);
         return ResponseEntity.ok(rooms);
     }
@@ -53,8 +54,8 @@ public class ChatRoomController {
     @Operation(summary = "채팅방 안 읽은 메시지 수 조회")
     @GetMapping("/rooms/{chatRoomId}/unread")
     public ResponseEntity<Integer> getUnreadCount(
-            @PathVariable Integer chatRoomId,
-            @RequestParam Integer userId
+            @PathVariable Long chatRoomId,
+            @RequestParam Long userId
     ) {
         int count = userChatRoomService.getUnreadCount(userId, chatRoomId);
         return ResponseEntity.ok(count);
@@ -62,16 +63,22 @@ public class ChatRoomController {
 
     @PostMapping("/rooms/{chatRoomId}/join")
     public ResponseEntity<?> joinChatRoom(
-            @PathVariable Integer chatRoomId,
-            @RequestParam Integer userId
+            @PathVariable Long chatRoomId,
+            @RequestParam Long userId
     ) {
         userChatRoomService.joinChatRoom(userId, chatRoomId); // ⬅️ 이거 꼭 필요!
         return ResponseEntity.ok().build();
     }
+    // 방 기준으로 참여자 정보 가져오기
+    @GetMapping("/rooms/{chatRoomId}/participants")
+    public List<ChatRoomParticipantDTO> getParticipants(@PathVariable Long chatRoomId) {
+        return chatRoomService.getParticipantDTOs(chatRoomId);
+    }
+
 
 
     @GetMapping("/{chatRoomId}/messages")
-    public ResponseEntity<List<ChatMessageDTO>> getMessages(@PathVariable Integer chatRoomId) {
+    public ResponseEntity<List<ChatMessageDTO>> getMessages(@PathVariable Long chatRoomId) {
         List<ChatMessageDTO> messages = chatService.getMessagesByRoom(chatRoomId);
         return ResponseEntity.ok(messages);
     }

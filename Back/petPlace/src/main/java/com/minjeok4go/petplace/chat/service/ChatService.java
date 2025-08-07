@@ -35,7 +35,7 @@ public class ChatService {
 
             Chat saved = chatRepository.save(chat);
             // 내 메세지는 바로읽음 처리
-            userChatRoomService.updateLastRead(dto.getUserId(), dto.getChatRoomId(), saved.getId().intValue());
+            userChatRoomService.updateLastRead(dto.getUserId(), dto.getChatRoomId(), saved.getId());
 
             System.out.println(">>> 저장된 Chat ID: " + saved.getId());
 
@@ -48,7 +48,7 @@ public class ChatService {
             List<String> imageUrls = dto.getImageUrls() != null ? dto.getImageUrls() : List.of();
             if (!imageUrls.isEmpty()) {
                 List<Image> images = imageUrls.stream()
-                        .map(url -> new Image(saved.getId().longValue(), ImageType.CHAT, url, 0))
+                        .map(url -> new Image(saved.getId(), ImageType.CHAT, url, 0))
                         .toList();
                 imageRepository.saveAll(images);
             }
@@ -58,7 +58,7 @@ public class ChatService {
 
             // chatId(PK) 포함해서 DTO로 반환
             return new ChatMessageDTO(
-                    saved.getId().longValue(),
+                    saved.getId(),
                     saved.getChatRoom().getId(),
                     saved.getUser().getId(),
                     nickname,
@@ -74,7 +74,7 @@ public class ChatService {
         }
     }
 
-    public List<ChatMessageDTO> getMessagesByRoom(Integer chatRoomId) {
+    public List<ChatMessageDTO> getMessagesByRoom(Long chatRoomId) {
 //        List<Chat> chats = chatRepository.findByChatRoom_IdOrderByCreatedAtAsc(chatRoomId);
         List<Chat> chats = chatRepository.findAllByChatRoomId(chatRoomId); // 여기!
 
@@ -85,7 +85,7 @@ public class ChatService {
                     ? chat.getImages().stream().map(Image::getSrc).toList()
                     : List.of();
             return new ChatMessageDTO(
-                    chat.getId().longValue(),
+                    chat.getId(),
                     chat.getChatRoom().getId(),
                     chat.getUser().getId(),
                     chat.getUser().getNickname(),

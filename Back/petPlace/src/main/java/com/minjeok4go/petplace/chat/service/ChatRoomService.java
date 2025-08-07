@@ -7,7 +7,9 @@ import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import com.minjeok4go.petplace.chat.entity.UserChatRoom;
+import com.minjeok4go.petplace.chat.dto.ChatRoomParticipantDTO;
 import com.minjeok4go.petplace.chat.repository.UserChatRoomRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +31,7 @@ public class ChatRoomService {
         this.userChatRoomService = userChatRoomService;
     }
 
-    public ChatRoomDTO createChatRoom(Integer userId1, Integer userId2) {
+    public ChatRoomDTO createChatRoom(Long userId1, Long userId2) {
         User user1 = userRepository.findById(userId1).orElseThrow();
         User user2 = userRepository.findById(userId2).orElseThrow();
 
@@ -59,8 +61,21 @@ public class ChatRoomService {
         return new ChatRoomDTO(saved.getId(), userId1, userId2, "", null);
     }
 
+    @Transactional(readOnly = true)
+    public List<ChatRoomParticipantDTO> getParticipantDTOs(Long chatRoomId) {
+        return ucrRepo.findByChatRoom_Id(chatRoomId).stream()
+                .map(ucr -> {
+                    User user = ucr.getUser();
+                    return new ChatRoomParticipantDTO(
+                            user.getId(),
+                            user.getNickname(),
+                            user.getUserImgSrc()
+                    );
+                })
+                .toList();
+    }
 
-    public List<ChatRoomDTO> getChatRoomsByUser(Integer userId) {
+    public List<ChatRoomDTO> getChatRoomsByUser(Long userId) {
         List<ChatRoom> rooms = chatRoomRepository.findByUserId(userId);
         // ChatRoom → ChatRoomDto 변환
         return rooms.stream()

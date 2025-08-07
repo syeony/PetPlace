@@ -9,9 +9,9 @@ import java.time.LocalDateTime;
 @Getter@Setter
 @AllArgsConstructor
 public class ChatRoomDTO {
-    private Integer chatRoomId;
-    private Integer userId1;
-    private Integer userId2;
+    private Long chatRoomId;
+    private Long userId1;
+    private Long userId2;
     private String lastMessage;
     private LocalDateTime lastMessageAt;
 }

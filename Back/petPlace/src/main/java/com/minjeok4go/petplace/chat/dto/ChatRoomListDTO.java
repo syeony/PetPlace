@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatRoomListDTO {
-    private Integer chatRoomId;
-    private Integer user1Id;
+    private Long chatRoomId;
+    private Long user1Id;
+    private Long user2Id;
     private String user1Nickname;
-    private Integer user2Id;
     private String user2Nickname;
     private String lastMessage;
     private LocalDateTime lastMessageAt;
