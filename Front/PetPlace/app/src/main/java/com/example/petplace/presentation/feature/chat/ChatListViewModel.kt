@@ -3,6 +3,7 @@ package com.example.petplace.presentation.feature.chat
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.local.chat.ChatRoom
 import com.example.petplace.data.model.chat.ChatRoomResponse
 import com.example.petplace.data.repository.ChatRepository
@@ -23,10 +24,10 @@ class ChatListViewModel @Inject constructor(
         private const val TAG = "ChatListViewModel"
     }
 
-    
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val userInfo = app.getUserInfo()
 
-    // 현재 사용자 ID (실제로는 의존성 주입이나 SharedPreferences에서 가져와야 함)
-    private val currentUserId = 3L
+    private val currentUserId = userInfo?.userId ?: 0
 
     private val _chatRooms = MutableStateFlow<List<ChatRoom>>(emptyList())
     val chatRooms: StateFlow<List<ChatRoom>> = _chatRooms.asStateFlow()

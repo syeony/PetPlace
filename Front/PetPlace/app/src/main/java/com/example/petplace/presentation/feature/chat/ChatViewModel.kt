@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.local.chat.ChatMessage
 import com.example.petplace.data.model.chat.ChatMessageDTO
 import com.example.petplace.data.model.chat.ChatReadDTO
@@ -30,7 +31,10 @@ class ChatViewModel @Inject constructor(
     private val webSocketManager = WebSocketManager()
 
     // 현재 사용자 ID와 채팅방 ID
-    private val currentUserId = 3L
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val userInfo = app.getUserInfo()
+
+    private val currentUserId = userInfo?.userId ?: 0
     private val currentChatRoomId: Long = savedStateHandle["chatRoomId"] ?: 0L
 
     private val _messageInput = MutableStateFlow("")
