@@ -23,7 +23,11 @@ CREATE TABLE `users` (
     `deleted_at` DATETIME NULL,
     `region_id` BIGINT NOT NULL,
     `default_pet_id` BIGINT NULL,
-    `kakao_oauth` VARCHAR(200) NULL,
+    -- [수정] 소셜 로그인 관련 컬럼들
+    `login_type` ENUM('EMAIL', 'KAKAO', 'NAVER', 'GOOGLE') NOT NULL DEFAULT 'EMAIL' COMMENT '로그인 타입',
+    `social_id` VARCHAR(200) NULL COMMENT '소셜 플랫폼 고유 ID',
+    `social_email` VARCHAR(100) NULL COMMENT '소셜 계정 이메일',
+    
     `user_img_src` VARCHAR(500) NULL,
     `pet_smell` DECIMAL(4,1) NOT NULL DEFAULT 36.5,
     `default_badge_id` BIGINT NULL,
@@ -38,6 +42,8 @@ CREATE TABLE `users` (
     UNIQUE KEY uq_user_user_name (`user_name`),
     UNIQUE KEY uq_user_nickname (`nickname`),
     UNIQUE KEY uq_user_phone (`phone_number`),
+    UNIQUE KEY uq_user_ci (`ci`),
+    UNIQUE KEY uq_user_social_id (`social_id`), -- 소셜 ID 고유 제약
     CHECK (`phone_number` REGEXP '^[0-9]+$'),
     FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
 );
@@ -54,7 +60,6 @@ CREATE TABLE `refresh_tokens` (
     INDEX idx_user_id (`user_id`),
     INDEX idx_refresh_token (`refresh_token`)
 );
-
 
 -- ✅ Pet
 CREATE TABLE `pets` (
