@@ -7,5 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface LikeRepository extends JpaRepository<Likes, Long> {
 
+    boolean existsByFeedAndUser(Feed feed, User user);
     Likes findByFeedAndUser(Feed feed, User user);
 }

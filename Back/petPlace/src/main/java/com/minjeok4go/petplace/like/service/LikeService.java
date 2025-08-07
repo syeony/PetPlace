@@ -1,6 +1,5 @@
 package com.minjeok4go.petplace.like.service;
 
-import com.minjeok4go.petplace.comment.dto.MyComment;
 import com.minjeok4go.petplace.feed.dto.FeedLikeResponse;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.service.FeedService;
@@ -44,5 +43,10 @@ public class LikeService {
         likeRepository.delete(likes);
 
         return feedService.decreaseLike(feed);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsLike(Feed feed, User user) {
+        return likeRepository.existsByFeedAndUser(feed, user);
     }
 }

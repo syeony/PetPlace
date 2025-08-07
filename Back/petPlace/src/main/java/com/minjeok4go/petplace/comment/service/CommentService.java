@@ -39,6 +39,7 @@ public class CommentService {
         return commentRepository
                 .findByFeedIdAndDeletedAtIsNull(feedId)
                 .stream()
+                .filter(c -> c.getParentComment() == null)
                 .map(this::mapCommentWithReplies)
                 .collect(Collectors.toList());
     }
@@ -128,19 +129,15 @@ public class CommentService {
     }
 
     private FeedComment mapCommentWithReplies(Comment comment) {
-        List<FeedComment> replies = commentRepository
-                .findByParentCommentIdAndDeletedAtIsNull(comment.getId())
-                .stream()
+        List<FeedComment> replyDtos = comment.getReplies().stream()
                 .map(this::mapCommentWithReplies)
                 .toList();
 
-        Long parentId = comment.getParentComment() != null
-                ? comment.getParentComment().getId()
-                : null;
-
         return FeedComment.builder()
                 .id(comment.getId())
-                .parentCommentId(parentId)
+                .parentCommentId(comment.getParentComment() != null
+                        ? comment.getParentComment().getId()
+                        : null)
                 .feedId(comment.getFeed().getId())
                 .content(comment.getContent())
                 .userId(comment.getUserId())
@@ -149,7 +146,7 @@ public class CommentService {
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
                 .deletedAt(comment.getDeletedAt())
-                .replies(replies)
+                .replies(replyDtos)
                 .build();
     }
 }

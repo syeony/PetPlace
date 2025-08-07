@@ -3,6 +3,7 @@ package com.minjeok4go.petplace.feed.dto;
 import com.minjeok4go.petplace.comment.dto.FeedComment;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class FeedDetailResponse {
     private Long id;
     private String content;
@@ -23,6 +24,7 @@ public class FeedDetailResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
+    private Boolean liked;
     private Integer likes;
     private Integer views;
     private List<TagResponse> tags;
