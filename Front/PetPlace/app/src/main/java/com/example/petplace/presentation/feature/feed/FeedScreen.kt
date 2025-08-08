@@ -27,9 +27,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -42,8 +45,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -89,6 +94,38 @@ fun FeedScreen(
         viewModel.refreshFeeds {
             refreshState.endRefresh()  // 새로고침 종료 시점에서 호출!
         }
+    }
+
+    val navBackStackEntry = navController.currentBackStackEntry
+    val feedEdited = navBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("feedEdited")?.observeAsState()
+
+    LaunchedEffect(feedEdited?.value) {
+        if (feedEdited?.value == true) {
+            viewModel.refreshFeeds { }
+            navBackStackEntry.savedStateHandle.remove<Boolean>("feedEdited")
+        }
+    }
+
+    val feedWritten = navBackStackEntry
+        ?.savedStateHandle
+        ?.getLiveData<Boolean>("feedWritten")
+        ?.observeAsState()
+
+    LaunchedEffect(feedWritten?.value) {
+        if (feedWritten?.value == true) {
+            viewModel.refreshFeeds { }
+            navBackStackEntry.savedStateHandle.remove<Boolean>("feedWritten")
+        }
+    }
+
+    // 피드 수정으로 이동
+    fun moveToEditFeed(feedId: Long, regionId: Long) {
+        navController.navigate("board/edit/$feedId/$regionId")
+    }
+
+    // 피드 삭제 로직(예시, 실제 삭제 API 연결 필요)
+    fun deleteFeed(feedId: Long) {
+        viewModel.deleteFeed(feedId)
     }
 
     Box(
@@ -214,7 +251,9 @@ fun FeedScreen(
                             feed = feed,
                             hashtagColor = hashtagColor,
                             onCommentTap = { showCommentsForFeedId = feed.id },
-                            viewModel = viewModel
+                            viewModel = viewModel,
+                            onEditFeed = { feedId, regionId -> moveToEditFeed(feedId, regionId) },
+                            onDeleteFeed = { deleteFeed(it) }      // 삭제 콜백
                         )
                         Spacer(Modifier.height(6.dp))
                     }
@@ -259,7 +298,9 @@ private fun FeedItem(
     feed: FeedRecommendRes,
     hashtagColor:  Color,
     onCommentTap:  () -> Unit,
-    viewModel: BoardViewModel
+    viewModel: BoardViewModel,
+    onEditFeed: (Long, Long) -> Unit,      // <-- 수정페이지 이동 콜백 추가!
+    onDeleteFeed: (Long) -> Unit     // <-- 삭제 콜백도 추가
 ) {
     val liked = viewModel.isFeedLiked(feed.id)
 
@@ -270,27 +311,69 @@ private fun FeedItem(
             .padding(vertical = 16.dp)
     ) {
         /* 프로필 & 카테고리 */
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        ) {
-            ProfileImage(feed.userImg)
-            Spacer(Modifier.width(8.dp))
+        // 1. Box로 감싸고, Box의 오른쪽 위에 IconButton 배치
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // 프로필/카테고리 등 Row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+            ) {
+                ProfileImage(feed.userImg)
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    val (bgCol, txtCol) = categoryStyles[feed.category]
+                        ?: (Color.LightGray to Color.DarkGray)
 
-            Column {
-                val (bgCol, txtCol) = categoryStyles[feed.category]
-                    ?: (Color.LightGray to Color.DarkGray)
+                    Text(
+                        feed.category,
+                        fontSize = 12.sp,
+                        color = txtCol,
+                        modifier = Modifier
+                            .background(bgCol, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(feed.userNick, fontWeight = FontWeight.Bold)
+                }
+            }
 
-                Text(
-                    feed.category,
-                    fontSize = 12.sp,
-                    color = txtCol,
+            // 점 세개 버튼(⋮) - Box의 오른쪽 위!
+            if (viewModel.userInfo?.userId == feed.userId) {
+                var showMenu by remember { mutableStateOf(false) }
+                Box(
                     modifier = Modifier
-                        .background(bgCol, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(feed.userNick, fontWeight = FontWeight.Bold)
+                        .align(Alignment.TopEnd) // 피드 아이템 박스의 오른쪽 위
+                        .padding(top = 0.dp, end = 8.dp)
+                ) {
+                    IconButton(
+                        onClick = { showMenu = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "더보기"
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("수정") },
+                            onClick = {
+                                onEditFeed(feed.id, feed.regionId)
+                                showMenu = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("삭제", color = Color.Red) },
+                            onClick = {
+                                showMenu = false
+                                onDeleteFeed(feed.id)
+                            }
+                        )
+                    }
+                }
             }
         }
 
