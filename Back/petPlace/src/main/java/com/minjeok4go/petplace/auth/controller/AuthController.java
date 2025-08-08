@@ -110,32 +110,37 @@ public class AuthController {
     @PostMapping("/social/signup")
     @Operation(summary = "소셜 회원가입", description = "본인인증 완료 후 소셜 계정으로 회원가입합니다.")
     public ResponseEntity<?> socialSignup(@RequestBody SocialSignupRequest request) {
+        log.info("Signup 요청으로 들어온 tempToken: {}", request.getTempToken());
+
         try {
-            // 1. 임시 토큰 검증 추가
+            // 1. 임시 토큰 검증
             if (request.getTempToken() == null || request.getTempToken().isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(ApiResponse.failure("임시 토큰이 필요합니다."));
             }
 
-            // 2. 임시 토큰 유효성 검증
+            // 2. 임시 토큰 유효성 검증 및 정보 추출
             try {
                 Map<String, Object> tempTokenClaims = jwtTokenProvider.getTempTokenClaims(request.getTempToken());
-                String tokenSocialId = (String) tempTokenClaims.get("socialId");
                 String tokenProvider = (String) tempTokenClaims.get("provider");
 
-                // 3. 요청의 소셜 정보와 토큰 정보 일치 여부 확인
-                if (!tokenSocialId.equals(request.getUserInfo().getSocialId()) ||
-                        !tokenProvider.equals(request.getProvider().name())) {
+                // 3. 요청의 provider와 토큰 provider 일치 여부 확인
+                if (!tokenProvider.equals(request.getProvider().name())) {
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                            .body(ApiResponse.failure("임시 토큰 정보가 일치하지 않습니다."));
+                            .body(ApiResponse.failure("임시 토큰의 소셜 플랫폼 정보가 일치하지 않습니다."));
                 }
+
+                log.info("소셜 회원가입 요청 검증 완료 - provider: {}, tempToken 유효", request.getProvider());
+                
             } catch (Exception e) {
+                log.warn("유효하지 않은 임시 토큰으로 회원가입 시도: {}", e.getMessage());
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(ApiResponse.failure("유효하지 않은 임시 토큰입니다."));
             }
 
-            // 4. 기존 회원가입 로직 실행
+            // 4. 회원가입 처리
             TokenDto tokenDto = socialAuthService.processSocialSignup(request);
+            log.info("소셜 회원가입 성공 - provider: {}", request.getProvider());
             return ResponseEntity.ok(tokenDto);
 
         } catch (IllegalArgumentException e) {

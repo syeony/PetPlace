@@ -1,6 +1,7 @@
 package com.minjeok4go.petplace.user.service;
 
 import com.minjeok4go.petplace.auth.dto.SocialSignupRequest;
+import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
 import com.minjeok4go.petplace.common.constant.SocialProvider;
 import com.minjeok4go.petplace.user.dto.VerificationData;
 import com.minjeok4go.petplace.user.entity.LoginType;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,7 +26,8 @@ public class SocialUserService {
 
     private final UserRepository userRepository;
     private final PortOneApiService portOneApiService;
-    private final PasswordEncoder passwordEncoder; // 추가
+    private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider; // 추가
 
     /**
      * 소셜 ID로 기존 사용자 조회
@@ -48,7 +51,7 @@ public class SocialUserService {
     }
 
     /**
-     * 소셜 회원가입 처리
+     * 소셜 회원가입 처리 (보안 강화 버전)
      */
     public User signupSocialUser(SocialSignupRequest request) {
         // 1. 본인인증 정보 조회
@@ -63,43 +66,58 @@ public class SocialUserService {
     }
 
     /**
-     * 기존 계정에 소셜 계정 연동
+     * 기존 계정에 소셜 계정 연동 (수정됨)
      */
     private User linkSocialAccount(SocialSignupRequest request, VerificationData verificationData) {
-        // 1. 연동할 기존 사용자 조회
+        // 1. 임시 토큰에서 검증된 사용자 정보 추출
+        Map<String, Object> tempTokenClaims = jwtTokenProvider.getTempTokenClaims(request.getTempToken());
+        String socialId = (String) tempTokenClaims.get("socialId");
+        String socialEmail = (String) tempTokenClaims.get("email");
+        String profileImage = (String) tempTokenClaims.get("profileImage");
+        
+        // 2. 연동할 기존 사용자 조회
         User existingUser = userRepository.findById(request.getLinkUserId())
                 .orElseThrow(() -> new IllegalArgumentException("연동할 사용자를 찾을 수 없습니다."));
 
-        // 2. CI 일치 여부 확인 (보안)
+        // 3. CI 일치 여부 확인 (보안)
         if (!existingUser.getCi().equals(verificationData.getCi())) {
             throw new IllegalArgumentException("본인인증 정보가 일치하지 않습니다.");
         }
 
-        // 3. 소셜 계정 연동
+        // 4. 소셜 계정 연동
         LoginType loginType = convertProviderToLoginType(request.getProvider());
         existingUser.linkSocialAccount(
-                request.getUserInfo().getSocialId(),
-                request.getUserInfo().getEmail(),
-                request.getUserInfo().getProfileImage(),
+                socialId,       // 임시토큰에서 추출한 검증된 socialId
+                socialEmail,    // 임시토큰에서 추출한 검증된 email
+                profileImage,   // 임시토큰에서 추출한 검증된 profileImage
                 loginType
         );
 
-        log.info("소셜 계정 연동 완료: userId={}, provider={}", existingUser.getId(), request.getProvider());
+        log.info("소셜 계정 연동 완료: userId={}, provider={}, socialId={}", 
+                existingUser.getId(), request.getProvider(), socialId);
         return existingUser;
     }
 
+
+
     /**
-     * 새로운 소셜 사용자 생성
+     * 새로운 소셜 사용자 생성 (보안 강화 버전)
      */
     private User createSocialUser(SocialSignupRequest request, VerificationData verificationData) {
-        // 1. 중복 검사
-        validateSocialSignup(request, verificationData);
+        // 1. 임시 토큰에서 검증된 사용자 정보 추출
+        Map<String, Object> tempTokenClaims = jwtTokenProvider.getTempTokenClaims(request.getTempToken());
+        String socialId = (String) tempTokenClaims.get("socialId");
+        String socialEmail = (String) tempTokenClaims.get("email");
+        String profileImage = (String) tempTokenClaims.get("profileImage");
 
-        // 2. 소셜 사용자용 랜덤 패스워드 생성
+        // 2. 중복 검사
+        validateSocialSignup(socialId, request.getNickname(), verificationData);
+
+        // 3. 소셜 사용자용 랜덤 패스워드 생성
         String randomPassword = UUID.randomUUID().toString();
         String encodedPassword = passwordEncoder.encode(randomPassword);
-        
-        // 3. 소셜 사용자 생성
+
+        // 4. 소셜 사용자 생성
         LoginType loginType = convertProviderToLoginType(request.getProvider());
 
         User socialUser = User.createSocialUser(
@@ -110,41 +128,36 @@ public class SocialUserService {
                 verificationData.getPhone(),
                 verificationData.getGender(),
                 verificationData.getBirthDate(),
-                request.getUserInfo().getSocialId(),
-                request.getUserInfo().getEmail(),
-                request.getUserInfo().getProfileImage(),
+                socialId,           // 임시토큰에서 추출한 검증된 socialId
+                socialEmail,        // 임시토큰에서 추출한 검증된 email
+                profileImage,       // 임시토큰에서 추출한 검증된 profileImage
                 loginType,
-                encodedPassword // 인코딩된 랜덤 패스워드 추가
+                encodedPassword     // 인코딩된 랜덤 패스워드
         );
 
         User savedUser = userRepository.save(socialUser);
-        log.info("소셜 사용자 생성 완료: userId={}, provider={}", savedUser.getId(), request.getProvider());
+        log.info("소셜 사용자 생성 완료: userId={}, provider={}, socialId={}", 
+                savedUser.getId(), request.getProvider(), socialId);
 
         return savedUser;
     }
 
     /**
-     * 소셜 회원가입 유효성 검사
+     * 소셜 회원가입 유효성 검사 (수정됨)
      */
-    private void validateSocialSignup(SocialSignupRequest request, VerificationData verificationData) {
+    private void validateSocialSignup(String socialId, String nickname, VerificationData verificationData) {
         // 1. CI 중복 확인 (가장 중요!)
         if (userRepository.existsByCi(verificationData.getCi())) {
             throw new IllegalArgumentException("이미 가입된 사용자입니다.");
         }
 
         // 2. 소셜 ID 중복 확인
-        if (userRepository.existsBySocialId(request.getUserInfo().getSocialId())) {
+        if (userRepository.existsBySocialId(socialId)) {
             throw new IllegalArgumentException("이미 가입된 소셜 계정입니다.");
         }
 
-        // 3. 자동 생성될 userName 중복 확인
-        String autoUserName = request.getProvider().createUserName(request.getUserInfo().getSocialId());
-        if (userRepository.existsByUserName(autoUserName)) {
-            throw new IllegalArgumentException("시스템 오류가 발생했습니다. 다시 시도해주세요.");
-        }
-
-        // 4. 닉네임 중복 확인
-        if (userRepository.existsByNickname(request.getNickname())) {
+        // 3. 닉네임 중복 확인
+        if (userRepository.existsByNickname(nickname)) {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
         }
     }

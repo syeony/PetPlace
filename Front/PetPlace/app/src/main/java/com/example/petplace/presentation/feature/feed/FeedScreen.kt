@@ -302,7 +302,6 @@ private fun FeedItem(
         Text(feed.content, modifier = Modifier.padding(horizontal = 16.dp))
 
         /* 태그 */
-//        Log.d("Tags", "FeedItem: ${feed.tags} ")
         if (!feed.tags.isNullOrEmpty()) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.padding(horizontal = 16.dp)) {

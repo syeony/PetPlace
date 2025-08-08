@@ -33,6 +33,7 @@ public class Payment {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    @Builder.Default
     private PaymentStatus status = PaymentStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
@@ -69,4 +70,6 @@ public class Payment {
         NAVERPAY,  // 네이버페이
         BANK       // 계좌이체
     }
+
+
 }

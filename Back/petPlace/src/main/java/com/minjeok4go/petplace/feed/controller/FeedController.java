@@ -51,7 +51,7 @@ public class FeedController {
     @GetMapping("/me")
     public List<FeedDetailResponse> getMyFeed(@AuthenticationPrincipal String tokenUserId) {
         User me = authService.getUserFromToken(tokenUserId);
-        return feedService.findByIdWhereUserId(me.getId());
+        return feedService.findByUserId(me.getId());
     }
 
     @Operation(
