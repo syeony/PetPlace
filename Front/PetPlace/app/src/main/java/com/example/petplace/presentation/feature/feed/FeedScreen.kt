@@ -452,7 +452,6 @@ private fun FeedItem(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 10.dp)
         ) {
-//            var liked by remember { mutableStateOf(false) }
 
             IconButton(onClick = { viewModel.toggleLike(feed) }) {
                 Icon(

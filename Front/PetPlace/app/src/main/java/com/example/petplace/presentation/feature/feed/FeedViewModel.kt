@@ -99,51 +99,33 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    // 댓글 새로고침(댓글 등록하거나 삭제할때 바로바로 반영)
-//    fun refreshComments(feedId: Long) {
-//        viewModelScope.launch {
-//            try {
-//                val comments = repo.getComments(feedId)
-//                _commentList.value = comments
-//            } catch (e: Exception) {
-//                // 에러 처리(토스트 등)
-//            }
-//        }
-//    }
-
     fun isFeedLiked(feedId: Long) = _likedFeeds.value.contains(feedId)
 
     fun toggleLike(feed: FeedRecommendRes) {
         viewModelScope.launch {
             try {
-                if (isFeedLiked(feed.id)) {
-                    // 좋아요 취소
-                    repo.unlikeFeed(feed.id) // feed.id 또는 서버에서 받는 likeId
-                    _likedFeeds.update { it - feed.id }
-                } else {
-                    // 좋아요 등록
-                    repo.likeFeed(feed.id)
-                    _likedFeeds.update { it + feed.id }
-                }
-                // 최신 좋아요 수 동기화하려면 서버 feedLikes 받아서 feeds 상태 갱신
-                refreshLikeCount(feed.id)
-            } catch (e: Exception) {
-                // TODO: 에러 처리
-            }
-        }
-    }
+                val newLiked = !(feed.liked == true)
+                if (newLiked) repo.likeFeed(feed.id)
+                else        repo.unlikeFeed(feed.id)
 
-    private fun refreshLikeCount(feedId: Long) {
-        // 실제로는 feedRecommendRes의 likes도 최신화 필요!
-        // _remoteFeeds 업데이트 코드 추가!
-        // 아래는 예시. (feedLikes만 바꿔주는 방식)
-        _remoteFeeds.update { feeds ->
-            feeds.map {
-                if (it.id == feedId) it.copy(likes = it.likes + (if (isFeedLiked(feedId)) 1 else -1))
-                else it
+                // 1) remote list 반영
+                _remoteFeeds.update { list ->
+                    list.map {
+                        if (it.id == feed.id) it.copy(liked = newLiked,
+                            likes = it.likes + if (newLiked) +1 else -1)
+                        else it
+                    }
+                }
+                // 2) _likedFeeds 집합에도 반영
+                _likedFeeds.update {
+                    if (newLiked) it + feed.id else it - feed.id
+                }
+
+                applyFilters()
+            } catch (e: Exception) {
+                // 에러 처리
             }
         }
-        applyFilters() // 화면 반영
     }
 
     // 댓글 작성
@@ -159,21 +141,6 @@ class BoardViewModel @Inject constructor(
     suspend fun removeComment(commentId: Long, feedId: Long) {
         repo.deleteComment(commentId)
         refreshComments(feedId) // 삭제 후 바로 새로고침
-    }
-
-    /** ------------ 서버 호출 ------------ */
-    private fun loadFeeds() = viewModelScope.launch {
-        _loading.value = true
-        _error.value = null
-        try {
-            val result = repo.fetchRecommendedFeeds(USER_ID, PAGE, SIZE)
-            _remoteFeeds.value = result
-            applyFilters()                 // 원본 들어온 뒤 화면에 반영
-        } catch (e: Exception) {
-            _error.value = e.message ?: "알 수 없는 오류"
-        } finally {
-            _loading.value = false
-        }
     }
 
     /** ------------ 카테고리 토글 ------------ */
@@ -199,9 +166,25 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    /** ------------ 댓글 가져오기 ------------ */
-    fun getCommentsForFeed(feedId: Long) =
-        _remoteFeeds.value.firstOrNull { it.id == feedId }?.comments ?: emptyList()
+    private fun loadFeeds() = viewModelScope.launch {
+        _loading.value = true
+        _error.value = null
+        try {
+            val result = repo.fetchRecommendedFeeds(USER_ID, PAGE, SIZE)
+            // 1) 원본 피드 리스트 반영
+            _remoteFeeds.value = result
+            // 2) 서버가 반환한 liked 상태로 _likedFeeds 초기화
+            _likedFeeds.value = result
+                .filter { it.liked == true }
+                .map { it.id }
+                .toSet()
+            applyFilters()
+        } catch (e: Exception) {
+            _error.value = e.message ?: "알 수 없는 오류"
+        } finally {
+            _loading.value = false
+        }
+    }
 
     fun refreshFeeds(onFinish: () -> Unit) {
         viewModelScope.launch {
@@ -210,6 +193,11 @@ class BoardViewModel @Inject constructor(
             try {
                 val result = repo.fetchRecommendedFeeds(USER_ID, PAGE, SIZE)
                 _remoteFeeds.value = result
+                // 여기에도 반드시!
+                _likedFeeds.value = result
+                    .filter { it.liked == true }
+                    .map { it.id }
+                    .toSet()
                 applyFilters()
             } catch (e: Exception) {
                 _error.value = e.message ?: "알 수 없는 오류"
