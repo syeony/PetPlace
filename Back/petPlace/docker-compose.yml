@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8
+    restart: always
+    container_name: my-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: alswjrtkrh
+      MYSQL_DATABASE: petplace_db
+      MYSQL_USER: ssafy
+      MYSQL_PASSWORD: admin
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  app1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: [ "java", "-jar", "petPlace-0.0.1-SNAPSHOT_ver_0_3.jar" ]
+    container_name: spring-app1
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/petplace_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: ssafy
+      SPRING_DATASOURCE_PASSWORD: admin
+      JWT_SECRET_KEY: "MyVeryLongAndSecureJwtSecretKeyForPetPlaceApplicationThatIsAtLeast64BytesLongToEnsureHS512SecurityStandards"
+      PORTONE_API_KEY: "7058178427733754"
+      PORTONE_SECRET_KEY: "EFYssJy7k7R6idJMXlzk0a8gBVli5IlF3YDA4OPRAYc2uvijEVUkutHag3eoxJnuVwSk4rY40oqNLOJP"
+      PORTONE_STORE_ID: "MiliasTest"
+    volumes:
+      - /home/ubuntu/upload/images:/home/ubuntu/upload/images
+    ports:
+      - "8081:8081"
+    restart: always
+
+  app2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: [ "java", "-jar", "petPlace-0.0.1-SNAPSHOT_ver_0_3_5000.jar" ]
+
+    container_name: spring-app2
+    depends_on:
+      - db
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/petplace_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: ssafy
+      SPRING_DATASOURCE_PASSWORD: admin
+      JWT_SECRET_KEY: "MyVeryLongAndSecureJwtSecretKeyForPetPlaceApplicationThatIsAtLeast64BytesLongToEnsureHS512SecurityStandards"
+      PORTONE_API_KEY: "7058178427733754"
+      PORTONE_SECRET_KEY: "EFYssJy7k7R6idJMXlzk0a8gBVli5IlF3YDA4OPRAYc2uvijEVUkutHag3eoxJnuVwSk4rY40oqNLOJP"
+      PORTONE_STORE_ID: "MiliasTest"
+    volumes:
+      - /home/ubuntu/upload/images:/home/ubuntu/upload/images
+    ports:
+      - "8082:8082"
+    restart: always
+
+volumes:
+  mysql_data:

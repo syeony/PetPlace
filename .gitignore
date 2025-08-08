@@ -6,6 +6,9 @@
 .gradle/
 build/
 
+# Firebase service account key
+firebase-service-account.json
+
 # Local configuration file (sdk path, etc)
 local.properties
 
@@ -517,7 +520,7 @@ obj/
 .idea/gradle.xml
 .idea/jarRepositories.xml
 .idea/navEditor.xml
-
+gradle.properties
 # Legacy Eclipse project files
 .cproject
 .settings/

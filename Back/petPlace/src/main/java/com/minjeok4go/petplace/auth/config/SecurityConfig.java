@@ -13,7 +13,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -32,22 +31,51 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        // 🔥 더 강력한 패턴 매칭 사용
                         .requestMatchers(
+                                // ✅ Swagger 관련 경로 (가장 먼저 배치)
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/webjars/**",
+                                "/favicon.ico",
+
+                                // 테스트 페이지 (개발용)
+                                "/test/**",
+
                                 // 사용자 API
-                                new AntPathRequestMatcher("/api/user/signup"),
-                                new AntPathRequestMatcher("/api/user/check-username"), 
-                                new AntPathRequestMatcher("/api/user/check-nickname"),
+                                "/api/user/signup",
+                                "/api/user/check-username",
+                                "/api/user/check-nickname",
+                                "/api/user/certifications/prepare",
+                                "/api/user/test-portone-token",
+                                "/api/user/test-portone-cert/**",
+
+                                // 소셜로그인
+                                "/api/auth/social/login",
+                                "/api/auth/social/signup",
+                                "/api/auth/social/check-linkable",
+
                                 // 인증 API
-                                new AntPathRequestMatcher("/api/auth/login"),
-                                new AntPathRequestMatcher("/api/auth/refresh"),
-                                // Swagger 관련 - 와일드카드 패턴 사용
-                                new AntPathRequestMatcher("/swagger-ui/**"),
-                                new AntPathRequestMatcher("/v3/api-docs/**"),
-                                new AntPathRequestMatcher("/swagger-resources/**"),
-                                new AntPathRequestMatcher("/webjars/**"),
-                                new AntPathRequestMatcher("/favicon.ico"),
-                                new AntPathRequestMatcher("/error")
+                                "/api/auth/login",
+                                "/api/auth/refresh",
+
+                                // 기타 공개 API
+                                "/api/upload/images",
+                                "/images/**",
+                                "/error",
+
+                                // 채팅 기능 API
+                                "/api/chat/**",
+                                "/ws/**",
+                                "/ws/chat/**",
+
+                                // 호텔 API
+                                "/api/hotels/**",
+                                "/api/reservations/**",
+                                "/api/payments/**"
+
+
                         ).permitAll()
 
                         // 나머지는 인증 필요

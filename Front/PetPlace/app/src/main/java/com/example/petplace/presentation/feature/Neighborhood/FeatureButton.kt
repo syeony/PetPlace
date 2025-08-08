@@ -29,14 +29,13 @@ private val BorderColor = Color(0xFFFFEDD5)   // #FFEDD5
 fun FeatureButton(
     label: String,
     icon: Any,
-    /* circleColor 삭제 or 무시 */
     onClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .width(100.dp)
-            .border(                         // 외곽선 그대로
-                BorderStroke(1.dp, BorderColor),
+            .border(
+                BorderStroke(1.dp, Color(0xFFFFC981)),
                 shape = RoundedCornerShape(20.dp)
             )
             .clickable(onClick = onClick)

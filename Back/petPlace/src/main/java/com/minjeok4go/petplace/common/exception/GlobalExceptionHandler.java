@@ -1,6 +1,10 @@
 package com.minjeok4go.petplace.common.exception;
 
 import com.minjeok4go.petplace.common.dto.ApiResponse;
+import com.minjeok4go.petplace.common.dto.ErrorResponse;
+import com.minjeok4go.petplace.hotel.exception.HotelNotFoundException;
+import com.minjeok4go.petplace.hotel.exception.ReservationNotFoundException;
+import com.minjeok4go.petplace.payment.exception.PaymentVerificationException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -64,4 +68,34 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.failure("요청 처리 중 오류가 발생했습니다."));
     }
+
+    @ExceptionHandler(HotelNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleHotelNotFoundException(HotelNotFoundException e) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code("HOTEL_NOT_FOUND")
+                .message(e.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(ReservationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleReservationNotFoundException(ReservationNotFoundException e) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code("RESERVATION_NOT_FOUND")
+                .message(e.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
+    @ExceptionHandler(PaymentVerificationException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentVerificationException(PaymentVerificationException e) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .code("PAYMENT_VERIFICATION_FAILED")
+                .message(e.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+
+
 }

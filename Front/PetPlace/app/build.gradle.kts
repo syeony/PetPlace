@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     id("com.google.dagger.hilt.android") version "2.48"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.0"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     kotlin("kapt")
 }
 
@@ -25,6 +25,11 @@ android {
             "String",
             "KAKAO_NATIVE_KEY",
             "\"${project.properties["KAKAO_NATIVE_KEY"]}\""
+        )
+        buildConfigField(
+            "String",
+            "IMP_KEY",
+            "\"${project.properties["IMP_KEY"]}\""
         )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -70,7 +75,14 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
     implementation(libs.common)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.navigation.runtime.android)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
 
     // Navigation (Compose용)
@@ -89,6 +101,7 @@ dependencies {
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.48")
+    debugImplementation(libs.androidx.ui.test.manifest)
     kapt("com.google.dagger:hilt-android-compiler:2.48")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
@@ -123,9 +136,35 @@ dependencies {
     // Compose BOM (일부 의존성 통일)
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
 
+
+    // WebSocket 및 STOMP 클라이언트
+    implementation("org.java-websocket:Java-WebSocket:1.5.3")
+    implementation("com.github.NaikSoftware:StompProtocolAndroid:1.6.6")
+
+    // JSON 처리
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // 네트워크 상태 확인 (선택적)
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+
+    // RxJava (STOMP 라이브러리에서 사용)
+    implementation("io.reactivex.rxjava2:rxjava:2.2.21")
+    implementation("io.reactivex.rxjava2:rxandroid:2.1.1")
+
+    // 달력 Kizitonwose
+    implementation("com.kizitonwose.calendar:compose:2.0.0") // 최신 버전 확인
+
+
     // 테스트
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    //
+    implementation("com.github.iamport:iamport-android:v1.4.8") // 최신 버전으로 사용 권장
+//    implementation("com.iamport:iamport-android-sdk:1.5.8")
+//      implementation("com.github.portone-io:android-sdk:2.2.0") // <-- 이 부분을 추가하세요
+
+
 }
 
