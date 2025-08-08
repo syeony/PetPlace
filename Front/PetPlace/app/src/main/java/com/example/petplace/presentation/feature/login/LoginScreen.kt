@@ -189,77 +189,12 @@ fun LoginScreen(
 
             Button(
                 onClick = {
-                    // 1) 콜백 정의
-                    val kakaoCallback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
-                        when {
-                            error != null -> {
-                                Toast.makeText(
-                                    activity,
-                                    "카카오 로그인 실패: ${error.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                            token != null -> {
-                                // 2) 프로필 정보 조회
-                                UserApiClient.instance.me { user, meError ->
-                                    when {
-                                        meError != null -> {
-                                            Toast.makeText(
-                                                activity,
-                                                "사용자 정보 요청 실패: ${meError.message}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                        user != null -> {
-                                            // 3) DTO 생성
-                                            val request = KakaoLoginRequest(
-                                                provider = "KAKAO",
-                                                userInfo = KakaoLoginRequest.UserInfo(
-                                                    socialId     = user.id.toString(),
-                                                    email        = user.kakaoAccount?.email.orEmpty(),
-                                                    nickname     = user.kakaoAccount?.profile?.nickname.orEmpty(),
-                                                    profileImage = user.kakaoAccount?.profile?.profileImageUrl.orEmpty()
-                                                )
-                                            )
-                                            // 4) 서버 인증 & 분기
-                                            coroutineScope.launch {
-                                                Log.d("KakaoNav", "서버 로그인 요청: $request")
-                                                val success = viewModel.loginWithKakao(request)
-                                                Log.d("KakaoNav", "loginWithKakao returned: $success")
-                                                if (success) {
-                                                    // 기존 사용자: 홈으로
-                                                    navController.navigate("nav_feed") {
-                                                        popUpTo("login") { inclusive = true }
-                                                    }
-                                                } else {
-                                                    // 신규 사용자: tempToken 꺼내고 회원가입 체크 화면으로
-                                                    val sid = Uri.encode(user.id.toString())
-                                                    val tmp = Uri.encode(viewModel.tempToken.value)
-                                                    Log.d("tempToken", "LoginScreen:$tmp ")
-                                                    Log.d("tempToken", "LoginScreen:kakao_join_check/$sid/$tmp")
-                                                    navController.navigate("kakao_join_check/$sid/$tmp") { popUpTo("login") { inclusive = true } }
-
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                    viewModel.kakaoLoginAndSendToServer(
+                        context = context,
+                        onNavigateToJoin = { tempToken ->
+                            navController.navigate("kakao_join_form/${tempToken}")
                         }
-                    }
-
-                    // 5) 카카오톡/계정 로그인 UI 호출
-                    if (UserApiClient.instance.isKakaoTalkLoginAvailable(activity)) {
-                        UserApiClient.instance.loginWithKakaoTalk(
-                            context = activity,
-                            callback = kakaoCallback
-                        )
-                    } else {
-                        UserApiClient.instance.loginWithKakaoAccount(
-                            context = activity,
-                            callback = kakaoCallback
-                        )
-                    }
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()

@@ -24,8 +24,8 @@ class KakaoJoinViewModel @Inject constructor(
 
     var tempToken = mutableStateOf("")
         private set
-    var socialId = mutableStateOf(0L)
-        private set
+//    var socialId = mutableStateOf(0L)
+//        private set
 
     var nickname = mutableStateOf("")
         private set
@@ -36,7 +36,7 @@ class KakaoJoinViewModel @Inject constructor(
         private set
 
     fun setTempToken(newTempToken: String){tempToken.value = newTempToken}
-    fun setSocialId(newSocialId: Long){socialId.value = newSocialId }
+//    fun setSocialId(newSocialId: Long){socialId.value = newSocialId }
     fun onNicknameChange(newName: String) { nickname.value = newName }
     fun saveImpUid(newImpUid: String) { impUid.value = newImpUid }
 
@@ -93,13 +93,10 @@ class KakaoJoinViewModel @Inject constructor(
 
     suspend fun kakaoSignUp(): Boolean {
         return try {
-            val userInfo = com.example.petplace.data.model.login.KakaoJoinRequest.UserInfo(
-                socialId.value, "", "", ""
-            )
+
             val request = KakaoJoinRequest(
                 provider = "KAKAO",
                 tempToken = tempToken.value ,
-                userInfo = userInfo,
                 impUid = impUid.value!!,
                 nickname = nickname.value,
                 regionId = 4700000000
