@@ -4,6 +4,7 @@ import com.example.petplace.data.model.join.CertificationPrepareResponse
 import com.example.petplace.data.model.join.CertificationResponse
 import com.example.petplace.data.model.join.JoinRequest
 import com.example.petplace.data.model.join.KakaoJoinRequest
+import com.example.petplace.data.remote.LoginApiService.LoginResponse
 import com.example.petplace.data.remote.LoginApiService.TokenRefreshRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -28,5 +29,5 @@ interface JoinApiService {
     @POST("/api/user/certifications/prepare")
     suspend fun prepareCertification(): Response<CertificationPrepareResponse>
     @POST("/api/auth/social/signup")
-    suspend fun signUpKakao(@Body request: KakaoJoinRequest): Response<CertificationResponse>
+    suspend fun signUpKakao(@Body request: KakaoJoinRequest): Response<LoginResponse>
 }

@@ -7,7 +7,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -160,28 +159,22 @@ fun MainScaffold() {
 
             navigation(
                 route = "kakao_join_graph",
-                startDestination = "kakao_join_check/{socialId}/{tempToken}"
+                startDestination = "kakao_join_check/{tempToken}"
             ) {
-                // 3-1) 가입 여부 체크 화면
                 composable(
-                    route = "kakao_join_check/{socialId}/{tempToken}",
+                    route = "kakao_join_check/{tempToken}",
                     arguments = listOf(
-                        navArgument("socialId")  { type = NavType.StringType },
                         navArgument("tempToken") { type = NavType.StringType }
                     )
                 ) { backStackEntry ->
-                    // 여기 안에서는 @Composable 이므로 뷰모델을 안전하게 가져올 수 있습니다.
+
                     val parentEntry = navController.getBackStackEntry("kakao_join_graph")
                     val kakaoVm = hiltViewModel<KakaoJoinViewModel>(parentEntry)
 
-                    val sidString = backStackEntry.arguments!!.getString("socialId")!!
 
-                    // Long 으로 변환
-                    val sid: Long = sidString.toLong()
                     val tmp = backStackEntry.arguments!!.getString("tempToken")!!
                     Log.d("tempToken", "MainScaffold: tmp = $tmp ")
                     KakaoJoinCheckScreen(
-                        socialId = sid,
                         tempToken = tmp,
                         navController = navController,
                         viewModel = kakaoVm
