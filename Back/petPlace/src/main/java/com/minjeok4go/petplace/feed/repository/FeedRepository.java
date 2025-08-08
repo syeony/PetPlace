@@ -46,5 +46,5 @@ public interface FeedRepository extends JpaRepository<Feed, Long> {
     @EntityGraph(attributePaths = {"feedTags.tag"})
     List<Feed> findDistinctByFeedTags_Tag_Id(Long tagId);
 
-    List<Feed> findByUserNick(String userNick);
+    List<Feed> findByUserId(Long id);
 }
