@@ -1,6 +1,5 @@
 package com.example.petplace.presentation.feature.feed
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Column
@@ -45,6 +44,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -55,7 +55,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.petplace.R
 import kotlinx.coroutines.launch
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommentBottomSheet(
@@ -66,34 +65,33 @@ fun CommentBottomSheet(
     // 1) 댓글 리스트 구독
     val comments by viewModel.commentList.collectAsState()
 
-    // 2) 시트 열릴 때 댓글 API 호출
+    // 2) BottomSheet 열릴 때마다 API 호출
     LaunchedEffect(feedId) {
         viewModel.refreshComments(feedId)
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    // 최상위 댓글 필터
     val topLevelComments = comments.filter { it.parentId == null }
 
-    // 토글 상태: 댓글 개수만큼
-    val expandedStates = remember(comments) {
+    // 댓글 개수에 따라 즉시 초기화
+    val expandedStates = remember(topLevelComments.size) {
         mutableStateListOf<Boolean>().apply {
             repeat(topLevelComments.size) { add(false) }
         }
     }
 
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val coroutineScope = rememberCoroutineScope()
+
     // 입력창 & 포커싱
     var commentText by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
     var replyingTo by remember { mutableStateOf<Long?>(null) }
 
     // 삭제 다이얼로그 상태
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedCommentId by remember { mutableStateOf<Long?>(null) }
-
-    val coroutineScope = rememberCoroutineScope()
 
     // 삭제 확인 Dialog
     if (showDeleteDialog && selectedCommentId != null) {
@@ -124,9 +122,9 @@ fun CommentBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.White,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        sheetState       = sheetState,
+        containerColor   = Color.White,
+        shape            = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     ) {
         Scaffold(
             containerColor = Color.White,
@@ -154,16 +152,22 @@ fun CommentBottomSheet(
                         modifier = Modifier
                             .weight(1f)
                             .focusRequester(focusRequester),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
+                        colors = TextFieldDefaults.textFieldColors(
+                            containerColor = Color.White,
                         ),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(
                             onSend = {
                                 if (commentText.isNotBlank()) {
                                     coroutineScope.launch {
+                                        // 1) 댓글 등록
                                         viewModel.addComment(feedId, replyingTo, commentText)
+                                        // 2) 바로 펼치기
+                                        replyingTo?.let { parentId ->
+                                            val idx = topLevelComments.indexOfFirst { it.id == parentId }
+                                            if (idx >= 0) expandedStates[idx] = true
+                                        }
+                                        // 3) 초기화
                                         commentText = ""
                                         replyingTo = null
                                         focusManager.clearFocus()
@@ -182,6 +186,10 @@ fun CommentBottomSheet(
                                 if (commentText.isNotBlank()) {
                                     coroutineScope.launch {
                                         viewModel.addComment(feedId, replyingTo, commentText)
+                                        replyingTo?.let { parentId ->
+                                            val idx = topLevelComments.indexOfFirst { it.id == parentId }
+                                            if (idx >= 0) expandedStates[idx] = true
+                                        }
                                         commentText = ""
                                         replyingTo = null
                                         focusManager.clearFocus()
@@ -210,18 +218,23 @@ fun CommentBottomSheet(
                 LazyColumn {
                     items(topLevelComments.size) { idx ->
                         val comment = topLevelComments[idx]
+                        val isMine = comment.userId == viewModel.userInfo?.userId
 
                         Column(Modifier.padding(vertical = 8.dp)) {
+                            // 최상위 댓글 Row
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.pointerInput(comment.id) {
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            selectedCommentId = comment.id
-                                            showDeleteDialog = true
-                                        }
+                                modifier = Modifier
+                                    .then(
+                                        if (isMine) Modifier.pointerInput(comment.id) {
+                                            detectTapGestures(
+                                                onLongPress = {
+                                                    selectedCommentId = comment.id
+                                                    showDeleteDialog = true
+                                                }
+                                            )
+                                        } else Modifier
                                     )
-                                }
                             ) {
                                 ProfileImage(comment.userImg)
                                 Spacer(Modifier.width(8.dp))
@@ -231,35 +244,43 @@ fun CommentBottomSheet(
                                 }
                             }
 
+                            // 답글 달기 버튼
                             TextButton(onClick = {
                                 commentText = ""
                                 replyingTo = comment.id
+                                // 포커스 + 키보드 강제
                                 focusRequester.requestFocus()
+                                keyboardController?.show()
                             }) { Text("답글 달기", fontSize = 10.sp) }
 
+                            // 대댓글 영역
                             if (comment.replies.isNotEmpty()) {
                                 TextButton(onClick = {
                                     expandedStates[idx] = !expandedStates[idx]
                                 }) {
                                     Text(
-                                        if (expandedStates[idx]) "답글 숨기기" else "답글 더 보기",
+                                        if (expandedStates[idx]) "          답글 숨기기"
+                                        else                     "            답글 더 보기",
                                         fontSize = 10.sp
                                     )
                                 }
                                 if (expandedStates[idx]) {
                                     comment.replies.forEach { reply ->
+                                        val isReplyMine = reply.userId == viewModel.userInfo?.userId
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
                                                 .padding(start = 36.dp, top = 4.dp, bottom = 20.dp)
-                                                .pointerInput(reply.id) {
-                                                    detectTapGestures(
-                                                        onLongPress = {
-                                                            selectedCommentId = reply.id
-                                                            showDeleteDialog = true
-                                                        }
-                                                    )
-                                                }
+                                                .then(
+                                                    if (isReplyMine) Modifier.pointerInput(reply.id) {
+                                                        detectTapGestures(
+                                                            onLongPress = {
+                                                                selectedCommentId = reply.id
+                                                                showDeleteDialog = true
+                                                            }
+                                                        )
+                                                    } else Modifier
+                                                )
                                         ) {
                                             ProfileImage(reply.userImg)
                                             Spacer(Modifier.width(8.dp))
