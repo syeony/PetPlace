@@ -53,6 +53,7 @@ fun MyPageScreen(
     modifier: Modifier = Modifier
 ) {
     val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val userInfo = app.getUserInfo()
 
     LazyColumn(
         modifier = modifier
@@ -108,13 +109,13 @@ fun MyPageScreen(
 
                             Column {
                                 Text(
-                                    text = "이도철",
+                                    text = userInfo?.nickname.toString(),
                                     style = AppTypography.titleSmall.copy(
                                         fontWeight = FontWeight.Bold
                                     )
                                 )
                                 Text(
-                                    text = "이화용",
+                                    text = "인의동",
                                     style = AppTypography.bodySmall,
                                     color = Color.Gray
                                 )

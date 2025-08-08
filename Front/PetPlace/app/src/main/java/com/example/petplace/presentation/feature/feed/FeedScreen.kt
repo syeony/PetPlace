@@ -301,7 +301,7 @@ private fun FeedItem(
         Text(feed.content, modifier = Modifier.padding(horizontal = 16.dp))
 
         /* 태그 */
-        if (feed.tags.isNotEmpty()) {
+        if (!feed.tags.isNullOrEmpty()) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.padding(horizontal = 16.dp)) {
                 feed.tags.forEach { tag: TagRes ->
