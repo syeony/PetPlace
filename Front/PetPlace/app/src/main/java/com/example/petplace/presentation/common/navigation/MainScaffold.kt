@@ -17,20 +17,26 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navigation
 import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
 import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
+import com.example.petplace.presentation.feature.feed.BoardEditScreen
 import com.example.petplace.presentation.feature.feed.BoardWriteScreen
 import com.example.petplace.presentation.feature.feed.FeedScreen
-import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.hotel.AnimalSelectScreen
 import com.example.petplace.presentation.feature.hotel.DateSelectionScreen
 import com.example.petplace.presentation.feature.hotel.HotelListScreen
 import com.example.petplace.presentation.feature.hotel.HotelSharedViewModel
+import com.example.petplace.presentation.feature.join.CertificationScreen
+import com.example.petplace.presentation.feature.join.JoinScreen
+import com.example.petplace.presentation.feature.join.JoinViewModel
 import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.missing_list.MissingListScreen
+import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
+import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
@@ -38,11 +44,11 @@ import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import androidx.navigation.compose.navigation
 import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
 import com.example.petplace.presentation.feature.join.CertificationScreen
-import com.example.petplace.presentation.feature.join.JoinViewModel
 import com.example.petplace.presentation.feature.join.KakaoCertificationScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinCheckScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinScreen
 import com.example.petplace.presentation.feature.splash.SplashScreen
+import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnrememberedGetBackStackEntry")
@@ -111,6 +117,21 @@ fun MainScaffold() {
             composable("family/select") { FamilySelectScreen(navController) }
             composable("walk_and_care") { WalkAndCareScreen(navController) }
             composable("missing_list"){ MissingListScreen(navController) }
+            composable(
+                route = "board/edit/{feedId}/{regionId}",
+                arguments = listOf(
+                    navArgument("feedId") { type = NavType.LongType },
+                    navArgument("regionId") { type = NavType.LongType }
+                )
+            ) { backStackEntry ->
+                val feedId = backStackEntry.arguments?.getLong("feedId") ?: 0L
+                val regionId = backStackEntry.arguments?.getLong("regionId") ?: 0L
+                BoardEditScreen(
+                    navController = navController,
+                    feedId = feedId,
+                    regionId = regionId
+                )
+            }
 //            composable("hotel"){AnimalSelectScreen(navController)}
 //            composable("DateSelectionScreen"){DateSelectionScreen(navController)}
 //            composable("HotelListScreen"){ HotelListScreen(navController) }

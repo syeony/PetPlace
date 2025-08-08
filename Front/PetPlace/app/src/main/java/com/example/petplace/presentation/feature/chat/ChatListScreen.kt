@@ -75,6 +75,7 @@ fun ChatListScreen(
     onChatClick: (Long) -> Unit, // chatRoomId를 전달하도록 변경
     viewModel: ChatListViewModel = hiltViewModel()
 ) {
+
     val chatRooms by viewModel.chatRooms.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()

@@ -2,6 +2,11 @@ package com.example.petplace.data.model.feed
 
 import com.google.gson.annotations.SerializedName
 
+//삭제할 피드아이디
+data class DeleteFeedRes(
+    val id: Long
+)
+
 //댓글
 data class CommentReq(
     val feedId: Long,
@@ -60,6 +65,7 @@ data class FeedRecommendRes(
     val createdAt: String,
     val updatedAt: String?,
     val deletedAt: String?,
+    val liked: Boolean?,
     val likes: Int,
     val views: Int,
     val score: Double,

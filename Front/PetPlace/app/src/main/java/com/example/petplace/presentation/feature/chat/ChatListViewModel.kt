@@ -47,6 +47,7 @@ class ChatListViewModel @Inject constructor(
     val chatRoomCreated: StateFlow<ChatRoomResponse?> = _chatRoomCreated.asStateFlow()
 
     init {
+        Log.d(TAG, "유저 id: $currentUserId")
         Log.d(TAG, "ChatListViewModel 초기화")
         loadChatRooms()
     }

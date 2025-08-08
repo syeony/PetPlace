@@ -164,7 +164,7 @@ dependencies {
     implementation("com.github.iamport:iamport-android:v1.4.8") // 최신 버전으로 사용 권장
 //    implementation("com.iamport:iamport-android-sdk:1.5.8")
 //      implementation("com.github.portone-io:android-sdk:2.2.0") // <-- 이 부분을 추가하세요
-
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.0")
 
 }
 

@@ -23,6 +23,11 @@ class FeedRepository @Inject constructor(
         size: Int = 100
     ): List<FeedRecommendRes> = api.getRecommendedFeeds(userId, page, size)
 
+    suspend fun fetchRecommendedFeeds2(
+        page: Int = 0,
+        size: Int = 100
+    ): List<FeedRecommendRes> = api.getRecommendedFeeds2(page, size)
+
     suspend fun createFeed(req: FeedCreateReq): FeedCreateRes {
         return api.createFeed(req)
     }
@@ -42,6 +47,24 @@ class FeedRepository @Inject constructor(
     }
 
     suspend fun getComments(feedId: Long): List<CommentRes> {
+        return api.getComment(feedId)
+    }
+
+    suspend fun fetchComments(feedId: Long): List<CommentRes> {
         return api.getCommentsByFeedId(feedId)
+    }
+
+    // 피드 상세 조회
+    suspend fun getFeedDetail(feedId: Long): FeedRecommendRes {
+        return api.getFeedDetail(feedId)
+    }
+
+    // 피드 수정
+    suspend fun editFeed(feedId: Long, req: FeedCreateReq): FeedRecommendRes {
+        return api.editFeed(feedId, req)
+    }
+
+    suspend fun deleteFeed(feedId: Long): Long {
+        return api.deleteFeed(feedId).id
     }
 }

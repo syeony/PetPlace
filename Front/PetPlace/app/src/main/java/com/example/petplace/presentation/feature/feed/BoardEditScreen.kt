@@ -33,6 +33,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,20 +48,28 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
+import com.example.petplace.data.model.feed.CreateImage
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun BoardWriteScreen(
+fun BoardEditScreen(
     navController: NavController,
-    modifier: Modifier = Modifier,
-    viewModel: BoardWriteViewModel = hiltViewModel()
+    feedId: Long,
+    regionId: Long,
+    viewModel: BoardEditViewModel = hiltViewModel()
 ) {
+    val feed by viewModel.feed.collectAsState()
     val content by viewModel.content.collectAsState()
     val category by viewModel.category.collectAsState()
     val tagIds by viewModel.tagIds.collectAsState()
     val images by viewModel.images.collectAsState()
     val scope = rememberCoroutineScope()
+
+    // 최초 1회 피드 데이터 불러오기
+    LaunchedEffect(feedId) {
+        viewModel.loadFeedDetail(feedId)
+    }
 
     val allCategories = listOf(
         "내새꾸자랑" to "MYPET",
@@ -76,17 +85,19 @@ fun BoardWriteScreen(
         "리드줄", "하네스", "이동장", "실종"
     )
 
-    val imageUris by viewModel.imageUris.collectAsState()
-
+    // 이미지 추가 (갤러리)
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         if (uris.isNotEmpty()) {
-            viewModel.setImageUris(uris)
+            val newImgs = uris.mapIndexed { idx, uri ->
+                CreateImage(src = uri.toString(), sort = images.size + idx)
+            }
+            viewModel.setImages(images + newImgs)
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -165,7 +176,7 @@ fun BoardWriteScreen(
                 verticalArrangement = Arrangement.spacedBy(7.dp)
             ) {
                 allTags.forEachIndexed { idx, tag ->
-                    val tagId = idx + 1  // 인덱스를 1부터 시작!
+                    val tagId = idx + 1  // 1부터 시작
                     val selected = tagIds.contains(tagId.toLong())
                     val bgColor = if (selected) Color(0xFFF79800) else Color.White
                     val borderColor = if (selected) Color(0xFFF79800) else Color.LightGray
@@ -194,7 +205,7 @@ fun BoardWriteScreen(
                 .padding(horizontal = 16.dp)
         ) {
             // 이미지 미리보기 + 삭제 버튼
-            if (imageUris.isNotEmpty()) {
+            if (images.isNotEmpty()) {
                 FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -202,24 +213,21 @@ fun BoardWriteScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    imageUris.forEach { uri ->
+                    images.forEachIndexed { idx, img ->
                         Box(modifier = Modifier.size(100.dp)) {
                             Image(
-                                painter = rememberAsyncImagePainter(model = uri),
+                                painter = rememberAsyncImagePainter(model = img.src),
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(100.dp)
                                     .clip(RoundedCornerShape(10.dp))
                             )
-                            // 엑스(삭제) 아이콘을 이미지 오른쪽 위에 겹치기
                             IconButton(
-                                onClick = {
-                                    viewModel.removeImageUri(uri)
-                                },
+                                onClick = { viewModel.removeImage(idx) },
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
                                     .size(24.dp)
-                                    .background(Color(0x66000000), RoundedCornerShape(12.dp)) // 살짝 반투명 배경
+                                    .background(Color(0x66000000), RoundedCornerShape(12.dp))
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Clear,
@@ -249,13 +257,12 @@ fun BoardWriteScreen(
             Button(
                 onClick = {
                     scope.launch {
-                        try {
-                            val res = viewModel.uploadImagesAndSubmitFeed()
-                            // 등록 성공 시 → FeedScreen에 신호 보내기
-                            navController.previousBackStackEntry?.savedStateHandle?.set("feedWritten", true)
+                        viewModel.editFeed(
+                            feedId = feedId,
+                            regionId = regionId
+                        ) {
+                            navController.previousBackStackEntry?.savedStateHandle?.set("feedEdited", true)
                             navController.popBackStack()
-                        } catch (e: Exception) {
-                            e.printStackTrace()
                         }
                     }
                 },
@@ -264,7 +271,7 @@ fun BoardWriteScreen(
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF79800))
             ) {
-                Text("등록하기", color = Color.White)
+                Text("수정하기", color = Color.White)
             }
         }
     }

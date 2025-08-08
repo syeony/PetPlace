@@ -1,7 +1,6 @@
 package com.example.petplace.presentation.feature.feed
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -236,7 +235,6 @@ fun FeedScreen(
         showCommentsForFeedId?.let { fid ->
             CommentBottomSheet(
                 feedId = fid,
-                comments = viewModel.getCommentsForFeed(fid),
                 onDismiss = { showCommentsForFeedId = null },
                 viewModel = viewModel
             )
