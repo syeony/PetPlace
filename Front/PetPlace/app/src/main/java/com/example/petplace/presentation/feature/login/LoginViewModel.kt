@@ -2,6 +2,7 @@ package com.example.petplace.presentation.feature.login
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
@@ -80,8 +81,10 @@ class LoginViewModel @Inject constructor(
                     val success = loginWithKakao(KakaoLoginRequest(accessToken = token.accessToken))
 
                     if (!success) {
-                        // 신규 사용자 → tempToken 전달하고 회원가입 화면으로 이동
-                        onNavigateToJoin(_tempToken.value)
+                        if(_tempToken.value.isNullOrEmpty()){
+                            Toast.makeText(context, "서버와 통신중 문제가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                        }
+                        else onNavigateToJoin(_tempToken.value)
                     } else {
                         _loginState.value = LoginState(isSuccess = true)
                     }

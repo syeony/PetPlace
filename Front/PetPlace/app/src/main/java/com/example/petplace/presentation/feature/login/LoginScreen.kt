@@ -1,5 +1,6 @@
 package com.example.petplace.presentation.feature.login
 
+import android.Manifest
 import android.app.Activity
 import android.net.Uri
 import android.util.Log
@@ -35,11 +36,13 @@ import com.example.petplace.presentation.common.theme.BackgroundSoft
 import com.example.petplace.presentation.common.theme.DividerColor
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import com.example.petplace.presentation.common.theme.TextSecondary
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun LoginScreen(
     navController: NavController,
@@ -48,6 +51,24 @@ fun LoginScreen(
     val context = LocalContext.current
     val activity = context as Activity
 
+    val locationPerm = rememberMultiplePermissionsState(
+        listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
+
+    // 최초 컴포지션 시 권한 요청
+    LaunchedEffect(Unit) {
+        locationPerm.launchMultiplePermissionRequest()
+    }
+
+    // 권한 상태에 따라 메시지 출력만 (권한 요청 X)
+    if (!locationPerm.allPermissionsGranted) {
+        LaunchedEffect(locationPerm.allPermissionsGranted) {
+            Toast.makeText(context, "위치 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+        }
+    }
     var id by remember { mutableStateOf("") }
     var pw by remember { mutableStateOf("") }
 
