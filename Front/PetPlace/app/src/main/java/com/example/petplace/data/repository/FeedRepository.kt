@@ -23,6 +23,11 @@ class FeedRepository @Inject constructor(
         size: Int = 100
     ): List<FeedRecommendRes> = api.getRecommendedFeeds(userId, page, size)
 
+    suspend fun fetchRecommendedFeeds2(
+        page: Int = 0,
+        size: Int = 100
+    ): List<FeedRecommendRes> = api.getRecommendedFeeds2(page, size)
+
     suspend fun createFeed(req: FeedCreateReq): FeedCreateRes {
         return api.createFeed(req)
     }

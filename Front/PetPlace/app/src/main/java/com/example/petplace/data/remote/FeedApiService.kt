@@ -26,6 +26,12 @@ interface FeedApiService {
         @Query("size") size: Int  = 100
     ): List<FeedRecommendRes>
 
+    @GET("api/recommend/group")
+    suspend fun getRecommendedFeeds2(
+        @Query("page") page: Int  = 0,
+        @Query("size") size: Int  = 100
+    ): List<FeedRecommendRes>
+
     //피드 등록
     @POST("/api/feeds")
     suspend fun createFeed(

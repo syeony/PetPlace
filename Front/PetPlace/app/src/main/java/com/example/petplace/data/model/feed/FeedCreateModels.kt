@@ -31,6 +31,7 @@ data class FeedCreateRes(
     val createdAt:   String,
     val updatedAt:   String?,
     val deletedAt:   String?,
+    val liked: Boolean?,
     val likes:       Int,
     val views:       Int,
     val tags:        List<TagRes>,

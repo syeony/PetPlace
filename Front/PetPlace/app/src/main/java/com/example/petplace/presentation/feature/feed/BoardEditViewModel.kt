@@ -45,7 +45,7 @@ class BoardEditViewModel @Inject constructor(
             val categoryValue = categoryKoToEn[detail.category] ?: detail.category
             content.value = detail.content
             category.value = categoryValue
-            tagIds.value = detail.tags.map { it.id.toLong() }
+            tagIds.value = detail.tags?.map { it.id.toLong() }!!
             images.value = detail.images?.map { CreateImage(src = "http://i13d104.p.ssafy.io:8081"+it.src, sort = it.sort) } ?: emptyList()
         }
     }
