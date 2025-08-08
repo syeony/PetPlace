@@ -24,9 +24,8 @@ import androidx.navigation.NavController
 @Composable
 fun KakaoJoinCheckScreen(
     navController: NavController,
-    socialId: Long,
-    tempToken: String,
-    viewModel: KakaoJoinViewModel = hiltViewModel()
+    viewModel: KakaoJoinViewModel = hiltViewModel(),
+    tempToken: String
 ) {
 
     Column(
@@ -52,7 +51,7 @@ fun KakaoJoinCheckScreen(
             onClick = {
                 viewModel.setTempToken(tempToken)
                 Log.d("tempToken", "KakaoJoinCheckScreen:${tempToken} ")
-                viewModel.setSocialId(socialId)
+//                viewModel.setSocialId(socialId)
                 navController.navigate("kakao_join_form")
             },
             modifier = Modifier

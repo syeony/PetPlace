@@ -43,6 +43,7 @@ public class Reservation {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    @Builder.Default
     private ReservationStatus status = ReservationStatus.PENDING;
 
     @Column(name = "special_requests", length = 1000)

@@ -5,6 +5,7 @@ import com.minjeok4go.petplace.auth.dto.SocialLoginResponse;
 import com.minjeok4go.petplace.auth.dto.SocialSignupRequest;
 import com.minjeok4go.petplace.auth.dto.TokenDto;
 import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
+import com.minjeok4go.petplace.user.dto.KakaoUserInfo;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.service.SocialUserService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -24,30 +24,43 @@ public class SocialAuthService {
     private final SocialUserService socialUserService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final KakaoApiService kakaoApiService; // 추가
 
     /**
-     * 소셜 로그인 처리
+     * 소셜 로그인 처리 (보안 강화 버전)
+     * 이제 액세스 토큰으로 카카오 API를 직접 호출하여 검증합니다.
      */
     public SocialLoginResponse processSocialLogin(SocialLoginRequest request) {
         try {
-            String socialId = request.getUserInfo().getSocialId();
+            log.info("소셜 로그인 처리 시작 - provider: {}", request.getProvider());
+            
+            // 1. 액세스 토큰으로 카카오 API에서 실제 사용자 정보 가져오기
+            KakaoUserInfo kakaoUserInfo = kakaoApiService.getUserInfo(request.getAccessToken());
+            String socialId = kakaoUserInfo.getSocialId();
 
-            // 1. 소셜 ID로 기존 사용자 확인
+            // 2. 소셜 ID로 기존 사용자 확인
             Optional<User> existingUser = socialUserService.findBySocialId(socialId);
 
             if (existingUser.isPresent()) {
                 // 기존 사용자 - 바로 로그인 처리
+                log.info("기존 사용자 로그인 - socialId: {}", socialId);
                 return handleExistingUser(existingUser.get());
             } else {
-                // 신규 사용자 - 임시 토큰 발급
-                String tempToken = jwtTokenProvider.createTempToken(socialId, request.getProvider().name());
+                // 신규 사용자 - 임시 토큰 발급 (사용자 정보 포함)
+                log.info("신규 사용자 감지 - socialId: {}", socialId);
+                String tempToken = jwtTokenProvider.createTempTokenWithUserInfo(
+                    socialId, 
+                    request.getProvider().name(),
+                    kakaoUserInfo.getEmail(),
+                    kakaoUserInfo.getNickname(),
+                    kakaoUserInfo.getProfileImage()
+                );
                 return SocialLoginResponse.newUser(tempToken);
             }
 
         } catch (Exception e) {
-            log.error("소셜 로그인 처리 중 오류 발생: provider={}, socialId={}",
-                    request.getProvider(), request.getUserInfo().getSocialId(), e);
-            return SocialLoginResponse.error("로그인 처리 중 오류가 발생했습니다.");
+            log.error("소셜 로그인 처리 중 오류 발생: provider={}", request.getProvider(), e);
+            return SocialLoginResponse.error("소셜 로그인 처리 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
@@ -56,6 +69,8 @@ public class SocialAuthService {
      */
     public TokenDto processSocialSignup(SocialSignupRequest request) {
         try {
+            log.info("소셜 회원가입 처리 시작 - provider: {}", request.getProvider());
+            
             // 1. 소셜 사용자 생성 또는 계정 연동
             User user = socialUserService.signupSocialUser(request);
 
@@ -134,17 +149,4 @@ public class SocialAuthService {
 
         return SocialLoginResponse.existingUser(tokenDto);
     }
-
-    public void validateTempToken(String tempToken, SocialSignupRequest request) {
-        Map<String, Object> claims = jwtTokenProvider.getTempTokenClaims(tempToken);
-
-        String tokenSocialId = (String) claims.get("socialId");
-        String tokenProvider = (String) claims.get("provider");
-
-        if (!tokenSocialId.equals(request.getUserInfo().getSocialId()) ||
-                !tokenProvider.equals(request.getProvider().name())) {
-            throw new IllegalArgumentException("임시 토큰 정보가 일치하지 않습니다.");
-        }
-    }
-
 }

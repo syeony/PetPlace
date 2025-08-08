@@ -185,6 +185,33 @@ public class JwtTokenProvider {
     }
 
     /**
+     * 사용자 정보가 포함된 소셜 로그인용 임시 토큰 생성 (15분 유효)
+     * @param socialId 소셜 플랫폼 고유 ID
+     * @param provider 소셜 플랫폼명
+     * @param email 사용자 이메일
+     * @param nickname 사용자 닉네임
+     * @param profileImage 프로필 이미지 URL
+     * @return 사용자 정보가 포함된 임시 토큰
+     */
+    public String createTempTokenWithUserInfo(String socialId, String provider, String email, String nickname, String profileImage) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + 900000); // 15분
+
+        return Jwts.builder()
+                .setSubject("TEMP_" + provider + "_" + socialId)
+                .setIssuedAt(now)
+                .setExpiration(expiryDate)
+                .claim("type", "TEMP_SOCIAL_WITH_INFO")
+                .claim("provider", provider)
+                .claim("socialId", socialId)
+                .claim("email", email)
+                .claim("nickname", nickname)
+                .claim("profileImage", profileImage)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    /**
      * 임시 토큰에서 소셜 정보 추출
      */
     public Map<String, Object> getTempTokenClaims(String tempToken) {
@@ -195,9 +222,12 @@ public class JwtTokenProvider {
                     .parseClaimsJws(tempToken)
                     .getBody();
 
-            if (!"TEMP_SOCIAL".equals(claims.get("type"))) {
+            String tokenType = (String) claims.get("type"); // 토큰의 타입을 가져옴
+            if (!"TEMP_SOCIAL".equals(tokenType) && !"TEMP_SOCIAL_WITH_INFO".equals(tokenType)) {
+                // "TEMP_SOCIAL"도 아니고, "TEMP_SOCIAL_WITH_INFO"도 아니면 에러 발생
                 throw new IllegalArgumentException("유효하지 않은 임시 토큰입니다.");
             }
+
 
             Map<String, Object> result = new HashMap<>();
             result.put("provider", claims.get("provider"));

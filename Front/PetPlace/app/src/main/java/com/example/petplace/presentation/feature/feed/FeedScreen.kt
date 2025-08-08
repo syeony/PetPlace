@@ -27,12 +27,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -45,10 +42,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -70,7 +65,6 @@ import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.model.feed.ImageRes
 import com.example.petplace.data.model.feed.TagRes
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -79,7 +73,6 @@ fun FeedScreen(
     modifier:   Modifier = Modifier,
     viewModel:  BoardViewModel = hiltViewModel()
 ) {
-
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val searchText       by viewModel.searchText.collectAsState()
     val feeds            by viewModel.filteredFeeds.collectAsState()
@@ -97,39 +90,6 @@ fun FeedScreen(
             refreshState.endRefresh()  // 새로고침 종료 시점에서 호출!
         }
     }
-
-    val navBackStackEntry = navController.currentBackStackEntry
-    val feedEdited = navBackStackEntry?.savedStateHandle?.getLiveData<Boolean>("feedEdited")?.observeAsState()
-
-    LaunchedEffect(feedEdited?.value) {
-        if (feedEdited?.value == true) {
-            viewModel.refreshFeeds { }
-            navBackStackEntry.savedStateHandle.remove<Boolean>("feedEdited")
-        }
-    }
-
-    val feedWritten = navBackStackEntry
-        ?.savedStateHandle
-        ?.getLiveData<Boolean>("feedWritten")
-        ?.observeAsState()
-
-    LaunchedEffect(feedWritten?.value) {
-        if (feedWritten?.value == true) {
-            viewModel.refreshFeeds { }
-            navBackStackEntry.savedStateHandle.remove<Boolean>("feedWritten")
-        }
-    }
-
-    // ---- 콜백: 삭제 버튼 ----
-    fun deleteFeed(feedId: Long) {
-        viewModel.deleteFeed(feedId)
-    }
-
-    // 피드 수정으로 이동
-    fun moveToEditFeed(feedId: Long, regionId: Long) {
-        navController.navigate("board/edit/$feedId/$regionId")
-    }
-
 
     Box(
         modifier = modifier
@@ -254,9 +214,7 @@ fun FeedScreen(
                             feed = feed,
                             hashtagColor = hashtagColor,
                             onCommentTap = { showCommentsForFeedId = feed.id },
-                            viewModel = viewModel,
-                            onEditFeed = { moveToEditFeed(feed.id, feed.regionId) },   // 수정 콜백
-                            onDeleteFeed = { deleteFeed(it) }      // 삭제 콜백
+                            viewModel = viewModel
                         )
                         Spacer(Modifier.height(6.dp))
                     }
@@ -277,7 +235,6 @@ fun FeedScreen(
         showCommentsForFeedId?.let { fid ->
             CommentBottomSheet(
                 feedId = fid,
-//                comments = viewModel.getCommentsForFeed(fid),
                 onDismiss = { showCommentsForFeedId = null },
                 viewModel = viewModel
             )
@@ -294,10 +251,7 @@ fun FeedScreen(
                 .padding(16.dp)
         ) { Icon(Icons.Default.Add, contentDescription = "글쓰기") }
     }
-
 }
-
-
 
 //피드
 @Composable
@@ -305,12 +259,9 @@ private fun FeedItem(
     feed: FeedRecommendRes,
     hashtagColor:  Color,
     onCommentTap:  () -> Unit,
-    viewModel: BoardViewModel,
-    onEditFeed: (Long) -> Unit,      // <-- 수정페이지 이동 콜백 추가!
-    onDeleteFeed: (Long) -> Unit     // <-- 삭제 콜백도 추가
+    viewModel: BoardViewModel
 ) {
     val liked = viewModel.isFeedLiked(feed.id)
-    var showMenu by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -319,70 +270,29 @@ private fun FeedItem(
             .padding(vertical = 16.dp)
     ) {
         /* 프로필 & 카테고리 */
-        // 1. Box로 감싸고, Box의 오른쪽 위에 IconButton 배치
-        Box(modifier = Modifier.fillMaxWidth()) {
-            // 프로필/카테고리 등 Row
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-            ) {
-                ProfileImage(feed.userImg)
-                Spacer(Modifier.width(8.dp))
-                Column {
-                    val (bgCol, txtCol) = categoryStyles[feed.category]
-                        ?: (Color.LightGray to Color.DarkGray)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            ProfileImage(feed.userImg)
+            Spacer(Modifier.width(8.dp))
 
-                    Text(
-                        feed.category,
-                        fontSize = 12.sp,
-                        color = txtCol,
-                        modifier = Modifier
-                            .background(bgCol, RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(feed.userNick, fontWeight = FontWeight.Bold)
-                }
-            }
+            Column {
+                val (bgCol, txtCol) = categoryStyles[feed.category]
+                    ?: (Color.LightGray to Color.DarkGray)
 
-            // 점 세개 버튼(⋮) - Box의 오른쪽 위!
-            if (viewModel.userInfo?.userId == feed.userId) {
-                Box(
+                Text(
+                    feed.category,
+                    fontSize = 12.sp,
+                    color = txtCol,
                     modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 0.dp, end = 8.dp)
-                ) {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "더보기"
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("수정") },
-                            onClick = {
-                                showMenu = false
-                                onEditFeed(feed.id)
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("삭제", color = Color.Red) },
-                            onClick = {
-                                showMenu = false
-                                onDeleteFeed(feed.id)
-                            }
-                        )
-                    }
-                }
+                        .background(bgCol, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(feed.userNick, fontWeight = FontWeight.Bold)
             }
         }
-
-        Spacer(Modifier.height(8.dp))
 
         Spacer(Modifier.height(8.dp))
 
@@ -390,7 +300,6 @@ private fun FeedItem(
         Text(feed.content, modifier = Modifier.padding(horizontal = 16.dp))
 
         /* 태그 */
-//        if (feed.tags.isNotEmpty()) {
         if (!feed.tags.isNullOrEmpty()) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.padding(horizontal = 16.dp)) {

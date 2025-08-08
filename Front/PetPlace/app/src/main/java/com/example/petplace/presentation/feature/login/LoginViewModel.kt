@@ -1,11 +1,17 @@
 package com.example.petplace.presentation.feature.login
 
+import android.content.Context
+import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.model.login.KakaoLoginRequest
 import com.example.petplace.data.remote.LoginApiService
 import com.example.petplace.data.remote.LoginApiService.LoginRequest
+import com.example.petplace.data.repository.KakaoRepository
+import com.kakao.sdk.auth.model.OAuthToken
+import com.kakao.sdk.user.UserApiClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,8 +26,7 @@ data class LoginState(
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val serverApi: LoginApiService
-) : ViewModel() {
+    private val serverApi: LoginApiService) : ViewModel() {
 
     val app = PetPlaceApp.getAppContext() as PetPlaceApp
 
@@ -61,6 +66,40 @@ class LoginViewModel @Inject constructor(
             }
         }
     }
+
+    private val _loginResult = MutableStateFlow<String?>(null)
+    val loginResult: StateFlow<String?> = _loginResult
+
+    fun kakaoLoginAndSendToServer(context: Context, onNavigateToJoin: (String) -> Unit) {
+        val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
+            if (error != null) {
+                Log.e("KakaoLogin", "로그인 실패: $error")
+            } else if (token != null) {
+                Log.d("KakaoLogin", "로그인 성공: ${token.accessToken}")
+
+                viewModelScope.launch {
+                    val success = loginWithKakao(KakaoLoginRequest(accessToken = token.accessToken))
+
+                    if (!success) {
+                        if(_tempToken.value.isNullOrEmpty()){
+                            Toast.makeText(context, "서버와 통신중 문제가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                        }
+                        else onNavigateToJoin(_tempToken.value)
+                    } else {
+                        _loginState.value = LoginState(isSuccess = true)
+                    }
+                }
+            }
+        }
+
+        if (UserApiClient.instance.isKakaoTalkLoginAvailable(context)) {
+            UserApiClient.instance.loginWithKakaoTalk(context, callback = callback)
+        } else {
+            UserApiClient.instance.loginWithKakaoAccount(context, callback = callback)
+        }
+    }
+
+
 
     suspend fun loginWithKakao(request: KakaoLoginRequest): Boolean {
         val resp = serverApi.loginWithKakao(request)

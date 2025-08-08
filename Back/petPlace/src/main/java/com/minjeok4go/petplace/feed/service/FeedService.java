@@ -12,12 +12,10 @@ import com.minjeok4go.petplace.feed.repository.FeedRepository;
 import com.minjeok4go.petplace.feed.repository.FeedTagRepository;
 import com.minjeok4go.petplace.feed.repository.TagRepository;
 import com.minjeok4go.petplace.image.dto.FeedImageRequest;
-import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
 import com.minjeok4go.petplace.like.repository.LikeRepository;
-import com.minjeok4go.petplace.like.service.LikeService;
 import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,8 +23,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -117,7 +114,7 @@ public class FeedService {
         Feed saved = feedRepository.saveAndFlush(feed);
 
         // 2) FeedTag / Image 삽입
-        saveRelations(saved, req);
+        updateFeedTags(saved, req);
 
         return getFeedDetail(saved.getId(), user);
     }
@@ -136,12 +133,12 @@ public class FeedService {
         feed.setRegionId(req.getRegionId());
         feed.setCategory(FeedCategory.valueOf(req.getCategory()));
         feed.update();
-        feedRepository.save(feed);
+        Feed saved = feedRepository.saveAndFlush(feed);
 
-        // 3) 관계삽입
-        saveRelations(feed, req);
+        // 2) FeedTag / Image 삽입
+        updateFeedTags(saved, req);
 
-        return getFeedDetail(feed.getId(), user);
+        return getFeedDetail(saved.getId(), user);
     }
 
     @Transactional
@@ -155,53 +152,59 @@ public class FeedService {
         return new DeleteFeedResponse(id);
     }
 
-    private void saveRelations(Feed feed, CreateFeedRequest req) {
+    private void updateFeedTags(Feed feed, CreateFeedRequest req) {
         Long feedId = feed.getId();
 
         // --- tags
         if (req.getTagIds() != null && !req.getTagIds().isEmpty()) {
             // 1) 요청된 태그 리스트에서 중복 제거
-            List<Long> requested = req.getTagIds().stream()
-                    .distinct()
-                    .toList();
+            Set<Long> requested = new HashSet<>(req.getTagIds());
 
             // 2) DB에 이미 저장된 tagId 목록 조회
-            List<Long> existing = feedTagRepository.findByFeedId(feedId).stream()
-                    .map(ft -> ft.getTag().getId())
-                    .toList();
+            List<Long> existing = feedTagRepository.findTagIdByFeedId(feedId);
 
             // 3) 새로 추가할 tagId = requested – existing
-            List<Long> toAdd = requested.stream()
+            List<Long> willAddedTagIds = requested.stream()
                     .filter(id -> !existing.contains(id))
                     .toList();
 
+            if(willAddedTagIds.isEmpty()) return;
+
             // 4) 나머지에 대해서만 insert
-            List<FeedTag> feedTags = toAdd.stream()
+            List<Tag> tags = tagRepository.findByIdIn(willAddedTagIds);
+
+            Map<Long, Tag> idToTag = tags.stream().collect(Collectors.toMap(Tag::getId, tag -> tag));
+
+            List<FeedTag> feedTags = willAddedTagIds.stream()
                     .map(tagId -> {
-                        Tag tag = tagRepository.findById(tagId)
-                                .orElseThrow(() -> new IllegalArgumentException("Invalid tag ID: " + tagId));
+                        Tag tag = idToTag.get(tagId);
                         return new FeedTag(feed, tag);
                     })
                     .toList();
+
             feedTagRepository.saveAll(feedTags);
         }
 
         // --- images
         if (req.getImages() != null && !req.getImages().isEmpty()) {
             // 요청된 이미지 src+sort 조합 중복 제거
-            List<FeedImageRequest> requested = req.getImages().stream()
-                    .distinct()
-                    .toList();
+            Set<FeedImageRequest> requested = new HashSet<>(req.getImages());
 
             // 이미 DB에 저장된 이미지들의 (src, sort) 키 조회
-            List<Image> existImgs = imageRepository.findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feedId);
-            List<String> existKeys = existImgs.stream()
+            List<String> existKeys = imageRepository
+                    .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feedId)
+                    .stream()
                     .map(img -> img.getSrc() + "#" + img.getSort())
                     .toList();
 
-            // toAdd 는 존재하지 않는 키만
-            List<Image> toAdd = requested.stream()
-                    .filter(ir -> !existKeys.contains(ir.getSrc() + "#" + ir.getSort()))
+            Map<String, FeedImageRequest> reqMap = requested.stream()
+                    .collect(Collectors.toMap(ir -> ir.getSrc() + "#" + ir.getSort(), ir -> ir));
+
+            // 4) 기존 키 제거
+            existKeys.forEach(reqMap.keySet()::remove);
+
+            // 5) 남은 요청만 Image 로 변환
+            List<Image> toAdd = reqMap.values().stream()
                     .map(ir -> new Image(feedId, ImageType.FEED, ir.getSrc(), ir.getSort()))
                     .toList();
 
@@ -214,6 +217,7 @@ public class FeedService {
         return feedRepository.findById(id);
     }
 
+    @Transactional
     public FeedLikeResponse increaseLike(Feed feed) {
         feed.increaseLikes();
         feedRepository.save(feed);
@@ -221,11 +225,21 @@ public class FeedService {
         return new FeedLikeResponse(feed.getId(), feed.getLikes());
     }
 
+    @Transactional
     public FeedLikeResponse decreaseLike(Feed feed) {
         feed.decreaseLikes();
         feedRepository.save(feed);
 
         return new FeedLikeResponse(feed.getId(), feed.getLikes());
+    }
+
+    @Transactional(readOnly = true)
+    public List<FeedDetailResponse> findByUserId(Long id) {
+
+        List<Feed> feeds = feedRepository.findByUserId(id);
+
+        // 2) 각 Feed → FeedDetailResponse 로 매핑
+        return feedtoFeedDetail(feeds);
     }
 
 
@@ -235,6 +249,10 @@ public class FeedService {
         List<Feed> feeds = feedRepository.findLikedFeedsByUserId(id);
 
         // 2) 각 Feed → FeedDetailResponse 로 매핑
+        return feedtoFeedDetail(feeds);
+    }
+
+    public List<FeedDetailResponse> feedtoFeedDetail(List<Feed> feeds){
         return feeds.stream()
                 .map(feed -> {
                     // 태그 DTO

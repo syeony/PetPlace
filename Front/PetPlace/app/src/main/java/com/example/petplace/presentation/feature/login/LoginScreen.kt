@@ -1,5 +1,6 @@
 package com.example.petplace.presentation.feature.login
 
+import android.Manifest
 import android.app.Activity
 import android.net.Uri
 import android.util.Log
@@ -35,11 +36,13 @@ import com.example.petplace.presentation.common.theme.BackgroundSoft
 import com.example.petplace.presentation.common.theme.DividerColor
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import com.example.petplace.presentation.common.theme.TextSecondary
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun LoginScreen(
     navController: NavController,
@@ -48,6 +51,24 @@ fun LoginScreen(
     val context = LocalContext.current
     val activity = context as Activity
 
+    val locationPerm = rememberMultiplePermissionsState(
+        listOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+    )
+
+    // 최초 컴포지션 시 권한 요청
+    LaunchedEffect(Unit) {
+        locationPerm.launchMultiplePermissionRequest()
+    }
+
+    // 권한 상태에 따라 메시지 출력만 (권한 요청 X)
+    if (!locationPerm.allPermissionsGranted) {
+        LaunchedEffect(locationPerm.allPermissionsGranted) {
+            Toast.makeText(context, "위치 권한이 필요합니다", Toast.LENGTH_SHORT).show()
+        }
+    }
     var id by remember { mutableStateOf("") }
     var pw by remember { mutableStateOf("") }
 
@@ -189,77 +210,12 @@ fun LoginScreen(
 
             Button(
                 onClick = {
-                    // 1) 콜백 정의
-                    val kakaoCallback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
-                        when {
-                            error != null -> {
-                                Toast.makeText(
-                                    activity,
-                                    "카카오 로그인 실패: ${error.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                            token != null -> {
-                                // 2) 프로필 정보 조회
-                                UserApiClient.instance.me { user, meError ->
-                                    when {
-                                        meError != null -> {
-                                            Toast.makeText(
-                                                activity,
-                                                "사용자 정보 요청 실패: ${meError.message}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                        user != null -> {
-                                            // 3) DTO 생성
-                                            val request = KakaoLoginRequest(
-                                                provider = "KAKAO",
-                                                userInfo = KakaoLoginRequest.UserInfo(
-                                                    socialId     = user.id.toString(),
-                                                    email        = user.kakaoAccount?.email.orEmpty(),
-                                                    nickname     = user.kakaoAccount?.profile?.nickname.orEmpty(),
-                                                    profileImage = user.kakaoAccount?.profile?.profileImageUrl.orEmpty()
-                                                )
-                                            )
-                                            // 4) 서버 인증 & 분기
-                                            coroutineScope.launch {
-                                                Log.d("KakaoNav", "서버 로그인 요청: $request")
-                                                val success = viewModel.loginWithKakao(request)
-                                                Log.d("KakaoNav", "loginWithKakao returned: $success")
-                                                if (success) {
-                                                    // 기존 사용자: 홈으로
-                                                    navController.navigate("nav_feed") {
-                                                        popUpTo("login") { inclusive = true }
-                                                    }
-                                                } else {
-                                                    // 신규 사용자: tempToken 꺼내고 회원가입 체크 화면으로
-                                                    val sid = Uri.encode(user.id.toString())
-                                                    val tmp = Uri.encode(viewModel.tempToken.value)
-                                                    Log.d("tempToken", "LoginScreen:$tmp ")
-                                                    Log.d("tempToken", "LoginScreen:kakao_join_check/$sid/$tmp")
-                                                    navController.navigate("kakao_join_check/$sid/$tmp") { popUpTo("login") { inclusive = true } }
-
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                    viewModel.kakaoLoginAndSendToServer(
+                        context = context,
+                        onNavigateToJoin = { tempToken ->
+                            navController.navigate("kakao_join_check/${tempToken}")
                         }
-                    }
-
-                    // 5) 카카오톡/계정 로그인 UI 호출
-                    if (UserApiClient.instance.isKakaoTalkLoginAvailable(activity)) {
-                        UserApiClient.instance.loginWithKakaoTalk(
-                            context = activity,
-                            callback = kakaoCallback
-                        )
-                    } else {
-                        UserApiClient.instance.loginWithKakaoAccount(
-                            context = activity,
-                            callback = kakaoCallback
-                        )
-                    }
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
