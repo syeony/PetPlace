@@ -213,7 +213,7 @@ fun LoginScreen(
                     viewModel.kakaoLoginAndSendToServer(
                         context = context,
                         onNavigateToJoin = { tempToken ->
-                            navController.navigate("kakao_join_form/${tempToken}")
+                            navController.navigate("kakao_join_check/${tempToken}")
                         }
                     )
                 },

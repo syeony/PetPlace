@@ -103,7 +103,7 @@ class KakaoJoinViewModel @Inject constructor(
             )
             Log.d("tempToken", "kakaoSignUp:${tempToken.value} ")
             val response = joinRepo.signUpKakao(request)
-            response.isSuccessful && response.body()?.success == true
+            response.isSuccessful && response.body()?.accessToken!!.isNotEmpty()
         } catch (e: Exception) {
             Log.e("KakaoJoin", "회원가입 실패", e)
             false
