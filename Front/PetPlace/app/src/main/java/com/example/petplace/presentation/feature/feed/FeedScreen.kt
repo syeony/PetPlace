@@ -1,6 +1,7 @@
 package com.example.petplace.presentation.feature.feed
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -301,7 +302,8 @@ private fun FeedItem(
         Text(feed.content, modifier = Modifier.padding(horizontal = 16.dp))
 
         /* 태그 */
-        if (feed.tags.isNotEmpty()) {
+//        Log.d("Tags", "FeedItem: ${feed.tags} ")
+        if (!feed.tags.isNullOrEmpty()) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.padding(horizontal = 16.dp)) {
                 feed.tags.forEach { tag: TagRes ->
