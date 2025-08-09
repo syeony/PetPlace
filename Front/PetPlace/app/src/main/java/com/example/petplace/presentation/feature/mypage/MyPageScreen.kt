@@ -218,7 +218,7 @@ fun MyPageScreen(
                                 Color(0xFFE0E0E0),
                                 RoundedCornerShape(12.dp)
                             )
-                            .clickable { /* 반려동물 추가 로직 */ },
+                            .clickable { navController.navigate("pet_profile") },
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
