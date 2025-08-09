@@ -27,11 +27,8 @@ import org.springframework.context.annotation.Configuration;
             - 로그인 시 Access Token과 Refresh Token 발급
             """
 
-    ),
-    servers = {
-        @Server(url = "https://api.petplace.com", description = "Production Server"),
-        @Server(url = "http://localhost:8080", description = "Development Server")
-    }
+    )
+
 )
 public class OpenApiConfig {
 

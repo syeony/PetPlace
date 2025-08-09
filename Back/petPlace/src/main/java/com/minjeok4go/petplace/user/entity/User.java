@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.user.entity;
 
+import com.minjeok4go.petplace.pet.entity.Pet;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -11,6 +12,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "Users") // 데이터베이스의 'User' 테이블과 매핑됩니다.
@@ -181,4 +184,9 @@ public class User {
     public boolean hasSocialAccount() {
         return this.socialId != null && !this.socialId.isEmpty();
     }
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Pet> pets = new ArrayList<>();
+
+
 }
