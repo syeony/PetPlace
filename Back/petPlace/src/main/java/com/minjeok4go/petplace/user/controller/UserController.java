@@ -1,10 +1,17 @@
 package com.minjeok4go.petplace.user.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
-import com.minjeok4go.petplace.user.service.UserService;
 import com.minjeok4go.petplace.common.dto.ApiResponse;
+import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
+import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
+import com.minjeok4go.petplace.user.service.PortOneApiService;
+import com.minjeok4go.petplace.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,13 +20,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import com.minjeok4go.petplace.user.service.PortOneApiService;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @Slf4j
-@Tag(name = "User API", description = "사용자 관련 API 명세서입니다.")
+@Tag(
+        name = "👤 User Management",
+        description = "사용자 관리 API"
+)
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
@@ -28,41 +34,49 @@ public class UserController {
     private final UserService userService;
     private final PortOneApiService portOneApiService;
 
-
-
-    // 본인인증 준비 (certification_url 생성)
-    @Operation(summary = "본인인증 준비", description = "포트원 본인인증 URL을 생성합니다.")
-    @PostMapping("/certifications/prepare")
-    public ResponseEntity<ApiResponse<Map<String, String>>> prepareCertification() {
-        try {
-            log.info("본인인증 준비 요청");
-            Map<String, String> result = portOneApiService.prepareCertification();
+    @Operation(
+            summary = "🆕 회원가입",
+            description = """
+            본인인증 완료 후 일반 회원가입을 진행합니다.
             
-            return ResponseEntity.ok(
-                    ApiResponse.success("본인인증 URL 생성 성공", result)
-            );
-        } catch (Exception e) {
-            log.error("본인인증 준비 실패", e);
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.failure("본인인증 준비 중 오류가 발생했습니다: " + e.getMessage()));
-        }
-    }
-
-    // 회원가입
-    @Operation(summary = "회원가입", description = "본인인증 완료 후 회원가입을 진행합니다. 추후 카카오 연동 추가 예정 , 동네 인증도")
+            ### 필수 조건
+            - ✅ 본인인증 완료 (`imp_uid` 필요)
+            - ✅ 아이디 중복 체크 완료
+            - ✅ 닉네임 중복 체크 완료
+            
+            ### 프로세스
+            1. (클라이언트) 사용자가 본인인증을 완료하고 `imp_uid`를 획득합니다.
+            2. (클라이언트) 아이디/닉네임 중복 체크를 완료합니다.
+            3. 이 API로 회원가입을 요청합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "201", description = "회원가입 성공",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(value = "{\"success\": true, \"message\": \"회원가입이 완료되었습니다.\", \"data\": null}"))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", description = "잘못된 요청 (유효성 검사 실패, 중복된 정보 등)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(value = "{\"success\": false, \"message\": \"이미 사용 중인 아이디입니다.\", \"data\": null}"))
+            )
+    })
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<Void>> signup(@RequestBody UserSignupRequestDto requestDto) {
+    public ResponseEntity<ApiResponse<Void>> signup(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "회원가입에 필요한 사용자 정보",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = UserSignupRequestDto.class))
+            )
+            @RequestBody UserSignupRequestDto requestDto) {
         try {
-            log.info("회원가입 요청: userName={}", requestDto.getUserName());
             userService.signup(requestDto);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("회원가입이 완료되었습니다.", null));
-
         } catch (IllegalArgumentException e) {
             log.warn("회원가입 실패: {}", e.getMessage());
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.failure(e.getMessage()));
-
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
         } catch (Exception e) {
             log.error("회원가입 중 오류 발생", e);
             return ResponseEntity.internalServerError()
@@ -70,91 +84,96 @@ public class UserController {
         }
     }
 
-    // 아이디 중복 체크
-    @Operation(summary = "아이디 중복 체크", description = "입력한 아이디가 이미 사용 중인지 확인합니다.")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "사용 가능한 아이디")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 존재하는 아이디 (중복)")
+    @Operation(
+            summary = "🔍 아이디 중복 체크",
+            description = "입력한 아이디가 이미 사용 중인지 확인합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "사용 가능한 아이디",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(value = "{\"success\": true, \"message\": \"사용 가능한 아이디입니다.\", \"data\": null}"))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409", description = "이미 존재하는 아이디 (중복)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(value = "{\"success\": false, \"message\": \"이미 사용 중인 아이디입니다.\", \"data\": null}"))
+            )
+    })
     @PostMapping("/check-username")
-    public ResponseEntity<ApiResponse<Void>> checkUserNameDuplicate(@RequestParam("user_name") String userName) {
-        boolean isDuplicate = userService.checkUserNameDuplicate(userName).getDuplicate();
-
-        if (isDuplicate) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.failure("이미 사용 중인 아이디입니다."));
+    public ResponseEntity<ApiResponse<Void>> checkUserNameDuplicate(
+            @Parameter(description = "중복 체크할 아이디", example = "petlover123", required = true)
+            @RequestParam("user_name") String userName) {
+        CheckDuplicateResponseDto result = userService.checkUserNameDuplicate(userName);
+        if (result.getDuplicate()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.failure(result.getMessage()));
         } else {
-            return ResponseEntity.ok(ApiResponse.success("사용 가능한 아이디입니다."));
+            return ResponseEntity.ok(ApiResponse.success(result.getMessage()));
         }
     }
 
-    // 닉네임 중복 체크
-    @Operation(summary = "닉네임 중복 체크", description = "입력한 닉네임이 이미 사용 중인지 확인합니다.")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "사용 가능한 닉네임")
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 존재하는 닉네임 (중복)")
+    @Operation(
+            summary = "🏷️ 닉네임 중복 체크",
+            description = "입력한 닉네임이 이미 사용 중인지 확인합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "사용 가능한 닉네임",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(value = "{\"success\": true, \"message\": \"사용 가능한 닉네임입니다.\", \"data\": null}"))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "409", description = "이미 존재하는 닉네임 (중복)",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(value = "{\"success\": false, \"message\": \"이미 사용 중인 닉네임입니다.\", \"data\": null}"))
+            )
+    })
     @PostMapping("/check-nickname")
-    public ResponseEntity<ApiResponse<Void>> checkNicknameDuplicate(@RequestParam("nickname") String nickname) {
-        boolean isDuplicate = userService.checkNicknameDuplicate(nickname).getDuplicate();
-
-        if (isDuplicate) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(ApiResponse.failure("이미 사용 중인 닉네임입니다."));
+    public ResponseEntity<ApiResponse<Void>> checkNicknameDuplicate(
+            @Parameter(description = "중복 체크할 닉네임", example = "멍멍이아빠", required = true)
+            @RequestParam("nickname") String nickname) {
+        CheckDuplicateResponseDto result = userService.checkNicknameDuplicate(nickname);
+        if (result.getDuplicate()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.failure(result.getMessage()));
         } else {
-            return ResponseEntity.ok(ApiResponse.success("사용 가능한 닉네임입니다."));
+            return ResponseEntity.ok(ApiResponse.success(result.getMessage()));
         }
     }
 
     @GetMapping("/test-auth")
-    @Operation(summary = "토큰 인증 테스트", description = "JWT 토큰으로 인증된 사용자 정보를 확인합니다.")
+    @Operation(summary = "🧪 토큰 인증 테스트 (개발용)")
     public ResponseEntity<ApiResponse<String>> testAuth() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
         if (authentication != null && authentication.isAuthenticated()) {
             String username = authentication.getName();
-            return ResponseEntity.ok(
-                    ApiResponse.success("토큰 인증 성공!", username)
-            );
+            return ResponseEntity.ok(ApiResponse.success("토큰 인증 성공!", username));
         } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.failure("인증 실패"));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.failure("인증 실패"));
         }
     }
 
     @GetMapping("/test-portone-token")
-    @Operation(summary = "포트원 토큰 발급 테스트")
+    @Operation(summary = "🔧 포트원 토큰 발급 테스트 (개발용)")
     public ResponseEntity<ApiResponse<String>> testPortOneToken() {
         try {
-            log.info("포트원 토큰 발급 테스트 시작");
-
             String accessToken = portOneApiService.getAccessToken();
-
-            return ResponseEntity.ok(ApiResponse.success(
-                    "포트원 토큰 발급 성공! Token: " + accessToken.substring(0, Math.min(30, accessToken.length())) + "..."
-            ));
+            return ResponseEntity.ok(ApiResponse.success("포트원 토큰 발급 성공! Token: " + accessToken.substring(0, Math.min(30, accessToken.length())) + "..."));
         } catch (Exception e) {
-            log.error("포트원 토큰 발급 테스트 실패", e);
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.failure("포트원 토큰 발급 실패: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(ApiResponse.failure("포트원 토큰 발급 실패: " + e.getMessage()));
         }
     }
 
     @GetMapping("/test-portone-cert/{impUid}")
-    @Operation(summary = "포트원 인증 정보 조회 테스트")
+    @Operation(summary = "🔍 포트원 인증 정보 조회 테스트 (개발용)")
     public ResponseEntity<ApiResponse<String>> testPortOneCert(@PathVariable String impUid) {
         try {
-            log.info("포트원 인증 정보 조회 테스트 시작: impUid={}", impUid);
-
             JsonNode result = portOneApiService.getCertificationInfo(impUid);
-
             if (result == null) {
                 return ResponseEntity.ok(ApiResponse.failure("결과가 null입니다"));
             }
-
-            return ResponseEntity.ok(ApiResponse.success(
-                    "포트원 인증 정보 조회 성공! 응답: " + result.toPrettyString()
-            ));
+            return ResponseEntity.ok(ApiResponse.success("포트원 인증 정보 조회 성공! 응답: " + result.toPrettyString()));
         } catch (Exception e) {
-            log.error("포트원 인증 정보 조회 테스트 실패", e);
-            return ResponseEntity.internalServerError()
-                    .body(ApiResponse.failure("포트원 인증 정보 조회 실패: " + e.getMessage()));
+            return ResponseEntity.internalServerError().body(ApiResponse.failure("포트원 인증 정보 조회 실패: " + e.getMessage()));
         }
     }
 }

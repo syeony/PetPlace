@@ -1,32 +1,45 @@
 package com.minjeok4go.petplace.auth.dto;
 
-import com.minjeok4go.petplace.auth.dto.TokenDto;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * 소셜 로그인 응답 DTO
- */
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "소셜 로그인 응답 DTO")
 public class SocialLoginResponse {
 
-    public enum Status {
-        EXISTING_USER,      // 기존 사용자 - 바로 로그인
-        NEW_USER,          // 신규 사용자 - 본인인증 필요
-        LINKABLE_USER,     // 연동 가능한 기존 계정 존재
-        ERROR              // 오류 발생
-    }
 
+    @Schema(description = "소셜 로그인 처리 결과 상태")
     private Status status;
+
+    @Schema(description = "처리 결과 메시지", example = "로그인 성공")
     private String message;
-    private TokenDto tokenDto;          // 기존 사용자일 경우
-    private String tempToken;           // 신규 사용자용 임시 토큰
-    private Long linkableUserId;        // 연동 가능한 사용자 ID
+
+    @Schema(description = "기존 사용자일 경우 발급되는 토큰 정보 (status가 EXISTING_USER일 때만 존재)")
+    private TokenDto tokenDto;
+
+    @Schema(description = "신규/연동 가능 사용자에게 발급되는 임시 토큰 (status가 NEW_USER 또는 LINKABLE_USER일 때 존재)", example = "eyJhbGciOiJIUzI1NiJ9.eyJ...")
+    private String tempToken;
+
+    @Schema(description = "연동 가능한 기존 계정의 사용자 ID (status가 LINKABLE_USER일 때만 존재)", example = "123")
+    private Long linkableUserId;
+
+    @Schema(description = "소셜 로그인 처리 상태 코드")
+    public enum Status {
+        @Schema(description = "기존 사용자 - 즉시 로그인 처리")
+        EXISTING_USER,
+        @Schema(description = "신규 사용자 - 본인인증 및 회원가입 필요")
+        NEW_USER,
+        @Schema(description = "연동 가능한 기존 계정 발견")
+        LINKABLE_USER,
+        @Schema(description = "처리 중 오류 발생")
+        ERROR
+    }
 
     // 정적 팩토리 메서드들
     public static SocialLoginResponse existingUser(TokenDto tokenDto) {
