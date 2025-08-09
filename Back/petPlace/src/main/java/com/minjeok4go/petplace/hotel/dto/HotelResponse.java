@@ -17,6 +17,7 @@ public class HotelResponse {
     private BigDecimal latitude;
     private BigDecimal longitude;
     private BigDecimal pricePerNight;
+    private BigDecimal totalPrice;  // 총 가격 필드 추가
     private Integer maxCapacity;
     private Set<Hotel.PetType> supportedPetTypes;
     private String imageUrl;
@@ -31,6 +32,24 @@ public class HotelResponse {
                 .latitude(hotel.getLatitude())
                 .longitude(hotel.getLongitude())
                 .pricePerNight(hotel.getPricePerNight())
+                .totalPrice(hotel.getPricePerNight())  // 기본값으로 1박 가격 설정
+                .maxCapacity(hotel.getMaxCapacity())
+                .supportedPetTypes(hotel.getSupportedPetTypes())
+                .imageUrl(hotel.getImageUrl())
+                .build();
+    }
+
+    public static HotelResponse from(Hotel hotel, BigDecimal totalPrice) {
+        return HotelResponse.builder()
+                .id(hotel.getId())
+                .name(hotel.getName())
+                .description(hotel.getDescription())
+                .address(hotel.getAddress())
+                .phoneNumber(hotel.getPhoneNumber())
+                .latitude(hotel.getLatitude())
+                .longitude(hotel.getLongitude())
+                .pricePerNight(hotel.getPricePerNight())
+                .totalPrice(totalPrice)
                 .maxCapacity(hotel.getMaxCapacity())
                 .supportedPetTypes(hotel.getSupportedPetTypes())
                 .imageUrl(hotel.getImageUrl())

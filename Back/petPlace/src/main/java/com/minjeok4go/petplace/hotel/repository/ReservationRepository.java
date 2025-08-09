@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -56,5 +57,17 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     @Query("SELECT COUNT(r) FROM Reservation r WHERE r.userId = :userId " +
             "AND r.status IN ('PENDING', 'CONFIRMED')")
     long countActiveReservationsByUserId(@Param("userId") Long userId);
+
+    /**
+     * 다가오는 예약 조회 (알림 스케줄러용)
+     */
+    @Query("SELECT r FROM Reservation r JOIN r.reservedDates rd " +
+            "WHERE r.status = 'CONFIRMED' " +
+            "AND rd.date BETWEEN CAST(:start AS date) AND CAST(:end AS date) " +
+            "ORDER BY rd.date ASC")
+    List<Reservation> findUpcomingReservations(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 
 }

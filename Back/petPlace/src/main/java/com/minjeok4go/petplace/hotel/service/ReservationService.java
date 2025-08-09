@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -161,5 +162,22 @@ public class ReservationService {
 
         reservation.setStatus(Reservation.ReservationStatus.COMPLETED);
         reservationRepository.save(reservation);
+    }
+
+    /**
+     * ID로 예약 조회 (PaymentService에서 사용)
+     */
+    @Transactional(readOnly = true)
+    public Reservation findById(Long reservationId) {
+        return reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException("예약을 찾을 수 없습니다: " + reservationId));
+    }
+
+    /**
+     * 다가오는 예약 조회 (알림 스케줄러에서 사용)
+     */
+    @Transactional(readOnly = true)
+    public List<Reservation> findUpcomingReservations(LocalDateTime start, LocalDateTime end) {
+        return reservationRepository.findUpcomingReservations(start, end);
     }
 }

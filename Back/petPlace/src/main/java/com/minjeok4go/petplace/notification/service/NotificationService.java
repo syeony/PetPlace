@@ -1,3 +1,4 @@
+// File: src/main/java/com/minjeok4go/petplace/notification/service/NotificationService.java
 package com.minjeok4go.petplace.notification.service;
 
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 @Service
@@ -51,26 +53,116 @@ public class NotificationService {
             String fcmToken = getFcmTokenByUserId(reservation.getUserId());
 
             if (fcmToken != null && !fcmToken.isEmpty()) {
-                String checkInDate = reservation.getCheckIn()
-                        .format(DateTimeFormatter.ofPattern("MM월 dd일 HH:mm"));
+                // ⭐ 수정: 새로운 방식으로 체크인 날짜 조회
+                LocalDate checkInDate = reservation.getCheckInDate();
+
+                String message = "";
+                if (checkInDate != null) {
+                    String formattedDate = checkInDate.format(DateTimeFormatter.ofPattern("MM월 dd일"));
+                    message = String.format("내일(%s) 호텔 체크인 예정입니다!", formattedDate);
+                } else {
+                    message = "호텔 예약 리마인더: 예약된 날짜를 확인해주세요!";
+                }
 
                 Notification notification = Notification.builder()
                         .setTitle("호텔 예약 리마인더")
-                        .setBody(String.format("내일(%s) 호텔 체크인 예정입니다!", checkInDate))
+                        .setBody(message)
+                        .build();
+
+                Message fcmMessage = Message.builder()
+                        .setToken(fcmToken)
+                        .setNotification(notification)
+                        .putData("type", "RESERVATION_REMINDER")
+                        .putData("reservationId", reservation.getId().toString())
+                        .putData("checkInDate", checkInDate != null ? checkInDate.toString() : "")
+                        .build();
+
+                String response = firebaseMessaging.send(fcmMessage);
+                log.info("예약 리마인더 알림 전송 성공: {}", response);
+            }
+        } catch (Exception e) {
+            log.error("예약 리마인더 알림 전송 실패", e);
+        }
+    }
+
+    /**
+     * 예약 취소 알림 (새로 추가)
+     */
+    public void sendReservationCancelledNotification(Reservation reservation) {
+        try {
+            String fcmToken = getFcmTokenByUserId(reservation.getUserId());
+
+            if (fcmToken != null && !fcmToken.isEmpty()) {
+                LocalDate checkInDate = reservation.getCheckInDate();
+                LocalDate checkOutDate = reservation.getCheckOutDate();
+
+                String dateRange = "";
+                if (checkInDate != null && checkOutDate != null) {
+                    if (checkInDate.equals(checkOutDate)) {
+                        dateRange = checkInDate.format(DateTimeFormatter.ofPattern("MM월 dd일"));
+                    } else {
+                        dateRange = String.format("%s ~ %s",
+                                checkInDate.format(DateTimeFormatter.ofPattern("MM월 dd일")),
+                                checkOutDate.format(DateTimeFormatter.ofPattern("MM월 dd일")));
+                    }
+                }
+
+                Notification notification = Notification.builder()
+                        .setTitle("예약 취소 완료")
+                        .setBody(String.format("호텔 예약이 취소되었습니다. (%s)", dateRange))
                         .build();
 
                 Message message = Message.builder()
                         .setToken(fcmToken)
                         .setNotification(notification)
-                        .putData("type", "RESERVATION_REMINDER")
+                        .putData("type", "RESERVATION_CANCELLED")
                         .putData("reservationId", reservation.getId().toString())
                         .build();
 
                 String response = firebaseMessaging.send(message);
-                log.info("예약 리마인더 알림 전송 성공: {}", response);
+                log.info("예약 취소 알림 전송 성공: {}", response);
             }
         } catch (Exception e) {
-            log.error("예약 리마인더 알림 전송 실패", e);
+            log.error("예약 취소 알림 전송 실패", e);
+        }
+    }
+
+    /**
+     * 예약 확정 알림 (새로 추가)
+     */
+    public void sendReservationConfirmedNotification(Reservation reservation) {
+        try {
+            String fcmToken = getFcmTokenByUserId(reservation.getUserId());
+
+            if (fcmToken != null && !fcmToken.isEmpty()) {
+                LocalDate checkInDate = reservation.getCheckInDate();
+                String hotelName = reservation.getHotel() != null ?
+                        reservation.getHotel().getName() : "호텔";
+
+                String message = checkInDate != null ?
+                        String.format("%s 예약이 확정되었습니다! 체크인: %s",
+                                hotelName,
+                                checkInDate.format(DateTimeFormatter.ofPattern("MM월 dd일"))) :
+                        String.format("%s 예약이 확정되었습니다!", hotelName);
+
+                Notification notification = Notification.builder()
+                        .setTitle("예약 확정")
+                        .setBody(message)
+                        .build();
+
+                Message fcmMessage = Message.builder()
+                        .setToken(fcmToken)
+                        .setNotification(notification)
+                        .putData("type", "RESERVATION_CONFIRMED")
+                        .putData("reservationId", reservation.getId().toString())
+                        .putData("hotelName", hotelName)
+                        .build();
+
+                String response = firebaseMessaging.send(fcmMessage);
+                log.info("예약 확정 알림 전송 성공: {}", response);
+            }
+        } catch (Exception e) {
+            log.error("예약 확정 알림 전송 실패", e);
         }
     }
 
