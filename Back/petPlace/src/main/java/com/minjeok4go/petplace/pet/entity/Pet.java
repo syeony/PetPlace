@@ -1,5 +1,8 @@
 package com.minjeok4go.petplace.pet.entity;
 
+import com.minjeok4go.petplace.common.constant.Animal;
+import com.minjeok4go.petplace.common.constant.Breed;
+import com.minjeok4go.petplace.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -48,4 +51,10 @@ public class Pet {
         MALE,
         FEMALE
     }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    private User user;
+
 }
+

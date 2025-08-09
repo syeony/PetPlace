@@ -49,6 +49,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/api/auth/login",
             "/api/auth/refresh",
 
+            // 추천 API
+            "/api/recommend/group",
+            "/api/recommend/batch",
+
             // 기타 공개 API
             "/api/upload/images",
             "/images/**",

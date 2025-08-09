@@ -1,4 +1,4 @@
-package com.minjeok4go.petplace.pet.entity;
+package com.minjeok4go.petplace.common.constant;
 
 public enum Breed {
     // DOG
