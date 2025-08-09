@@ -27,6 +27,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Text
@@ -122,11 +123,15 @@ fun MyPageScreen(
                             }
                         }
 
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowRight,
-                            contentDescription = "이동",
-                            tint = Color.Gray
-                        )
+                        IconButton(onClick = {
+                            navController.navigate("profile_edit")
+                        }) {
+                            Icon(
+                                imageVector = Icons.Filled.KeyboardArrowRight,
+                                contentDescription = "이동",
+                                tint = Color.Gray
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))

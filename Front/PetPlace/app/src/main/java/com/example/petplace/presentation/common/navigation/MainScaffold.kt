@@ -47,6 +47,7 @@ import com.example.petplace.presentation.feature.join.CertificationScreen
 import com.example.petplace.presentation.feature.join.KakaoCertificationScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinCheckScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinScreen
+import com.example.petplace.presentation.feature.mypage.ProfileEditScreen
 import com.example.petplace.presentation.feature.splash.SplashScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 
@@ -132,6 +133,9 @@ fun MainScaffold() {
                     regionId = regionId
                 )
             }
+
+            composable("profile_edit") { ProfileEditScreen(navController) }
+
 //            composable("hotel"){AnimalSelectScreen(navController)}
 //            composable("DateSelectionScreen"){DateSelectionScreen(navController)}
 //            composable("HotelListScreen"){ HotelListScreen(navController) }
