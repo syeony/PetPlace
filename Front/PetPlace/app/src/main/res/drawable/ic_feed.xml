@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+
+    <!-- 1번째 줄: 좌우 균등 -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,5 H21 V7 H3 Z" />
+
+    <!-- 2번째 줄: 왼쪽 살짝 안쪽, 오른쪽 길게 -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M5,11 H22 V13 H5 Z" />
+
+    <!-- 3번째 줄: 좌우 균등 -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,17 H21 V19 H3 Z" />
+</vector>

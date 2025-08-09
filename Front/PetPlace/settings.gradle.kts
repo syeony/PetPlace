@@ -16,6 +16,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://jitpack.io") //crop 가져오려면 필요
+//        maven("https://devrepo.kakao.com/nexus/repository/kakaomap-releases/")
+        maven ("https://devrepo.kakao.com/nexus/content/groups/public/")
     }
 }
 

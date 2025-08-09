@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.minjeok4go'
-version = '0.0.1-SNAPSHOT'
+version = '0.0.1-SNAPSHOT_ver_0_3_5000'
 
 java {
     toolchain {
@@ -32,28 +32,45 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'     // 실시간 채팅(WebSocket)
     implementation 'org.springframework.boot:spring-boot-starter-mail'          // 이메일 전송(JavaMailSender)
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client' // 소셜 로그인(OAuth2 Client)
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'     // 테스트용 템플릿 엔진
 
     // --- 데이터베이스 ---
     runtimeOnly 'com.mysql:mysql-connector-j'                                   // MySQL JDBC 드라이버
 
     // --- 개발 편의 ---
-    compileOnly 'org.projectlombok:lombok'                                      // 롬복(코드 자동화: getter/setter 등)
-    annotationProcessor 'org.projectlombok:lombok'                              // 롬복(Annotation 처리)
+    compileOnly 'org.projectlombok:lombok'                                      // 롬북(코드 자동화: getter/setter 등)
+    annotationProcessor 'org.projectlombok:lombok'                              // 롬북(Annotation 처리)
     developmentOnly 'org.springframework.boot:spring-boot-devtools'             // 개발용 자동 재시작, 핫스왑 등
 
     // --- API 문서화(Swagger/OpenAPI) ---
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'    // Swagger 문서 자동 생성
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'   // Spring Boot 3.5+ 호환 버전
 
     // --- JSON 파싱(Jackson) ---
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310' // (LocalDateTime 등 지원)
 
+    // JWT 라이브러리
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
     // --- 테스트 ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'       // 스프링 테스트 기본
     testImplementation 'org.springframework.security:spring-security-test'        // 시큐리티 테스트 지원
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'                 // JUnit5 테스트 런처
     testRuntimeOnly 'com.h2database:h2'
+
+    // 포트원 연동을 위한 WebClient (webflux 스타터 대신 개별 의존성 사용)
+    implementation 'org.springframework:spring-webflux'
+    implementation 'io.projectreactor.netty:reactor-netty-http'
+
+    // REDIS
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // FCM (Firebase Cloud Messaging) - 푸시 알림
+    implementation 'com.google.firebase:firebase-admin:9.2.0'
+
+
 }
 
 tasks.named('test') {
