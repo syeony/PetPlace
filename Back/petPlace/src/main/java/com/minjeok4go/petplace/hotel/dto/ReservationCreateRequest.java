@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.hotel.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -8,20 +9,26 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.List;
 
+@Schema(description = "호텔 예약 생성 요청 DTO")
 @Getter @Setter
 public class ReservationCreateRequest {
 
+
+    @Schema(description = "예약할 반려동물의 ID", example = "10", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "반려동물 ID는 필수입니다.")
     private Long petId;
 
+    @Schema(description = "예약할 호텔의 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "호텔 ID는 필수입니다.")
     private Long hotelId;
 
-    //  선택된 날짜들 목록으로 변경
+    @Schema(description = "예약할 날짜 목록 (YYYY-MM-DD 형식)", example = "[\"2024-08-15\", \"2024-08-16\"]", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotEmpty(message = "예약할 날짜를 최소 1개 이상 선택해야 합니다.")
     private List<LocalDate> selectedDates;
 
+    @Schema(description = "특별 요청 사항", example = "창가 쪽 방으로 부탁드려요.", requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     private String specialRequests;
+
 
     /**
      * 선택된 날짜들이 연속된 날짜인지 확인
