@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,10 +68,12 @@ fun MyPageScreen(
         item {
             Text(
                 text = "프로필",
-                style = AppTypography.titleMedium.copy(
+                style = AppTypography.titleLarge.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier
+                    .fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
         }
         // 프로필 섹션
@@ -212,7 +215,7 @@ fun MyPageScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
+                            .height(130.dp)
                             .border(
                                 2.dp,
                                 Color(0xFFE0E0E0),
@@ -245,7 +248,7 @@ fun MyPageScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
+                            .height(130.dp)
                             .border(
                                 2.dp,
                                 Color(0xFFE0E0E0),
@@ -388,17 +391,17 @@ fun MyPageScreen(
                     ) {
                         // MY 메뉴들
                         MyMenuItem(
-                            icon = R.drawable.ic_board,
-                            title = "내 게시물",
-                            onClick = { /* 게시물 로직 */ }
+                            icon = R.drawable.my_post,
+                            title = "내 게시글",
+                            onClick = { /* 게시글 로직 */ }
                         )
                         MyMenuItem(
-                            icon = R.drawable.ic_chat,
+                            icon = R.drawable.my_comment,
                             title = "내 댓글",
                             onClick = { /* 댓글 로직 */ }
                         )
                         MyMenuItem(
-                            icon = R.drawable.feelings,
+                            icon = R.drawable.heart,
                             title = "찜한글",
                             onClick = { /* 찜한글 로직 */ }
                         )
@@ -431,12 +434,12 @@ fun MyPageScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         MyMenuItem(
-                            icon = R.drawable.walk,
+                            icon = R.drawable.my_walk,
                             title = "내 산책",
                             onClick = { /* 산책 로직 */ }
                         )
                         MyMenuItem(
-                            icon = R.drawable.ic_home,
+                            icon = R.drawable.my_care,
                             title = "내 돌봄",
                             onClick = { /* 돌봄 로직 */ }
                         )
@@ -479,29 +482,35 @@ fun MyMenuItem(
     title: String,
     onClick: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
+    // 아이콘 배경 박스
+    Box(
+        modifier = Modifier
+            .size(80.dp) // 아이콘 영역 크기
+            .clip(RoundedCornerShape(12.dp)) // 둥근 사각형
+            .background(Color(0xFFF5F5F5)),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .size(50.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFF5F5F5)),
-            contentAlignment = Alignment.Center
+                .clickable { onClick() }
+                .padding(8.dp)
         ) {
-            Icon(
+            Image(
                 painter = painterResource(id = icon),
                 contentDescription = title,
-                tint = Color(0xFF666666),
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(40.dp) // 아이콘 크기
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 메뉴 이름
+            Text(
+                text = title,
+                style = AppTypography.bodySmall,
+                color = Color(0xFF333333),
+                textAlign = TextAlign.Center
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = title,
-            style = AppTypography.bodySmall,
-            color = Color(0xFF333333)
-        )
     }
 }
+
