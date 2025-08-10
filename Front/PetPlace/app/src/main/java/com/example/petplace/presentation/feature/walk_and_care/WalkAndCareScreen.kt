@@ -1,8 +1,10 @@
 package com.example.petplace.presentation.feature.walk_and_care
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,6 +23,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
@@ -35,16 +39,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
 import com.example.petplace.data.local.Walk.Post
 import com.example.petplace.presentation.feature.feed.categoryStyles
@@ -161,10 +168,20 @@ fun WalkAndCareScreen(
             LazyColumn(
                 modifier = Modifier,
                 contentPadding = PaddingValues(vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(posts) { post ->
-                    PostCard(post)
+                    PostCard(post = post) {
+                        val route = "walk_detail/" +
+                                Uri.encode(post.category) + "/" +
+                                Uri.encode(post.title)    + "/" +
+                                Uri.encode(post.body)     + "/" +
+                                Uri.encode(post.date)     + "/" +
+                                Uri.encode(post.time)     + "/" +
+                                Uri.encode(post.imageUrl ?: "")
+
+                        navController.navigate(route)
+                    }
                 }
             }
         }
@@ -172,11 +189,17 @@ fun WalkAndCareScreen(
 }
 
 @Composable
-fun PostCard(post: Post) {
+fun PostCard(
+    post: Post,
+    onClick: () -> Unit
+) {
+    val orange  = Color(0xFFF79800)
     Surface(
         color = Color(0xFFFFFCF9),
         tonalElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
     ) {
         Row(modifier = Modifier.padding(16.dp)) {
             Column(modifier = Modifier.weight(1f)) {
@@ -198,23 +221,55 @@ fun PostCard(post: Post) {
                     text = post.body,
                     fontSize = 13.sp,
                     color = Color.Gray,
-                    maxLines = 2,                           // ✅ 본문 2줄
-                    overflow = TextOverflow.Ellipsis        // ✅ 말줄임
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(post.meta, fontSize = 12.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.height(5.dp))
+                Column() {
+                    InfoRow(
+                        icon = Icons.Default.DateRange,
+                        iconTint = orange,
+                        label = "날짜",
+                        value = post.date
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    InfoRow(
+                        icon = Icons.Default.Info,
+                        iconTint = orange,
+                        label = "시간",
+                        value = post.time
+                    )
+                }
+                Spacer(modifier = Modifier.height(5.dp))
             }
 
             Spacer(modifier = Modifier.width(8.dp))
 
             Image(
-                painter = painterResource(id = post.imageRes),
+                painter = rememberAsyncImagePainter(post.imageUrl),
                 contentDescription = null,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(90.dp)
                     .clip(RoundedCornerShape(12.dp))
+                    .align(Alignment.Bottom)
             )
         }
     }
 }
 
+@Composable
+private fun InfoRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    label: String,
+    value: String
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, color = Color.Gray, fontSize = 13.sp)   // 회색 라벨
+        Spacer(Modifier.width(8.dp))
+        Text(value, color = Color.Gray, fontSize = 13.5.sp)
+    }
+}

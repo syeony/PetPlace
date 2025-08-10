@@ -18,8 +18,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
-import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
-import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
@@ -33,6 +31,10 @@ import com.example.petplace.presentation.feature.hotel.HotelSharedViewModel
 import com.example.petplace.presentation.feature.join.CertificationScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.join.JoinViewModel
+import com.example.petplace.presentation.feature.join.KakaoCertificationScreen
+import com.example.petplace.presentation.feature.join.KakaoJoinCheckScreen
+import com.example.petplace.presentation.feature.join.KakaoJoinScreen
+import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
 import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.missing_list.MissingListScreen
 import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
@@ -40,15 +42,9 @@ import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
-import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
-import androidx.navigation.compose.navigation
-import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
-import com.example.petplace.presentation.feature.join.CertificationScreen
-import com.example.petplace.presentation.feature.join.KakaoCertificationScreen
-import com.example.petplace.presentation.feature.join.KakaoJoinCheckScreen
-import com.example.petplace.presentation.feature.join.KakaoJoinScreen
 import com.example.petplace.presentation.feature.splash.SplashScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
+import com.example.petplace.presentation.feature.walk_and_care.WalkPostDetailScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnrememberedGetBackStackEntry")
@@ -105,6 +101,28 @@ fun MainScaffold() {
                 NeighborhoodScreen(
                     navController = navController,
                     initialShowDialog = showDialog
+                )
+            }
+            //api연동 전 임시
+            composable(
+                route = "walk_detail/{category}/{title}/{body}/{date}/{time}/{imageUrl}",
+                arguments = listOf(
+                    navArgument("category"){ type = NavType.StringType },
+                    navArgument("title")   { type = NavType.StringType },
+                    navArgument("body")    { type = NavType.StringType },
+                    navArgument("date")    { type = NavType.StringType },
+                    navArgument("time")    { type = NavType.StringType },
+                    navArgument("imageUrl"){ type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                WalkPostDetailScreen(
+                    navController = navController,
+                    category = backStackEntry.arguments?.getString("category") ?: "",
+                    title    = backStackEntry.arguments?.getString("title")    ?: "",
+                    body     = backStackEntry.arguments?.getString("body")     ?: "",
+                    date     = backStackEntry.arguments?.getString("date")     ?: "",
+                    time     = backStackEntry.arguments?.getString("time")     ?: "",
+                    imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
                 )
             }
 

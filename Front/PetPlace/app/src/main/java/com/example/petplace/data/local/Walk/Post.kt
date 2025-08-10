@@ -4,6 +4,7 @@ data class Post(
     val category: String,
     val title: String,
     val body: String,
-    val meta: String,
-    val imageRes: Int
+    val date: String,
+    val time: String,
+    val imageUrl: String // ✅ Drawable 대신 URL
 )
