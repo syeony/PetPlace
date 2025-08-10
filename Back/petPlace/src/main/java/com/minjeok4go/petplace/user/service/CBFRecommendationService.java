@@ -22,6 +22,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.*;
 import java.util.function.Function;
@@ -179,62 +180,82 @@ public class CBFRecommendationService {
     }
 
     // 조회 API는 그대로 (필요시 유지)
+    // CBFRecommendationService.java (해당 메서드 교체)
     public List<FeedListResponse> getRecommendedFeeds(User user, int page, int size) {
-        // 사용자의 펫 로딩 → 그룹키 생성
+        // 0) 그룹 키 산출
         List<Pet> pets = petRepository.findByUserId(user.getId());
         String groupKey = userGroupService.determineGroupKey(user, pets);
 
         String redisKey = "group:" + groupKey;
         long start = (long) page * size;
-        long end = start + size - 1;
+        long end   = start + size - 1; // 정확히 size개 원하면 -1 권장
 
-        // ============================================================
-        // [조회 안전필터 1] Redis 결과가 비어 있으면 Fallback으로 인기 피드 제공
-        //  - 배치 이전/직후, Redis 장애, TTL 만료 등에서도 사용자에게 빈 화면을 주지 않기 위해
-        // ============================================================
+        // 1) CBF(또는 하이브리드) 후보 조회
         Set<ZSetOperations.TypedTuple<String>> tuples =
                 redisTemplate.opsForZSet().reverseRangeWithScores(redisKey, start, end);
 
+        // 1-1) 캐시 비었을 때 Fallback (안전필터)
         if (tuples == null || tuples.isEmpty()) {
-            log.warn("[CBF Recommend] Redis 캐시 비어있음 → Fallback(DB 인기 피드 상위 N)");
+            log.warn("[Recommend] Redis 캐시 비어있음 → Fallback(DB 인기 상위)");
             List<Feed> fallback = feedRepository.findTop200ByOrderByLikesDesc();
-
-            // (선택) 삭제/비공개/차단 필터가 필요하면 여기서 한 번 더 거르기.
-            // fallback = fallback.stream().filter(this::isVisible).toList();
-
-            // 점수는 임시로 1.0 부여(표시용). 필요시 좋아요/댓글 기반으로 간단 산출해도 OK.
             return fallback.stream()
+                    .limit(size)
                     .map(f -> FeedListResponse.from(f, 1.0))
-                    .collect(java.util.stream.Collectors.toList());
+                    .toList();
         }
 
-        // 정상 경로: Redis 랭킹을 기반으로 id/score 추출
-        List<Long> feedIdsInOrder = tuples.stream()
-                .map(t -> Long.parseLong(java.util.Objects.requireNonNull(t.getValue())))
+        // 2) 후보 id/score 맵
+        List<Long> candidateIds = tuples.stream()
+                .map(t -> Long.parseLong(Objects.requireNonNull(t.getValue())))
                 .toList();
 
         Map<Long, Double> scoreById = tuples.stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        t -> Long.parseLong(java.util.Objects.requireNonNull(t.getValue())),
-                        t -> java.util.Optional.ofNullable(t.getScore()).orElse(1.0)
+                .collect(Collectors.toMap(
+                        t -> Long.parseLong(Objects.requireNonNull(t.getValue())),
+                        t -> Optional.ofNullable(t.getScore()).orElse(1.0)
                 ));
 
-        // DB에서 상세 조회 → Redis 순서를 유지해 응답 구성
-        List<Feed> feeds = feedRepository.findAllById(feedIdsInOrder);
-        Map<Long, Feed> feedById = feeds.stream()
-                .collect(java.util.stream.Collectors.toMap(Feed::getId, java.util.function.Function.identity()));
+        // 3) "3시간 이내 내가 작성한 최신 글 최대 3개"를 먼저 고정
+        final int PIN_OWN_LIMIT = 3;
+        LocalDateTime threeHoursAgo = LocalDateTime.now().minusHours(3);
 
-        List<FeedListResponse> out = new ArrayList<>(feedIdsInOrder.size());
-        for (Long id : feedIdsInOrder) {
-            Feed f = feedById.get(id);
-            // ============================================================
-            // [조회 안전필터 2] 삭제/비공개/차단 등 노출 불가 피드는 건너뛰기
-            //  - 배치 시점과 조회 시점 사이의 상태 변화 대비
-            //  - isVisible(f)는 서비스 정책에 맞게 구현(예: f.isDeleted(), f.isPrivate() 등)
-            // ============================================================
-            if (f != null /* && isVisible(f) */) {
-                out.add(FeedListResponse.from(f, scoreById.getOrDefault(id, 1.0)));
+        List<Long> myRecentFeedIds = feedRepository
+                .findTop3IdsByAuthorIdAndCreatedAtAfterOrderByCreatedAtDesc(
+                        user.getId(), threeHoursAgo
+                );
+
+        // (선택) 가시성 필터(삭제/비공개/차단 등) 필요 시 여기서 한 번 더 거르세요.
+        // myRecentFeedIds = filterVisibleIds(myRecentFeedIds);
+
+        // 4) 최종 ID 순서: (A) 내 고정 글들 → (B) 추천 후보들(중복 제거)
+        LinkedHashSet<Long> ordered = new LinkedHashSet<>(size * 2);
+
+        // (A) 내 글 우선 삽입 (후보에 없어도 상단 고정)
+        for (Long id : myRecentFeedIds) {
+            ordered.add(id);
+            if (ordered.size() >= size) break;
+        }
+
+        // (B) 추천 후보 이어붙이기
+        if (ordered.size() < size) {
+            for (Long id : candidateIds) {
+                ordered.add(id);
+                if (ordered.size() >= size) break;
             }
+        }
+
+        // 5) 상세 엔티티 조회 → 순서를 유지하며 응답 구성
+        List<Long> finalIds = ordered.stream().limit(size).toList();
+        List<Feed> feeds = feedRepository.findAllById(finalIds);
+        Map<Long, Feed> feedById = feeds.stream()
+                .collect(Collectors.toMap(Feed::getId, Function.identity()));
+
+        List<FeedListResponse> out = new ArrayList<>(finalIds.size());
+        for (Long id : finalIds) {
+            Feed f = feedById.get(id);
+            if (f == null) continue; // 삭제 등으로 사라진 경우 방지
+            double score = scoreById.getOrDefault(id, 1.0); // 내 고정 글은 점수와 무관하게 상단 고정
+            out.add(FeedListResponse.from(f, score));
         }
         return out;
     }
