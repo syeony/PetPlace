@@ -5,6 +5,5 @@ data class Post(
     val title: String,
     val body: String,
     val meta: String,
-    val commentCount: Int,
     val imageRes: Int
 )

@@ -279,7 +279,7 @@ fun FeedScreen(
             )
         }
 
-        /* 글쓰기 + 검색 FAB */
+        /* 글쓰기 FAB */
         FloatingActionButton(
             onClick = { navController.navigate("board/write") },
             containerColor = Color(0xFFF79800),
