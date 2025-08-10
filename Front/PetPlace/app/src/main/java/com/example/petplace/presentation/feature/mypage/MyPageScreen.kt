@@ -393,7 +393,7 @@ fun MyPageScreen(
                         MyMenuItem(
                             icon = R.drawable.my_post,
                             title = "내 게시글",
-                            onClick = { /* 게시글 로직 */ }
+                            onClick = { navController.navigate("my_post") }
                         )
                         MyMenuItem(
                             icon = R.drawable.my_comment,
