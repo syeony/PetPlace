@@ -57,11 +57,33 @@ services:
       # KAKAO_CLIENT_SECRET: ""
       # KAKAO_REDIRECT_URI: ""
 
+
     volumes:
       - /home/ubuntu/upload/images:/home/ubuntu/upload/images
     ports:
       - "8081:8081"
     restart: always
+  similarity:
+    build:
+      context: ./similarity
+      dockerfile: Dockerfile
+    container_name: similarity
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Seoul
+      - USE_SERVER_YOLO=1            # 테스트 단계: 서버에서 탐지까지 수행
+      - EMBED_BACKBONE=ViT-B-32
+      - EMBED_PRETRAIN=openai
+      - W_FACE=0.6
+      - INDEX_DIR=/app/index_data
+    volumes:
+      - similarity_index:/app/index_data
+    # 스프링(8080/8081)과 충돌 피하려고 외부포트 8083 사용
+    ports:
+      - "8083:8083"
+
+
 
 volumes:
   mysql_data:
+  similarity_index:
