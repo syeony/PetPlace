@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -107,7 +106,7 @@ fun WalkAndCareScreen(
                     textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 30.dp),
+                        .height(48.dp), // 높이 조정,
                     singleLine = true,
                     shape = RoundedCornerShape(20.dp),
                     colors = OutlinedTextFieldDefaults.colors(
