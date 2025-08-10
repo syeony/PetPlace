@@ -46,10 +46,10 @@ public class CBFRecommendationService {
 
     /**
      * 배치: 그룹별 추천 ZSET 생성 (N+1 제거, 파이프라인 적용)
-     *  - regions: 전체 로드 캐시
-     *  - users: 전체 로드 → petsByUser IN 조회
-     *  - feeds: 상위 200 한 번만
-     *  - writer info/pets: IN 조회
+     * - regions: 전체 로드 캐시
+     * - users: 전체 로드 → petsByUser IN 조회
+     * - feeds: 상위 200 한 번만
+     * - writer info/pets: IN 조회
      */
     @Transactional(Transactional.TxType.SUPPORTS)
     public void batchRecommendationToRedis() {
@@ -213,13 +213,142 @@ public class CBFRecommendationService {
     }
     // CBFRecommendationService.java
 
-    @Async
-    public void batchRecommendationToRedisAsync() {
-        long t0 = System.currentTimeMillis();
-        batchRecommendationToRedis();
-        log.info("recommend/batch finished in {} ms", System.currentTimeMillis() - t0);
-    }
+//    @Async
+//    public void batchRecommendationToRedisAsync() {
+//        long t0 = System.currentTimeMillis();
+//        batchRecommendationToRedis();
+//        log.info("recommend/batch finished in {} ms", System.currentTimeMillis() - t0);
+//    }
+//}
+@Async("recommendationExecutor")
+public void batchRecommendationToRedisAsync() {
+    final long batchStartMs = System.currentTimeMillis();
 
+    long cpuNsTotal = 0L;   // 계산 구간 누적(ns)
+    long ioNsTotal  = 0L;   // Redis 쓰기 구간 누적(ns)
+    long itemsTotal = 0L;   // ZADD(또는 저장)한 총 아이템 수
+
+    try {
+        LocalDate today = LocalDate.now();
+
+        // 1) 후보 피드 1회 조회
+        List<Feed> feeds = feedRepository.findTop200ByOrderByLikesDesc();
+        if (feeds.isEmpty()) {
+            log.info("CBF batch: no feeds, skip");
+            return;
+        }
+        List<Long> feedIds = feeds.stream().map(Feed::getId).toList();
+
+        // 2) 댓글 수 벌크 조회
+        List<Object[]> commentCounts =
+                commentRepository.countByFeedIdInAndDeletedAtIsNullGroupByFeedId(feedIds);
+        Map<Long, Integer> feedIdToCommentCount = new HashMap<>(feedIds.size());
+        for (Object[] row : commentCounts) {
+            feedIdToCommentCount.put((Long) row[0], ((Long) row[1]).intValue());
+        }
+
+        // 3) 작성자 정보/펫 정보 일괄 조회
+        Set<Long> writerIds = feeds.stream()
+                .map(Feed::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, User> writerMap = userRepository.findAllById(writerIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        Map<Long, Set<Animal>> writerAnimals = petRepository.findByUserIdIn(writerIds).stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getUser().getId(),
+                        Collectors.mapping(Pet::getAnimal, Collectors.toSet())
+                ));
+
+        // 4) region 캐시
+        Map<Long, String> regionNameCache = regionRepository.findAll().stream()
+                .collect(Collectors.toMap(Region::getId, Region::getName));
+
+        // 5) 모든 사용자 + 사용자별 펫 미리 로드
+        List<User> users = userRepository.findAll();
+        List<Long> userIds = users.stream().map(User::getId).toList();
+        Map<Long, List<Pet>> petsByUser = petRepository.findByUserIdIn(userIds).stream()
+                .collect(Collectors.groupingBy(p -> p.getUser().getId()));
+
+        // 6) 사용자별 점수 계산(=CPU) → Redis 파이프라인 저장(=I/O)
+        for (User user : users) {
+            List<Pet> pets = petsByUser.getOrDefault(user.getId(), Collections.emptyList());
+
+            String groupKey = userGroupService.determineGroupKey(
+                    user, pets, id -> regionNameCache.getOrDefault(id, "UNKNOWN")
+            );
+            String redisKey = "group:" + groupKey;
+
+            int userAge = Period.between(user.getBirthday(), today).getYears();
+            int userAgeGroup = (userAge / 10) * 10;
+            String userRegionName = regionNameCache.getOrDefault(user.getRegionId(), "UNKNOWN");
+
+            // ---- CPU 구간 시작: 점수 계산 ----
+            long t0 = System.nanoTime();
+
+            Map<Long, Double> scores = new HashMap<>(feedIds.size());
+            for (Feed feed : feeds) {
+                int commentCount = feedIdToCommentCount.getOrDefault(feed.getId(), 0);
+
+                User writer = (feed.getUserId() == null) ? null : writerMap.get(feed.getUserId());
+                int writerAgeGroup = -1;
+                String writerRegionName = null;
+                Set<Animal> writerAnimalSet = Collections.emptySet();
+
+                if (writer != null) {
+                    int writerAge = Period.between(writer.getBirthday(), today).getYears();
+                    writerAgeGroup = (writerAge / 10) * 10;
+                    writerRegionName = regionNameCache.getOrDefault(writer.getRegionId(), "UNKNOWN");
+                    writerAnimalSet = writerAnimals.getOrDefault(writer.getId(), Collections.emptySet());
+                }
+
+                double score = calculateScore(
+                        user, pets, feed, commentCount,
+                        writerAgeGroup, writerRegionName, writerAnimalSet,
+                        userAgeGroup, userRegionName,
+                        today
+                );
+                scores.put(feed.getId(), score);
+            }
+
+            long t1 = System.nanoTime();
+            cpuNsTotal += (t1 - t0);
+            // ---- CPU 구간 끝 ----
+
+            // ---- I/O 구간 시작: Redis 파이프라인 쓰기 ----
+            long t2 = System.nanoTime();
+
+            final var keySer = redisTemplate.getStringSerializer();
+            final byte[] key = keySer.serialize(redisKey);
+            final long[] written = {0L};
+
+            redisTemplate.executePipelined((RedisCallback<Object>) conn -> {
+                for (Map.Entry<Long, Double> e : scores.entrySet()) {
+                    conn.zAdd(key, e.getValue(), keySer.serialize(String.valueOf(e.getKey())));
+                    written[0]++;
+                }
+                return null;
+            });
+
+            itemsTotal += written[0];
+
+            long t3 = System.nanoTime();
+            ioNsTotal += (t3 - t2);
+            // ---- I/O 구간 끝 ----
+        }
+
+        long n = Math.max(1L, itemsTotal);
+        double C = (cpuNsTotal / 1_000_000.0) / n; // ms/건
+        double W = (ioNsTotal  / 1_000_000.0) / n; // ms/건
+        log.info("[CBF Timing] avgCPU={} ms, avgIO={} ms, W/C={}, items={}", C, W, (W / C), itemsTotal);
+
+    } catch (Exception e) {
+        log.error("CBF batch failed", e);
+    } finally {
+        log.info("recommend/batch finished in {} ms", System.currentTimeMillis() - batchStartMs);
+    }
 }
 
-//}
+}
