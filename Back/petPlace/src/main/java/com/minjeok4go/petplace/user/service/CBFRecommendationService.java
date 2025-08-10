@@ -18,6 +18,7 @@ import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -179,6 +180,7 @@ public class CBFRecommendationService {
 
     // 조회 API는 그대로 (필요시 유지)
     public List<FeedListResponse> getRecommendedFeeds(User user, int page, int size) {
+        // 사용자의 펫 로딩 → 그룹키 생성
         List<Pet> pets = petRepository.findByUserId(user.getId());
         String groupKey = userGroupService.determineGroupKey(user, pets);
 
@@ -186,169 +188,285 @@ public class CBFRecommendationService {
         long start = (long) page * size;
         long end = start + size - 1;
 
+        // ============================================================
+        // [조회 안전필터 1] Redis 결과가 비어 있으면 Fallback으로 인기 피드 제공
+        //  - 배치 이전/직후, Redis 장애, TTL 만료 등에서도 사용자에게 빈 화면을 주지 않기 위해
+        // ============================================================
         Set<ZSetOperations.TypedTuple<String>> tuples =
                 redisTemplate.opsForZSet().reverseRangeWithScores(redisKey, start, end);
-        if (tuples == null || tuples.isEmpty()) return Collections.emptyList();
 
+        if (tuples == null || tuples.isEmpty()) {
+            log.warn("[CBF Recommend] Redis 캐시 비어있음 → Fallback(DB 인기 피드 상위 N)");
+            List<Feed> fallback = feedRepository.findTop200ByOrderByLikesDesc();
+
+            // (선택) 삭제/비공개/차단 필터가 필요하면 여기서 한 번 더 거르기.
+            // fallback = fallback.stream().filter(this::isVisible).toList();
+
+            // 점수는 임시로 1.0 부여(표시용). 필요시 좋아요/댓글 기반으로 간단 산출해도 OK.
+            return fallback.stream()
+                    .map(f -> FeedListResponse.from(f, 1.0))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        // 정상 경로: Redis 랭킹을 기반으로 id/score 추출
         List<Long> feedIdsInOrder = tuples.stream()
-                .map(t -> Long.parseLong(Objects.requireNonNull(t.getValue())))
+                .map(t -> Long.parseLong(java.util.Objects.requireNonNull(t.getValue())))
                 .toList();
 
         Map<Long, Double> scoreById = tuples.stream()
-                .collect(Collectors.toMap(
-                        t -> Long.parseLong(Objects.requireNonNull(t.getValue())),
-                        t -> Optional.ofNullable(t.getScore()).orElse(0.0)
+                .collect(java.util.stream.Collectors.toMap(
+                        t -> Long.parseLong(java.util.Objects.requireNonNull(t.getValue())),
+                        t -> java.util.Optional.ofNullable(t.getScore()).orElse(1.0)
                 ));
 
+        // DB에서 상세 조회 → Redis 순서를 유지해 응답 구성
         List<Feed> feeds = feedRepository.findAllById(feedIdsInOrder);
         Map<Long, Feed> feedById = feeds.stream()
-                .collect(Collectors.toMap(Feed::getId, Function.identity()));
+                .collect(java.util.stream.Collectors.toMap(Feed::getId, java.util.function.Function.identity()));
 
         List<FeedListResponse> out = new ArrayList<>(feedIdsInOrder.size());
         for (Long id : feedIdsInOrder) {
             Feed f = feedById.get(id);
-            if (f != null) out.add(FeedListResponse.from(f, scoreById.getOrDefault(id, 0.0)));
+            // ============================================================
+            // [조회 안전필터 2] 삭제/비공개/차단 등 노출 불가 피드는 건너뛰기
+            //  - 배치 시점과 조회 시점 사이의 상태 변화 대비
+            //  - isVisible(f)는 서비스 정책에 맞게 구현(예: f.isDeleted(), f.isPrivate() 등)
+            // ============================================================
+            if (f != null /* && isVisible(f) */) {
+                out.add(FeedListResponse.from(f, scoreById.getOrDefault(id, 1.0)));
+            }
         }
         return out;
     }
+
     // CBFRecommendationService.java
 
-//    @Async
+    //    @Async
 //    public void batchRecommendationToRedisAsync() {
 //        long t0 = System.currentTimeMillis();
 //        batchRecommendationToRedis();
 //        log.info("recommend/batch finished in {} ms", System.currentTimeMillis() - t0);
 //    }
 //}
-@Async("recommendationExecutor")
-public void batchRecommendationToRedisAsync() {
-    final long batchStartMs = System.currentTimeMillis();
+// ===================== C/W 측정 가능한 @Async 배치 =====================
+// =====================================================================
+// [비동기 배치] 그룹별 추천 랭킹(ZSET) 미리 계산하여 Redis에 저장 + C/W(계산 vs I/O) 시간 측정
+//  - 후보 풀: 좋아요 상위 200개 피드
+//  - N+1 제거: 필요한 모든 부가정보(댓글수/작성자/펫/지역/유저펫)를 한 번에 벌크 로딩 → 인메모리 Map 캐시로 사용
+//  - 그룹핑: userGroupService.determineGroupKey(...) 에서 groupKey를 생성 (예: 나이대/지역/동물조합 등)
+//  - 저장: group:{groupKey} 라는 ZSET 키에 (member=feedId, score=추천점수)로 ZADD (파이프라이닝)
+//  - 타이밍: CPU(계산) 구간과 I/O(레디스 저장) 구간을 분리 측정하여 평균(ms/건)과 W/C 비율 로그 출력
+//  - @Async: 호출자는 즉시 반환, 실제 배치는 백그라운드 스레드에서 수행
+// =====================================================================
+    @Scheduled(cron ="0 0 3 * * *", zone = "Asis/Seoul") // 새벽 3시마다 배치실행
+    @Async("recommendationExecutor") // executor 빈 이름을 등록했을 때. 없다면 @Async 만 사용해도 됨.
+    public void batchRecommendationToRedisAsync() {
 
-    long cpuNsTotal = 0L;   // 계산 구간 누적(ns)
-    long ioNsTotal  = 0L;   // Redis 쓰기 구간 누적(ns)
-    long itemsTotal = 0L;   // ZADD(또는 저장)한 총 아이템 수
-
-    try {
-        LocalDate today = LocalDate.now();
-
-        // 1) 후보 피드 1회 조회
-        List<Feed> feeds = feedRepository.findTop200ByOrderByLikesDesc();
-        if (feeds.isEmpty()) {
-            log.info("CBF batch: no feeds, skip");
+        // ============================================================
+        // [동시 실행 방지 락]
+        // - 이미 다른 인스턴스/스레드가 배치 실행 중이면 스킵
+        // - TTL(30분)로 비정상 종료 시에도 자동 해제되게 함
+        // ============================================================
+        Boolean locked = redisTemplate.opsForValue()
+                .setIfAbsent("cbf_batch_lock", "1", java.time.Duration.ofMinutes(30));
+        if (Boolean.FALSE.equals(locked)) {
+            log.warn("[CBF Batch] 이미 실행 중이어서 스킵합니다.");
             return;
         }
-        List<Long> feedIds = feeds.stream().map(Feed::getId).toList();
+        final long batchStartMs = System.currentTimeMillis();
 
-        // 2) 댓글 수 벌크 조회
-        List<Object[]> commentCounts =
-                commentRepository.countByFeedIdInAndDeletedAtIsNullGroupByFeedId(feedIds);
-        Map<Long, Integer> feedIdToCommentCount = new HashMap<>(feedIds.size());
-        for (Object[] row : commentCounts) {
-            feedIdToCommentCount.put((Long) row[0], ((Long) row[1]).intValue());
-        }
+        long cpuNsTotal = 0L;   // 전체 사용자 처리 동안의 "계산(CPU) 구간" 누적 시간(ns)
+        long ioNsTotal  = 0L;   // 전체 사용자 처리 동안의 "I/O(레디스 저장) 구간" 누적 시간(ns)
+        long itemsTotal = 0L;   // 전체 저장된 아이템 개수(ZADD 횟수). 평균 계산을 위한 분모로 사용
 
-        // 3) 작성자 정보/펫 정보 일괄 조회
-        Set<Long> writerIds = feeds.stream()
-                .map(Feed::getUserId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        try {
+            // ===== 전처리(공통 캐시 구성) : 배치 한 번 도는 동안만 유효한 '인메모리 캐시'입니다. =====
+            // 여기서 말하는 "캐시"는 Redis 캐시가 아니라, N+1 방지용으로 메모리에 들고 있는 Map을 뜻합니다.
+            final LocalDate today = LocalDate.now();
 
-        Map<Long, User> writerMap = userRepository.findAllById(writerIds).stream()
-                .collect(Collectors.toMap(User::getId, Function.identity()));
+            // (1) 후보 피드 풀: 좋아요 상위 200개만 한 번에 뽑아, 이후 계산 범위를 제한합니다.
+            final List<Feed> feeds = feedRepository.findTop200ByOrderByLikesDesc();
+            if (feeds.isEmpty()) {
+                log.info("CBF batch: no feeds, skip");
+                return; // 후보가 없으면 아무 것도 하지 않고 종료
+            }
+            final List<Long> feedIds = feeds.stream().map(Feed::getId).toList();
 
-        Map<Long, Set<Animal>> writerAnimals = petRepository.findByUserIdIn(writerIds).stream()
-                .collect(Collectors.groupingBy(
-                        p -> p.getUser().getId(),
-                        Collectors.mapping(Pet::getAnimal, Collectors.toSet())
-                ));
-
-        // 4) region 캐시
-        Map<Long, String> regionNameCache = regionRepository.findAll().stream()
-                .collect(Collectors.toMap(Region::getId, Region::getName));
-
-        // 5) 모든 사용자 + 사용자별 펫 미리 로드
-        List<User> users = userRepository.findAll();
-        List<Long> userIds = users.stream().map(User::getId).toList();
-        Map<Long, List<Pet>> petsByUser = petRepository.findByUserIdIn(userIds).stream()
-                .collect(Collectors.groupingBy(p -> p.getUser().getId()));
-
-        // 6) 사용자별 점수 계산(=CPU) → Redis 파이프라인 저장(=I/O)
-        for (User user : users) {
-            List<Pet> pets = petsByUser.getOrDefault(user.getId(), Collections.emptyList());
-
-            String groupKey = userGroupService.determineGroupKey(
-                    user, pets, id -> regionNameCache.getOrDefault(id, "UNKNOWN")
-            );
-            String redisKey = "group:" + groupKey;
-
-            int userAge = Period.between(user.getBirthday(), today).getYears();
-            int userAgeGroup = (userAge / 10) * 10;
-            String userRegionName = regionNameCache.getOrDefault(user.getRegionId(), "UNKNOWN");
-
-            // ---- CPU 구간 시작: 점수 계산 ----
-            long t0 = System.nanoTime();
-
-            Map<Long, Double> scores = new HashMap<>(feedIds.size());
-            for (Feed feed : feeds) {
-                int commentCount = feedIdToCommentCount.getOrDefault(feed.getId(), 0);
-
-                User writer = (feed.getUserId() == null) ? null : writerMap.get(feed.getUserId());
-                int writerAgeGroup = -1;
-                String writerRegionName = null;
-                Set<Animal> writerAnimalSet = Collections.emptySet();
-
-                if (writer != null) {
-                    int writerAge = Period.between(writer.getBirthday(), today).getYears();
-                    writerAgeGroup = (writerAge / 10) * 10;
-                    writerRegionName = regionNameCache.getOrDefault(writer.getRegionId(), "UNKNOWN");
-                    writerAnimalSet = writerAnimals.getOrDefault(writer.getId(), Collections.emptySet());
-                }
-
-                double score = calculateScore(
-                        user, pets, feed, commentCount,
-                        writerAgeGroup, writerRegionName, writerAnimalSet,
-                        userAgeGroup, userRegionName,
-                        today
-                );
-                scores.put(feed.getId(), score);
+            // (2) 댓글수 벌크 조회 → feedId -> commentCount 맵 구성 (그룹핑 쿼리 결과를 메모리에 저장)
+            final List<Object[]> commentCounts =
+                    commentRepository.countByFeedIdInAndDeletedAtIsNullGroupByFeedId(feedIds);
+            final Map<Long, Integer> feedIdToCommentCount = new HashMap<>(feedIds.size());
+            for (Object[] row : commentCounts) {
+                // row[0]=feedId(Long), row[1]=count(Long) 가정
+                feedIdToCommentCount.put((Long) row[0], ((Long) row[1]).intValue());
             }
 
-            long t1 = System.nanoTime();
-            cpuNsTotal += (t1 - t0);
-            // ---- CPU 구간 끝 ----
+            // (3) 작성자(User)와 작성자의 반려동물(Animal set) 정보를 한 번에 로딩
+            final Set<Long> writerIds = feeds.stream()
+                    .map(Feed::getUserId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
 
-            // ---- I/O 구간 시작: Redis 파이프라인 쓰기 ----
-            long t2 = System.nanoTime();
+            // writerId -> User
+            final Map<Long, User> writerMap = userRepository.findAllById(writerIds).stream()
+                    .collect(Collectors.toMap(User::getId, Function.identity()));
 
-            final var keySer = redisTemplate.getStringSerializer();
-            final byte[] key = keySer.serialize(redisKey);
-            final long[] written = {0L};
+            // writerId -> {Animal...} : PetRepository에는 findByUserIdIn(...) 이 있어야 함
+            final Map<Long, Set<Animal>> writerAnimals = petRepository.findByUserIdIn(writerIds).stream()
+                    .collect(Collectors.groupingBy(
+                            p -> p.getUser().getId(),
+                            Collectors.mapping(Pet::getAnimal, Collectors.toSet())
+                    ));
 
-            redisTemplate.executePipelined((RedisCallback<Object>) conn -> {
-                for (Map.Entry<Long, Double> e : scores.entrySet()) {
-                    conn.zAdd(key, e.getValue(), keySer.serialize(String.valueOf(e.getKey())));
-                    written[0]++;
-                }
-                return null;
-            });
+            // (4) 지역 전체 로딩 → regionId -> regionName 맵 (이름 resolve 용)
+            final Map<Long, String> regionNameCache = regionRepository.findAll().stream()
+                    .collect(Collectors.toMap(Region::getId, Region::getName));
 
-            itemsTotal += written[0];
+            // (5) 모든 사용자와 각 사용자의 반려동물을 한 번에 로딩하여 맵 구성 (userId -> pets[])
+            final List<User> users = userRepository.findAll();
+            final List<Long> userIds = users.stream().map(User::getId).toList();
+            final Map<Long, List<Pet>> petsByUser = petRepository.findByUserIdIn(userIds).stream()
+                    .collect(Collectors.groupingBy(p -> p.getUser().getId()));
 
-            long t3 = System.nanoTime();
-            ioNsTotal += (t3 - t2);
-            // ---- I/O 구간 끝 ----
+            // ===== 메인 루프: 사용자별로 "그룹키 생성 → 점수 계산 → Redis 저장" =====
+            for (User user : users) {
+                final List<Pet> pets = petsByUser.getOrDefault(user.getId(), Collections.emptyList());
+
+                // [그룹핑] 여기서 groupKey를 생성합니다. (이 단계가 "그룹핑"의 실체)
+                // 예: "10s:Seoul:Dog" 형식 등. 실제 키는 userGroupService 구현에 따름.
+                final String groupKey = userGroupService.determineGroupKey(
+                        user, pets, id -> regionNameCache.getOrDefault(id, "UNKNOWN")
+                );
+
+                // Redis ZSET 키 네임스페이스: "group:{groupKey}"
+                // 같은 그룹의 사용자라면 동일한 키를 참조합니다.
+                final String redisKey = "group:" + groupKey;
+
+                // --- [CPU 구간] 점수 계산 시작 ---
+                final long t0 = System.nanoTime();
+
+                // 사용자 1명에 대해, 후보 200개 피드 각각의 점수를 계산하여 feedId -> score 맵 생성
+                final Map<Long, Double> scores = computeScoresForUser(
+                        user, pets, feeds, feedIdToCommentCount,
+                        writerMap, writerAnimals, regionNameCache, today
+                );
+
+                final long t1 = System.nanoTime();
+                cpuNsTotal += (t1 - t0); // 계산 구간 누적
+                // --- [CPU 구간] 종료 ---
+
+                // --- [I/O 구간] Redis 저장 시작 ---
+                final long t2 = System.nanoTime();
+
+                // 점수 맵을 레디스 ZSET에 파이프라이닝으로 ZADD.
+                // member=feedId, score=추천점수 → 높은 점수일수록 상단 노출.
+                // 반환값은 ZADD한 총 건수 (itemsTotal에 누적)
+                itemsTotal += writeScoresToRedis(redisKey, scores);
+
+                final long t3 = System.nanoTime();
+                ioNsTotal += (t3 - t2); // I/O 구간 누적
+                // --- [I/O 구간] 종료 ---
+
+                // [선택] 원자적 공개를 원하면 "임시키에 쌓고 → RENAME으로 스왑" 패턴을 쓰세요.
+                // ex)
+                // String tmpKey = "group:" + groupKey + ":tmp:" + System.currentTimeMillis();
+                // writeScoresToRedis(tmpKey, scores);
+                // conn.rename(tmpKey, redisKey);  // 이러면 중간 상태 노출 없이 스왑 가능
+            }
+
+            // ===== 최종 요약 로그: 평균 계산/저장 시간 및 W/C 비율 =====
+            final long n = Math.max(1L, itemsTotal); // 0으로 나누기 방지
+            final double C = (cpuNsTotal / 1_000_000.0) / n; // 건당 평균 CPU 시간(ms)
+            final double W = (ioNsTotal  / 1_000_000.0) / n; // 건당 평균 I/O 시간(ms)
+            log.info("[CBF Timing] avgCPU={} ms, avgIO={} ms, W/C={}, items={}", C, W, (W / C), itemsTotal);
+
+        } catch (Exception e) {
+            // 비동기 메서드(void) 예외는 호출자가 못 받으니, 여기서 반드시 로깅
+            log.error("CBF batch failed", e);
+        } finally {
+            log.info("recommend/batch finished in {} ms", System.currentTimeMillis() - batchStartMs);
+            // ============================================================
+            // [락 해제] - 정상/예외와 관계없이 반드시 해제
+            // ============================================================
+            try { redisTemplate.delete("cbf_batch_lock"); } catch (Exception ignore) {}
+
         }
-
-        long n = Math.max(1L, itemsTotal);
-        double C = (cpuNsTotal / 1_000_000.0) / n; // ms/건
-        double W = (ioNsTotal  / 1_000_000.0) / n; // ms/건
-        log.info("[CBF Timing] avgCPU={} ms, avgIO={} ms, W/C={}, items={}", C, W, (W / C), itemsTotal);
-
-    } catch (Exception e) {
-        log.error("CBF batch failed", e);
-    } finally {
-        log.info("recommend/batch finished in {} ms", System.currentTimeMillis() - batchStartMs);
     }
-}
 
+    /**
+     * [순수 계산 단계] 사용자 1명에 대해 후보 피드들의 추천 점수를 계산하여 feedId -> score 맵을 만듭니다.
+     *  - I/O 호출을 절대 넣지 마세요. (이 메서드는 "CPU 구간" 시간 측정을 위한 순수 계산 전용)
+     *  - 가중치 합산 로직은 calculateScore(...)에 캡슐화되어 있음 (이미 네 코드에 존재)
+     */
+    private Map<Long, Double> computeScoresForUser(
+            User user,
+            List<Pet> pets,
+            List<Feed> feeds,
+            Map<Long, Integer> feedIdToCommentCount, // feedId -> 댓글 수
+            Map<Long, User> writerMap,               // 작성자 id -> User
+            Map<Long, Set<Animal>> writerAnimals,    // 작성자 id -> 작성자의 동물 종 집합
+            Map<Long, String> regionNameCache,       // regionId -> regionName (표기용/동등비교용)
+            LocalDate today
+    ) {
+        // 사용자 나이/지역을 미리 계산 (반복에서 재계산 방지)
+        final int userAge = Period.between(user.getBirthday(), today).getYears();
+        final int userAgeGroup = (userAge / 10) * 10; // 20대/30대...
+        final String userRegionName = regionNameCache.getOrDefault(user.getRegionId(), "UNKNOWN");
+
+        final Map<Long, Double> scores = new HashMap<>(feeds.size());
+
+        // 후보 200개 피드를 하나씩 돌며 점수 합산
+        for (Feed feed : feeds) {
+            final int commentCount = feedIdToCommentCount.getOrDefault(feed.getId(), 0);
+
+            // 피드 작성자 데이터 resolve (없을 수도 있음)
+            final User writer = (feed.getUserId() == null) ? null : writerMap.get(feed.getUserId());
+            int writerAgeGroup = -1;
+            String writerRegionName = null;
+            Set<Animal> writerAnimalSet = Collections.emptySet();
+
+            if (writer != null) {
+                final int writerAge = Period.between(writer.getBirthday(), today).getYears();
+                writerAgeGroup = (writerAge / 10) * 10;
+                writerRegionName = regionNameCache.getOrDefault(writer.getRegionId(), "UNKNOWN");
+                writerAnimalSet = writerAnimals.getOrDefault(writer.getId(), Collections.emptySet());
+            }
+
+            // 실제 가중치 합산 로직(좋아요/댓글/동물 일치/나이대/지역/최신성 등)은 calculateScore(...)로 캡슐화
+            final double score = calculateScore(
+                    user, pets, feed, commentCount,
+                    writerAgeGroup, writerRegionName, writerAnimalSet,
+                    userAgeGroup, userRegionName,
+                    today
+            );
+            scores.put(feed.getId(), score);
+        }
+        return scores;
+    }
+
+    /**
+     * [저장 단계] feedId -> score 맵을 Redis ZSET에 파이프라이닝으로 저장합니다.
+     *  - 키: group:{groupKey}
+     *  - member: feedId (문자열)
+     *  - score: 추천 점수(더 높을수록 랭킹 상단)
+     *  - 성능 팁: 파이프라이닝은 네트워크 RTT를 크게 줄여주므로, 스레드만 늘리는 것보다 효과적입니다.
+     * @return 실제로 ZADD한 개수 (itemsTotal에 누적하여 평균 산출에 사용)
+     */
+    private long writeScoresToRedis(String redisKey, Map<Long, Double> scores) {
+        final var keySer = redisTemplate.getStringSerializer();
+        final byte[] key = keySer.serialize(redisKey);
+        final long[] written = {0L};
+
+        // 파이프라이닝으로 다건 ZADD
+        redisTemplate.executePipelined((RedisCallback<Object>) conn -> {
+            for (Map.Entry<Long, Double> e : scores.entrySet()) {
+                // member는 feedId 문자열, score는 계산된 점수
+                conn.zAdd(key, e.getValue(), keySer.serialize(String.valueOf(e.getKey())));
+                written[0]++;
+            }
+            conn.expire(key, 48 * 60 * 60); // 48시간 TTL (초 단위) (TimeToLive) 48시간이 지나면 redis가 알아서 삭제
+            return null;
+        });
+        return written[0];
+    }
 }
