@@ -220,7 +220,7 @@ fun PetProfileScreen(
 
         // 다음 버튼
         Button(
-            onClick = { navController.popBackStack() },
+            onClick = { navController.navigate("pet_complete") },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
