@@ -36,7 +36,7 @@ class BoardViewModel @Inject constructor(
     /* ─── 상수 ─── */
     private val USER_ID = userInfo         // ← 로그인 완료되면 Token or DataStore 에서 꺼내 쓰면 됨
     private val PAGE    = 0
-    private val SIZE    = 100
+    private val SIZE    = 20
 
     /* ─── UI State ─── */
     val allCategories = listOf("내새꾸자랑", "정보", "나눔", "후기", "자유")
