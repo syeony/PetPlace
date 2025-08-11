@@ -354,7 +354,7 @@ fun ProfileEditScreen(
 }
 
 @Composable
-private fun FieldLabel(text: String) {
+fun FieldLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,

@@ -1,6 +1,14 @@
 package com.example.petplace.presentation.feature.mypage
 
+import android.app.DatePickerDialog
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,11 +18,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -30,6 +43,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,11 +55,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
+import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.PrimaryColor
+import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,10 +87,24 @@ fun PetProfileScreen(
     var birthDate by remember { mutableStateOf("") }
     var age by remember { mutableStateOf("") }
 
+    val focusManager = LocalFocusManager.current
+
+    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val amber = Color(0xFFFFC981)
+
+    // 갤러리에서 이미지 선택 런처
+    val launcherGallery =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                profileImageUri = uri
+            }
+        }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFFBF2))
+            .background(Color.White)
             .verticalScroll(scrollState)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -80,7 +118,7 @@ fun PetProfileScreen(
                 Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
             }
             Text(
-                "강아지 프로필 등록",
+                "펫 프로필 등록",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center
@@ -92,37 +130,111 @@ fun PetProfileScreen(
 
         // 프로필 사진
         Box(
-            modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFF1F1F1))
-                .clickable { /* 사진 선택 */ },
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                Icons.Default.CameraAlt,
-                contentDescription = "사진 선택",
-                tint = Color.Gray,
-                modifier = Modifier.size(36.dp)
-            )
+            Box(
+                modifier = Modifier.size(120.dp),
+                contentAlignment = Alignment.BottomEnd
+            ) {
+                if (profileImageUri != null) {
+                    // 이미지 있을 때
+                    Image(
+                        painter = rememberAsyncImagePainter(profileImageUri),
+                        contentDescription = "프로필 이미지",
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // 이미지 없을 때 (작은 카메라 아이콘)
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, amber, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CameraAlt,
+                            contentDescription = "카메라",
+                            tint = amber, // Primary 색상
+                            modifier = Modifier.size(40.dp) // 작은 크기
+                        )
+                    }
+                }
+                Surface(
+                    color = PrimaryColor,
+                    shape = CircleShape,
+                    shadowElevation = 2.dp,
+                    modifier = Modifier
+                        .offset(x = (-5).dp, y = (-5).dp)
+                        .size(30.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable {
+                                    launcherGallery.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                                        )
+                                    )
+                                },
+                            imageVector = Icons.Filled.CameraAlt,
+                            contentDescription = "사진 변경",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
         }
-        Spacer(Modifier.height(8.dp))
-        Text("얼굴이 잘 보이는 무보정 단독 사진을 선택해주세요.", textAlign = TextAlign.Center)
+        Spacer(Modifier.height(16.dp))
+        Text("얼굴이 잘 보이는 무보정 단독 사진을 \n선택해주세요.", textAlign = TextAlign.Center)
 
         Spacer(Modifier.height(24.dp))
 
         // 반려동물 이름
+        Text(
+            text = "반려동물 이름",
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.Start)
+        )
+        Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = petName,
             onValueChange = { petName = it },
-            placeholder = { Text("이름을 입력해주세요") },
-            label = { Text("반려동물 이름") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
+            singleLine = true,
+            shape = RoundedCornerShape(8.dp),
+            placeholder = { Text(color = Color(0xFFADAEBC), text = "이름을 입력해주세요") },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(
+                onNext = { focusManager.moveFocus(FocusDirection.Down) }
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+                unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+                cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
+            )
         )
 
         Spacer(Modifier.height(16.dp))
 
         // 견종 선택
+        Text(
+            text = "견종 선택",
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.Start)
+        )
+        Spacer(Modifier.height(8.dp))
         ExposedDropdownMenuBox(
             expanded = showBreedMenu,
             onExpandedChange = { showBreedMenu = it }
@@ -131,14 +243,20 @@ fun PetProfileScreen(
                 value = breed,
                 onValueChange = {},
                 readOnly = true,
-                placeholder = { Text("견종을 선택해주세요") },
-                label = { Text("견종 선택") },
+                shape = RoundedCornerShape(8.dp),
+                placeholder = { Text(color = Color(0xFFADAEBC), text = "견종을 선택해주세요") },
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = showBreedMenu)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor()
+                    .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+                    unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+                    cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
+                )
             )
             ExposedDropdownMenu(
                 expanded = showBreedMenu,
@@ -158,24 +276,51 @@ fun PetProfileScreen(
 
         Spacer(Modifier.height(16.dp))
 
+        Text(
+            text = "성별 선택",
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.Start)
+        )
+        Spacer(Modifier.height(8.dp))
         // 성별 선택
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
             Button(
                 onClick = { gender = "여아" },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (gender == "여아") Color(0xFFFFC0CB) else Color.LightGray
-                )
-            ) { Text("여아") }
+                    containerColor = if (gender == "여아") Color(0xFFFFB745) else Color.White,
+                    contentColor = if (gender == "여아") Color.White else Color.Black
+                ),
+                border = BorderStroke(1.dp, Color(0xFFFFB745)),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .weight(1f) // 가로 공간 균등 분배
+                    .height(58.dp)
+            ) {
+                Text("여아")
+            }
 
             Button(
                 onClick = { gender = "남아" },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (gender == "남아") Color(0xFF87CEFA) else Color.LightGray
-                )
-            ) { Text("남아") }
+                    containerColor = if (gender == "남아") Color(0xFFFFB745) else Color.White,
+                    contentColor = if (gender == "남아") Color.White else Color.Black
+                ),
+                border = BorderStroke(1.dp, Color(0xFFFFB745)),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(58.dp)
+            ) {
+                Text("남아")
+            }
         }
+
+
+
 
         Spacer(Modifier.height(16.dp))
 
@@ -184,7 +329,7 @@ fun PetProfileScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("중성화했어요")
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.weight(1f))
             Switch(
                 checked = neutered,
                 onCheckedChange = { neutered = it }
@@ -194,16 +339,17 @@ fun PetProfileScreen(
         Spacer(Modifier.height(16.dp))
 
         // 생일
-        OutlinedTextField(
-            value = birthDate,
-            onValueChange = { birthDate = it },
-            placeholder = { Text("mm/dd/yyyy") },
-            label = { Text("생일") },
-            trailingIcon = {
-                Icon(Icons.Default.DateRange, contentDescription = "날짜 선택")
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
+//        OutlinedTextField(
+//            value = birthDate,
+//            onValueChange = { birthDate = it },
+//            placeholder = { Text("mm/dd/yyyy") },
+//            label = { Text("생일") },
+//            trailingIcon = {
+//                Icon(Icons.Default.DateRange, contentDescription = "날짜 선택")
+//            },
+//            modifier = Modifier.fillMaxWidth()
+//        )
+        BirthDatePicker()
 
         Spacer(Modifier.height(16.dp))
 
@@ -211,9 +357,16 @@ fun PetProfileScreen(
         OutlinedTextField(
             value = age,
             onValueChange = { age = it },
+            shape = RoundedCornerShape(8.dp),
             placeholder = { Text("나이") },
             label = { Text("나이") },
             modifier = Modifier.fillMaxWidth()
+                .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+                unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+                cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
+            )
         )
 
         Spacer(Modifier.height(24.dp))
@@ -229,4 +382,54 @@ fun PetProfileScreen(
             Text("다음", color = Color.White)
         }
     }
+}
+
+@Composable
+fun BirthDatePicker() {
+    val amber = Color(0xFFFFC981)
+    val context = LocalContext.current
+    var birthDate by remember { mutableStateOf("") }
+
+    // 오늘 날짜 기준으로 초기화
+    val calendar = Calendar.getInstance()
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH)
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+    // 날짜 선택 다이얼로그
+    val datePickerDialog = DatePickerDialog(
+        context,
+        { _, selectedYear, selectedMonth, selectedDay ->
+            val formattedDate =
+                "%02d/%02d/%04d".format(selectedMonth + 1, selectedDay, selectedYear)
+            birthDate = formattedDate
+        },
+        year, month, day
+    )
+
+    OutlinedTextField(
+        value = birthDate,
+        onValueChange = { birthDate = it },
+        placeholder = { Text("mm/dd/yyyy") },
+        shape = RoundedCornerShape(8.dp),
+        label = { Text("생일") },
+        trailingIcon = {
+            Icon(
+                imageVector = Icons.Default.DateRange,
+                contentDescription = "날짜 선택",
+                modifier = Modifier.clickable {
+                    datePickerDialog.show()
+                }
+            )
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
+        readOnly = true, // 직접 입력 못하게
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+            unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+            cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
+        )
+    )
 }
