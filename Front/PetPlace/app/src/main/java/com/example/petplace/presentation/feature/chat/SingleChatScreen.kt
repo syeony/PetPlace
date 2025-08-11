@@ -384,17 +384,15 @@ fun AttachmentOptionsGrid(
     ) {
 
         val options = listOf(
-            AttachmentOption("앨범", R.drawable.ic_mypage, "album"),
-            AttachmentOption("카메라", R.drawable.ic_map, "camera"),
+            AttachmentOption("앨범", R.drawable.outline_photo_library_24, "album"),
+            AttachmentOption("카메라", R.drawable.outline_photo_camera_24, "camera"),
             AttachmentOption("자주쓰는문구", R.drawable.ic_chat, "text_phrases"),
-            AttachmentOption("장소", R.drawable.ic_board, "location"),
-            AttachmentOption("약속", R.drawable.ic_home, "appointment"),
-            AttachmentOption("당근페이", R.drawable.ic_mypage, "carrot_pay"),
-            AttachmentOption("편의점택배", R.drawable.ic_chat, "parcel_delivery"),
-            AttachmentOption("선물하기", R.drawable.ic_home, "gift")
+            AttachmentOption("장소", R.drawable.ic_location_on, "location"),
+            AttachmentOption("약속", R.drawable.outline_schedule_24, "appointment"),
+            AttachmentOption("페이", R.drawable.outline_paid_24, "pay"),
         )
 
-        val columns = 4
+        val columns = 3
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
