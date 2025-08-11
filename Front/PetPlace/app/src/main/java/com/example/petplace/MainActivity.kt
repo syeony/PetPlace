@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import com.example.petplace.presentation.common.navigation.MainScaffold
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
 import android.util.Log
+import androidx.core.view.WindowCompat
 import com.iamport.sdk.domain.core.Iamport
 import com.kakao.sdk.common.util.Utility
 import dagger.hilt.android.AndroidEntryPoint
@@ -18,6 +19,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         var keyHash = Utility.getKeyHash(this)
         Log.e("KeyHash", "해쉬값 : ${keyHash}")
         Iamport.init(this)

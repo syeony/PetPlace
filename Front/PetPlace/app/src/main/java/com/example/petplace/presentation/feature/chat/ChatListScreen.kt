@@ -141,6 +141,7 @@ fun ChatListScreen(
     }
 
     Scaffold(
+        containerColor = Color.White,
         topBar = {
             SmallTopAppBar(
                 title = { Text(text = "채팅", fontWeight = FontWeight.Bold) },
@@ -164,7 +165,6 @@ fun ChatListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color.White)
         ) {
             val image = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24)
 
