@@ -380,7 +380,7 @@ public class MissingService {
                     .sort(imgReq.getSort())
                     .build();
 
-            imageService.upload(imageRequest);
+            imageService.createImages(imageRequest); // upload -> createImages로 변경
             log.debug("이미지 저장 완료 - refId: {}, refType: {}, src: {}", refId, refType, imgReq.getSrc());
         }
     }
