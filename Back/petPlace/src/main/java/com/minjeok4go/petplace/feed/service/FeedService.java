@@ -55,7 +55,7 @@ public class FeedService {
         List<ImageResponse> imageDtos = imageRepository
                 .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feedId)
                 .stream()
-                .map(img -> new ImageResponse(img.getSrc(), img.getSort()))
+                .map(img -> new ImageResponse(img.getId(), img.getSrc(), img.getSort()))
                 .collect(Collectors.toList());
 
         return FeedDetailResponse.builder()
@@ -270,7 +270,7 @@ public class FeedService {
                     List<ImageResponse> imageDtos = imageRepository
                             .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feed.getId())
                             .stream()
-                            .map(img -> new ImageResponse(img.getSrc(), img.getSort()))
+                            .map(img -> new ImageResponse(img.getId(), img.getSrc(), img.getSort()))
                             .toList();
 
                     // 빌더로 조립

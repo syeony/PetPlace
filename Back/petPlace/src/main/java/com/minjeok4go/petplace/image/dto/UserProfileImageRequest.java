@@ -6,11 +6,8 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class FeedImageRequest {
+public class UserProfileImageRequest {
 
     @NotNull
-    private String src;
-
-    @NotNull
-    private Integer sort;
+    private String imgSrc;
 }

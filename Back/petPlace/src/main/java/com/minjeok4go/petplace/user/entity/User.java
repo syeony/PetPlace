@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.user.entity;
 
+import com.minjeok4go.petplace.profile.entity.Introduction;
 import com.minjeok4go.petplace.pet.entity.Pet;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -95,6 +96,11 @@ public class User {
     @Column(name = "social_email", length = 100)
     private String socialEmail;
 
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private Introduction introduction;
+
+    public void setIntroduction(Introduction intro) { this.introduction = intro; }
+
     // [개선] 기존 이메일 회원가입용 빌더 수정
     @Builder
     public User(String userName, String password, String name, String nickname, Long regionId, String ci, String phoneNumber, String gender, LocalDate birthday) {
@@ -188,5 +194,7 @@ public class User {
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     private List<Pet> pets = new ArrayList<>();
 
-
+    public void setImage(String imgSrc) {
+        this.userImgSrc = imgSrc;
+    }
 }

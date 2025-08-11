@@ -1,4 +1,4 @@
-package com.minjeok4go.petplace.payment.util;
+package com.minjeok4go.petplace.common.util;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
