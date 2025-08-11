@@ -105,16 +105,23 @@ fun MainScaffold() {
             }
             //api연동 전 임시
             composable(
-                route = "walk_detail/{category}/{title}/{body}/{date}/{time}/{imageUrl}",
+                route = "walk_detail?" +
+                        "category={category}&title={title}&body={body}&date={date}&time={time}&imageUrl={imageUrl}" +
+                        "&name={name}&avatar={avatar}",
                 arguments = listOf(
-                    navArgument("category"){ type = NavType.StringType },
-                    navArgument("title")   { type = NavType.StringType },
-                    navArgument("body")    { type = NavType.StringType },
-                    navArgument("date")    { type = NavType.StringType },
-                    navArgument("time")    { type = NavType.StringType },
-                    navArgument("imageUrl"){ type = NavType.StringType }
+                    navArgument("category") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("title")    { type = NavType.StringType; defaultValue = "" },
+                    navArgument("body")     { type = NavType.StringType; defaultValue = "" },
+                    navArgument("date")     { type = NavType.StringType; defaultValue = "" },
+                    navArgument("time")     { type = NavType.StringType; defaultValue = "" },
+                    navArgument("imageUrl") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("name")     { type = NavType.StringType; defaultValue = "" },      // ⬅️ 프로필 이름
+                    navArgument("avatar")   { type = NavType.StringType; defaultValue = "" },      // ⬅️ 프로필 이미지
                 )
             ) { backStackEntry ->
+                val avatar: String? =
+                    backStackEntry.arguments?.getString("avatar").takeUnless { it.isNullOrBlank() }
+
                 WalkPostDetailScreen(
                     navController = navController,
                     category = backStackEntry.arguments?.getString("category") ?: "",
@@ -122,7 +129,9 @@ fun MainScaffold() {
                     body     = backStackEntry.arguments?.getString("body")     ?: "",
                     date     = backStackEntry.arguments?.getString("date")     ?: "",
                     time     = backStackEntry.arguments?.getString("time")     ?: "",
-                    imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
+                    imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: "",
+                    reporterName      = backStackEntry.arguments?.getString("name") ?: "",
+                    reporterAvatarUrl = avatar
                 )
             }
 

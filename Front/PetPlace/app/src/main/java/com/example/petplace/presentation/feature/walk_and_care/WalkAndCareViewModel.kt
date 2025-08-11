@@ -34,7 +34,9 @@ class WalkAndCareViewModel : ViewModel() {
             body     = "순하고 안 물어요. 사람 잘 따라요. 뼈간식을 좋아해요, 조금 드릴게요. 2시간 산책이 필요해요.",
             date = "07.25",
             time="13:00 ~ 15:00",
-            imageUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117" // 🐶 산책
+            imageUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117", // 🐶 산책
+            reporterName = "이도형",
+            reporterAvatarUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117"
         ),
         Post(
             category = "돌봄구인",
@@ -42,7 +44,9 @@ class WalkAndCareViewModel : ViewModel() {
             body     = "10kg 믹스견, 분리불안 없음. 사료/간식 제공, 근처 공원 30분 산책만 부탁드려요. CCTV 있어요.",
             date = "07.25 ~ 07.26",
             time="-",
-            imageUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117" // 🐶 돌봄
+            imageUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117", // 🐶 돌봄
+            reporterName = "이도형",
+            reporterAvatarUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117"
         ),
         Post(
             category = "산책의뢰",
@@ -50,7 +54,9 @@ class WalkAndCareViewModel : ViewModel() {
             body     = "강아지 용품 인증 다 해놨어요 제 프로필에 들어오셔서 확인하세요! 누구보다 강아지를 좋아합니다!",
             date = "07.25",
             time="13:00 ~ 15:00",
-            imageUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117" // ☔ 실내 산책
+            imageUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117", // ☔ 실내 산책
+            reporterName = "이도형",
+            reporterAvatarUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117"
         ),
         Post(
             category = "돌봄의뢰",
@@ -58,7 +64,9 @@ class WalkAndCareViewModel : ViewModel() {
             body     = "와이프 출장가서 일주일동안 강아지 돌보아줄 수 있습니다. 연락주세요! 아들도 좋아합니다.",
             date = "07.25 ~ 07.31",
             time="-",
-            imageUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117" // 🏠 위탁
+            imageUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117", // 🏠 위탁
+            reporterName = "이도형",
+            reporterAvatarUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117"
         ),
         Post(
             category = "돌봄구인",
@@ -66,7 +74,9 @@ class WalkAndCareViewModel : ViewModel() {
             body     = "간단한 놀이 + 급수 교체, 간식 급여 부탁드립니다. 조류라서 돌보기 까다롭진 않으실거에요.",
             date = "07.25 ~ 07.31",
             time="-",
-            imageUrl = "https://images.unsplash.com/photo-1589923188900-85dae523342b" // 🌙 저녁 돌봄
+            imageUrl = "https://images.unsplash.com/photo-1589923188900-85dae523342b", // 🌙 저녁 돌봄
+            reporterName = "이도형",
+            reporterAvatarUrl = "https://images.unsplash.com/photo-1568572933382-74d440642117"
         )
     )
 

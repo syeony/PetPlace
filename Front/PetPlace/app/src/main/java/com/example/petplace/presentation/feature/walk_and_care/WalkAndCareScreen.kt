@@ -67,7 +67,7 @@ fun WalkAndCareScreen(
     val search = viewModel.searchText.collectAsState()
     val posts by viewModel.filteredPosts.collectAsState()
 
-    val hashtagColor = Color(0xFFF79800)
+    val hashtagColor = Color(0xFFFFE0B3)
 
     Scaffold(
         floatingActionButton = {
@@ -85,6 +85,7 @@ fun WalkAndCareScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
+//                .background(Color.White)
         ) {
             // ⬇️ 헤더(위치, 검색, 카테고리)만 패딩 유지
             Column(
@@ -150,7 +151,7 @@ fun WalkAndCareScreen(
                                     contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(36.dp) // 버튼 높이 고정
+                                        .height(30.dp) // 버튼 높이 고정
                                 ) {
                                     Text(cat, color = txtColor, fontSize = 12.sp)
                                 }
@@ -168,24 +169,33 @@ fun WalkAndCareScreen(
             LazyColumn(
                 modifier = Modifier,
                 contentPadding = PaddingValues(vertical = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
                 items(posts) { post ->
                     PostCard(post = post) {
-                        val route = "walk_detail/" +
-                                Uri.encode(post.category) + "/" +
-                                Uri.encode(post.title)    + "/" +
-                                Uri.encode(post.body)     + "/" +
-                                Uri.encode(post.date)     + "/" +
-                                Uri.encode(post.time)     + "/" +
-                                Uri.encode(post.imageUrl ?: "")
-
-                        navController.navigate(route)
+                        navController.navigateToWalkDetail(post)
                     }
                 }
             }
         }
     }
+}
+
+private fun String.e() = Uri.encode(this)
+
+fun NavController.navigateToWalkDetail(post: Post) {
+    val route =
+        "walk_detail?" +
+                "category=${post.category.e()}" +
+                "&title=${post.title.e()}" +
+                "&body=${post.body.e()}" +
+                "&date=${post.date.e()}" +
+                "&time=${post.time.e()}" +
+                "&imageUrl=${post.imageUrl.e()}" +
+                "&name=${post.reporterName.e()}" +
+                "&avatar=${(post.reporterAvatarUrl ?: "").e()}"
+
+    navigate(route)
 }
 
 @Composable

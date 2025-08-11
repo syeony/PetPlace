@@ -6,5 +6,7 @@ data class Post(
     val body: String,
     val date: String,
     val time: String,
-    val imageUrl: String // ✅ Drawable 대신 URL
+    val imageUrl: String, // ✅ Drawable 대신 URL
+    val reporterName: String,
+    val reporterAvatarUrl:String
 )
