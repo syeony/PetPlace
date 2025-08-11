@@ -28,7 +28,7 @@ public class FeedListResponse extends FeedDetailResponse {
                 .userNick(feed.getUserNick())
                 .userImg(feed.getUserImg())
                 .regionId(feed.getRegionId())
-                .category(feed.getCategory().name())
+                .category(feed.getCategory().getDisplayName())
                 .createdAt(feed.getCreatedAt())
                 .updatedAt(feed.getUpdatedAt())
                 .deletedAt(feed.getDeletedAt())
@@ -53,7 +53,8 @@ public class FeedListResponse extends FeedDetailResponse {
         List<ImageResponse> images = imageRepository
                 .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feed.getId())
                 .stream()
-                .map(img -> new ImageResponse(img.getSrc(), img.getSort()))
+                .map(img -> new ImageResponse(img))
+//                .map(img -> new ImageResponse(img.getSrc(), img.getSort()))
                 .toList();
 
         // 댓글
