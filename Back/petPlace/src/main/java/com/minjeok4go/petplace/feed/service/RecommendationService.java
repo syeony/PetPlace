@@ -57,7 +57,7 @@ public class RecommendationService {
                     List<ImageResponse> images = imageRepository
                             .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feed.getId())
                             .stream()
-                            .map(img -> new ImageResponse(img.getSrc(), img.getSort()))
+                            .map(img -> new ImageResponse(img.getId(), img.getSrc(), img.getSort()))
                             .collect(Collectors.toList());
 
                     // 3) CommentDto 리스트

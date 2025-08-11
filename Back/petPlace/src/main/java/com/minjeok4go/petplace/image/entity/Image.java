@@ -44,5 +44,7 @@ public class Image {
         this.sort = sort;
     }
 
-
+    public void changeSrc(String src){
+        this.src = src;
+    }
 }

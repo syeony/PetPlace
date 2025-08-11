@@ -8,8 +8,10 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-
+ 
 @Entity
 @Table(name = "hotels")
 @EntityListeners(AuditingEntityListener.class)
@@ -52,6 +54,10 @@ public class Hotel {
 
     @Column(name = "image_url", length = 500)
     private String imageUrl;
+
+    @OneToMany(mappedBy = "hotelId", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<AvailableDate> availableDates = new ArrayList<>();
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
