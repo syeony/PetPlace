@@ -1,60 +1,53 @@
 package com.minjeok4go.petplace.image.controller;
 
-
+import com.minjeok4go.petplace.auth.service.AuthService;
+import com.minjeok4go.petplace.image.dto.ImageRequest;
+import com.minjeok4go.petplace.image.dto.ImageResponse;
+import com.minjeok4go.petplace.image.service.ImageService;
+import com.minjeok4go.petplace.profile.dto.CreateIntroductionRequest;
+import com.minjeok4go.petplace.profile.dto.CreateIntroductionResponse;
+import com.minjeok4go.petplace.profile.dto.DeleteIntroductionResponse;
+import com.minjeok4go.petplace.user.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
-
-@Tag(name = "Image Upload", description = "이미지 업로드 API")
+@Tag(name = "Image API", description = "이미지 API")
 @RestController
-@RequestMapping("/api/upload")
+@RequestMapping("/api/images")
+@RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class ImageController {
 
-    private static final String UPLOAD_DIR = System.getProperty("os.name").toLowerCase().contains("win")
-            ? "C:/Users/SSAFY/Desktop/test_folder/"
-            : "/home/ubuntu/upload/images/";
+    private final ImageService imageService;
+    private final AuthService authService;
 
     @Operation(
-            summary = "여러 이미지 업로드",
-            description = "여러 이미지를 업로드하면 각각의 이미지 URL 배열을 반환합니다."
+            summary = "이미지 등록",
+            description = "각종 테이블에서 사용하는 이미지를 등록합니다.\n" +
+                    "Image Upload API를 사용한 후 반환된 src를 활용합니다."
     )
-    @PostMapping(value = "/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadImages(
-            @RequestParam("files") List<MultipartFile> files //테스트 해봐야됨 swagger는 자체 오류로인하여테스트 불가
-    ) {
-        if (files == null || files.isEmpty()) {
-            return ResponseEntity.badRequest().body("No files selected.");
-        }
-
-        List<String> imageUrls = new ArrayList<>();
-        for (MultipartFile file : files) {
-            if (file.isEmpty()) continue;
-            String fileName = makeUniqueFileName(file.getOriginalFilename());
-            File dest = new File(UPLOAD_DIR + fileName);
-            try {
-                file.transferTo(dest);
-                imageUrls.add("/images/" + fileName);
-            } catch (IOException e) {
-                return ResponseEntity.status(500).body("Upload failed: " + e.getMessage());
-            }
-        }
-        return ResponseEntity.ok(Map.of("urls", imageUrls));
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ImageResponse createMyProfile(@Valid @RequestBody ImageRequest req,
+                                         @AuthenticationPrincipal String tokenUserId) {
+        User me = authService.getUserFromToken(tokenUserId);
+        return imageService.createImages(req);
     }
 
-    /** 파일명 중복 방지 (타임스탬프+랜덤) **/
-    private String makeUniqueFileName(String originalName) {
-        String ext = "";
-        if (originalName != null && originalName.lastIndexOf('.') != -1) {
-            ext = originalName.substring(originalName.lastIndexOf('.'));
-        }
-        return System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 6) + ext;
+    @Operation(
+            summary = "이미지 삭제",
+            description = "등록된 이미지를 삭제합니다."
+    )
+    @DeleteMapping("/{id}")
+    public ImageResponse deleteMyProfile(@PathVariable Long id,
+                                                      @AuthenticationPrincipal String tokenUserId) {
+        User me = authService.getUserFromToken(tokenUserId);
+        return imageService.deleteImages(id);
     }
 }
-

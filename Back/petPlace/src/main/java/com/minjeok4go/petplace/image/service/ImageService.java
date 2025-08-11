@@ -7,7 +7,9 @@ import com.minjeok4go.petplace.image.dto.ImageResponse;
 import java.util.List;
 
 public interface ImageService {
-    ImageResponse upload(ImageRequest req);
+    ImageResponse createImages(ImageRequest req);
 
     List<ImageResponse> getImages(ImageType refType, Long refId);
+
+    ImageResponse deleteImages(Long id);
 }
