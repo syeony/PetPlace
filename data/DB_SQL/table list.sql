@@ -2,6 +2,9 @@ DROP DATABASE IF EXISTS petplace;
 CREATE DATABASE petplace;
 USE petplace;
 
+-- safe 모드 비활성화 
+SET SQL_SAFE_UPDATES = 0;
+
 -- ✅ Region
 CREATE TABLE `regions` (
     `id` BIGINT NOT NULL COMMENT '지역 고유 ID (행정 표준 코드)',
@@ -321,4 +324,393 @@ CREATE TABLE `introduction` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
-commit;
+
+-- =================================================================
+-- NEW: 호텔 예약 시스템을 위한 신규 테이블
+-- =================================================================
+
+-- ✅ Hotel 
+CREATE TABLE `hotels` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '호텔 고유 ID',
+    `name` VARCHAR(100) NOT NULL COMMENT '호텔 이름',
+    `description` VARCHAR(500) NULL COMMENT '호텔 설명',
+    `address` VARCHAR(200) NOT NULL COMMENT '주소',
+    `phone_number` VARCHAR(20) NULL COMMENT '연락처',
+    `latitude` DECIMAL(10, 8) NULL COMMENT '위도',
+    `longitude` DECIMAL(11, 8) NULL COMMENT '경도',
+    `price_per_night` DECIMAL(10, 2) NOT NULL COMMENT '1박당 가격',
+    `max_capacity` INT NOT NULL COMMENT '최대 수용 가능 펫 수',
+    `image_url` VARCHAR(500) NULL COMMENT '대표 이미지 URL',
+    `active` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '활성화 여부',
+    `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '생성일시',
+    `updated_at` DATETIME NOT NULL DEFAULT NOW() ON UPDATE NOW() COMMENT '수정일시',
+    PRIMARY KEY (`id`)
+) COMMENT '반려동물 호텔 정보 테이블';
+
+-- ✅ Hotel Supported Pet Types 
+CREATE TABLE `hotel_supported_pet_types` (
+    `hotel_id` BIGINT NOT NULL COMMENT '호텔 ID',
+    `pet_type` ENUM('DOG', 'CAT') NOT NULL COMMENT '수용 가능한 펫 종류',
+    PRIMARY KEY (`hotel_id`, `pet_type`),
+    FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`) ON DELETE CASCADE
+) COMMENT '호텔별 수용 가능한 반려동물 타입 매핑';
+
+-- ✅ 수정된 Reservation 테이블 (pet_id 추가, check_in/check_out 제거)
+CREATE TABLE `reservations` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '예약 고유 ID',
+    `user_id` BIGINT NOT NULL COMMENT '예약한 사용자 ID',
+    `pet_id` BIGINT NOT NULL COMMENT '예약된 반려동물 ID',
+    `hotel_id` BIGINT NOT NULL COMMENT '예약된 호텔 ID',
+    `total_price` DECIMAL(10, 2) NOT NULL COMMENT '최종 결제 금액',
+    `status` ENUM('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED') NOT NULL DEFAULT 'PENDING' COMMENT '예약 상태',
+    `special_requests` VARCHAR(1000) NULL COMMENT '특별 요청사항',
+    `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '생성일시',
+    `updated_at` DATETIME NOT NULL DEFAULT NOW() ON UPDATE NOW() COMMENT '수정일시',
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`pet_id`) REFERENCES `pets`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`) ON DELETE CASCADE,
+    INDEX `idx_reservations_status` (`status`),
+    INDEX `idx_reservations_user_id` (`user_id`),
+    INDEX `idx_reservations_hotel_id` (`hotel_id`)
+) COMMENT '호텔 예약 정보 테이블 (리팩토링됨)';
+
+-- ✅ Payment 테이블 재생성
+CREATE TABLE `payments` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '결제 고유 ID',
+    `reservation_id` BIGINT NOT NULL COMMENT '연관된 예약 ID',
+    `merchant_uid` VARCHAR(100) NOT NULL COMMENT '가맹점 주문번호',
+    `imp_uid` VARCHAR(100) NULL COMMENT '포트원 거래번호',
+    `amount` DECIMAL(10, 2) NOT NULL COMMENT '결제 금액',
+    `status` ENUM('PENDING', 'PAID', 'CANCELLED', 'FAILED') NOT NULL DEFAULT 'PENDING' COMMENT '결제 상태',
+    `payment_method` ENUM('CARD', 'KAKAOPAY', 'NAVERPAY', 'BANK') NULL COMMENT '결제 수단',
+    `paid_at` DATETIME NULL COMMENT '결제 완료 일시',
+    `cancelled_at` DATETIME NULL COMMENT '결제 취소 일시',
+    `failure_reason` VARCHAR(500) NULL COMMENT '실패 사유',
+    `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '생성일시',
+    `updated_at` DATETIME NOT NULL DEFAULT NOW() ON UPDATE NOW() COMMENT '수정일시',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_merchant_uid` (`merchant_uid`),
+    FOREIGN KEY (`reservation_id`) REFERENCES `reservations`(`id`) ON DELETE CASCADE
+) COMMENT '결제 정보 테이블';
+
+
+-- =================================================================
+-- 호텔별 예약 가능 날짜 생성 (테스트용)
+-- =================================================================
+
+
+
+-- ✅ 호텔별 예약 가능 날짜를 관리하는 테이블 생성
+CREATE TABLE available_dates (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    hotel_id BIGINT NOT NULL,
+    date DATE NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- 호텔별 날짜 유니크 제약조건 (같은 호텔의 같은 날짜는 하나만 존재)
+    UNIQUE KEY uk_hotel_date (hotel_id, date),
+    
+    -- 외래키 제약조건
+    FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE,
+    
+    -- 검색 성능을 위한 인덱스
+    INDEX idx_hotel_date_status (hotel_id, date, status),
+    INDEX idx_date_status (date, status)
+);
+
+-- 상태값 체크 제약조건 (MySQL 8.0.16 이상)
+ALTER TABLE available_dates 
+ADD CONSTRAINT chk_status 
+CHECK (status IN ('AVAILABLE', 'BOOKED'));
+
+-- =================================================================
+-- 이제 reservation_dates 테이블 생성 (available_dates 테이블 생성 후)
+-- =================================================================
+
+-- ✅ 예약과 예약된 날짜들을 연결하는 조인 테이블 생성
+CREATE TABLE reservation_dates (
+    reservation_id BIGINT NOT NULL,
+    available_date_id BIGINT NOT NULL,
+    
+    -- 복합 기본키 (예약 ID + 날짜 ID)
+    PRIMARY KEY (reservation_id, available_date_id),
+    
+    -- 외래키 제약조건
+    FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE,
+    FOREIGN KEY (available_date_id) REFERENCES available_dates(id) ON DELETE CASCADE,
+    
+    -- 검색 성능을 위한 인덱스
+    INDEX idx_reservation_id (reservation_id),
+    INDEX idx_available_date_id (available_date_id)
+);
+
+-- =================================================================
+-- 호텔별 예약 가능 날짜 생성 (테이블 생성 후 데이터 삽입)
+-- =================================================================
+
+-- 기존 호텔들에 대해 향후 3개월간 예약 가능 날짜 생성
+INSERT INTO available_dates (hotel_id, date, status, created_at, updated_at)
+SELECT h.id, 
+       DATE_ADD(CURDATE(), INTERVAL seq.seq DAY) as date,
+       'AVAILABLE' as status,
+       NOW() as created_at,
+       NOW() as updated_at
+FROM hotels h
+CROSS JOIN (
+    SELECT 0 as seq UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION 
+    SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION 
+    SELECT 10 UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14 UNION 
+    SELECT 15 UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19 UNION 
+    SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 UNION SELECT 24 UNION 
+    SELECT 25 UNION SELECT 26 UNION SELECT 27 UNION SELECT 28 UNION SELECT 29 UNION 
+    SELECT 30 UNION SELECT 31 UNION SELECT 32 UNION SELECT 33 UNION SELECT 34 UNION 
+    SELECT 35 UNION SELECT 36 UNION SELECT 37 UNION SELECT 38 UNION SELECT 39 UNION 
+    SELECT 40 UNION SELECT 41 UNION SELECT 42 UNION SELECT 43 UNION SELECT 44 UNION 
+    SELECT 45 UNION SELECT 46 UNION SELECT 47 UNION SELECT 48 UNION SELECT 49 UNION 
+    SELECT 50 UNION SELECT 51 UNION SELECT 52 UNION SELECT 53 UNION SELECT 54 UNION 
+    SELECT 55 UNION SELECT 56 UNION SELECT 57 UNION SELECT 58 UNION SELECT 59 UNION 
+    SELECT 60 UNION SELECT 61 UNION SELECT 62 UNION SELECT 63 UNION SELECT 64 UNION 
+    SELECT 65 UNION SELECT 66 UNION SELECT 67 UNION SELECT 68 UNION SELECT 69 UNION 
+    SELECT 70 UNION SELECT 71 UNION SELECT 72 UNION SELECT 73 UNION SELECT 74 UNION 
+    SELECT 75 UNION SELECT 76 UNION SELECT 77 UNION SELECT 78 UNION SELECT 79 UNION 
+    SELECT 80 UNION SELECT 81 UNION SELECT 82 UNION SELECT 83 UNION SELECT 84 UNION 
+    SELECT 85 UNION SELECT 86 UNION SELECT 87 UNION SELECT 88 UNION SELECT 89
+) seq
+WHERE DATE_ADD(CURDATE(), INTERVAL seq.seq DAY) <= DATE_ADD(CURDATE(), INTERVAL 3 MONTH);
+
+
+
+
+
+-- =================================================================
+-- 인덱스 및 기본 테스트 데이터 (기존 정보 기반)
+-- =================================================================
+
+-- 🔍 소셜 로그인 관련 인덱스 추가
+-- [수정] MySQL은 CREATE INDEX에 IF NOT EXISTS를 지원하지 않으므로 제거합니다.
+CREATE INDEX `idx_users_login_type` ON `users`(`login_type`);
+CREATE INDEX `idx_users_social_id` ON `users`(`social_id`);
+CREATE INDEX `idx_users_login_type_social_id` ON `users`(`login_type`, `social_id`);
+
+-- 📊 지역 테스트 데이터 (원본 유지)
+INSERT IGNORE INTO regions (id, name, parent_id, geometry) VALUES
+(1100000000, '서울특별시', NULL, ST_GeomFromText('POINT(126.9784 37.5667)')),
+(4100000000, '경기도', NULL, ST_GeomFromText('POINT(127.5183 37.2741)')),
+(4700000000, '경상북도', NULL, ST_GeomFromText('POINT(128.9056 36.4919)'));
+
+INSERT IGNORE INTO regions (id, name, parent_id, geometry) VALUES
+(1111000000, '종로구', 1100000000, ST_GeomFromText('POINT(126.9792 37.5730)')),
+(4111000000, '수원시', 4100000000, ST_GeomFromText('POINT(127.0286 37.2636)')),
+(4719000000, '구미시', 4700000000, ST_GeomFromText('POINT(128.3445 36.1190)'));
+
+-- 📊 소셜 로그인 테스트 데이터
+INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type) VALUES
+('testuser', '$2a$10$N.zmdr9k7uOCQb0bKIppuetjm6P7eGdKz3u5ey.7BtGAO3t6xtxaG', '홍길동', '펫러버', 1100000000, 'TEST_CI_001', '01012345678', 'male', '1990-01-01', 'EMAIL');
+
+INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type, social_id, social_email) VALUES
+('kakao_12345678', NULL, '김카카', '카카오유저', 1100000000, 'TEST_CI_002', '01087654321', 'female', '1995-05-05', 'KAKAO', '12345678', 'user@kakao.com');
+
+-- ===================================
+-- 추가 테스트 사용자 데이터
+-- ===================================
+
+INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type) VALUES
+('testuser2', '$2a$10$N.zmdr9k7uOCQb0bKIppuetjm6P7eGdKz3u5ey.7BtGAO3t6xtxaG', '이영희', '강아지사랑', 4111000000, 'TEST_CI_003', '01055556666', 'female', '1988-03-15', 'EMAIL'),
+('testuser3', '$2a$10$N.zmdr9k7uOCQb0bKIppuetjm6P7eGdKz3u5ey.7BtGAO3t6xtxaG', '박민수', '고양이집사', 1111000000, 'TEST_CI_004', '01077778888', 'male', '1992-07-20', 'EMAIL'),
+('testuser4', '$2a$10$N.zmdr9k7uOCQb0bKIppuetjm6P7eGdKz3u5ey.7BtGAO3t6xtxaG', '최수진', '펫맘', 4719000000, 'TEST_CI_005', '01099990000', 'female', '1985-12-10', 'EMAIL');
+
+INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type, social_id, social_email) VALUES
+('kakao_87654321', NULL, '정소영', '소영이네', 1100000000, 'TEST_CI_006', '01033334444', 'female', '1993-09-25', 'KAKAO', '87654321', 'soyoung@kakao.com');
+
+-- ===================================
+-- 반려동물(pets) 테스트 데이터
+-- ===================================
+
+-- 사용자별 반려동물 데이터 추가
+INSERT IGNORE INTO pets (user_id, name, animal, breed, sex, birthday, img_src, tnr) VALUES
+-- 홍길동의 반려동물들
+(1, '초코', 'DOG', 'GOLDEN_RETRIEVER', 'MALE', '2020-05-15', 'https://example.com/pet1.jpg', true),
+(1, '밤이', 'CAT', 'KOREAN_SHORTHAIR', 'FEMALE', '2021-03-10', 'https://example.com/pet2.jpg', true),
+
+-- 이영희의 반려동물
+(3, '하루', 'DOG', 'POMERANIAN', 'FEMALE', '2019-08-20', 'https://example.com/pet3.jpg', true),
+
+-- 박민수의 반려동물들
+(4, '나비', 'CAT', 'PERSIAN', 'FEMALE', '2020-11-05', 'https://example.com/pet4.jpg', true),
+(4, '구름', 'CAT', 'BRITISH_SHORTHAIR', 'MALE', '2021-07-18', 'https://example.com/pet5.jpg', false),
+
+-- 최수진의 반려동물
+(5, '뽀삐', 'DOG', 'CHIHUAHUA', 'MALE', '2022-01-12', 'https://example.com/pet6.jpg', false),
+
+-- 김카카의 반려동물
+(2, '몽이', 'DOG', 'LABRADOR_RETRIEVER', 'MALE', '2020-12-25', 'https://example.com/pet7.jpg', true),
+
+-- 정소영의 반려동물들
+(6, '코코', 'CAT', 'RUSSIAN_BLUE', 'FEMALE', '2021-04-30', 'https://example.com/pet8.jpg', true),
+(6, '달이', 'DOG', 'SHIBA_INU', 'FEMALE', '2020-09-14', 'https://example.com/pet9.jpg', true);
+
+-- ===================================
+-- 호텔 테스트 데이터
+-- ===================================
+
+INSERT IGNORE INTO hotels (name, description, address, phone_number, latitude, longitude, price_per_night, max_capacity, image_url, created_at, updated_at) VALUES
+-- 서울 지역 호텔들
+('댕댕이 호텔 강남점', '강남 최고급 반려동물 호텔입니다. 24시간 돌봄 서비스와 넓은 운동장을 제공합니다.', '서울시 강남구 테헤란로 123', '02-1234-5678', 37.4979462, 127.0276368, 80000.00, 15, 'https://example.com/hotel1.jpg', NOW(), NOW()),
+('냥냥이 펜션 홍대점', '고양이 전문 호텔로 조용하고 편안한 환경을 제공합니다. 캣타워와 숨숨집이 완비되어 있어요.', '서울시 마포구 홍대입구역 456', '02-9876-5432', 37.5563135, 126.9245734, 65000.00, 10, 'https://example.com/hotel2.jpg', NOW(), NOW()),
+('펫플레이스 호텔 잠실점', '잠실 롯데월드 근처에 위치한 프리미엄 펫 호텔입니다. 수영장과 미용실까지 완비!', '서울시 송파구 잠실동 789', '02-5555-1234', 37.5133665, 127.1025597, 90000.00, 20, 'https://example.com/hotel3.jpg', NOW(), NOW()),
+('우리집 같은 펜션', '아늑하고 따뜻한 분위기의 소규모 펜션입니다. 가족 같은 돌봄을 약속드려요.', '서울시 용산구 이태원로 321', '02-7777-8888', 37.5347896, 126.9947061, 55000.00, 8, 'https://example.com/hotel4.jpg', NOW(), NOW()),
+-- 경기도 지역 호텔들
+('파라다이스 펫 리조트', '넓은 정원과 자연 친화적인 환경에서 반려동물이 뛰어놀 수 있는 리조트형 호텔입니다.', '경기도 성남시 분당구 정자일로 100', '031-1111-2222', 37.3595316, 127.1052133, 70000.00, 25, 'https://example.com/hotel5.jpg', NOW(), NOW()),
+('꿈나무 펫 호텔', '수원 영통구에 위치한 현대적인 시설의 펫 호텔. CCTV로 실시간 모니터링 가능해요.', '경기도 수원시 영통구 월드컵로 200', '031-3333-4444', 37.2595632, 127.0467065, 60000.00, 12, 'https://example.com/hotel6.jpg', NOW(), NOW()),
+-- 부산 지역 호텔
+('해운대 펫 빌라', '바다가 보이는 최고의 위치! 반려동물과 함께 바다 구경도 하고 힐링도 하세요.', '부산시 해운대구 해운대해변로 500', '051-1111-9999', 35.1595454, 129.1603193, 75000.00, 18, 'https://example.com/hotel7.jpg', NOW(), NOW()),
+-- 제주도 호텔
+('제주 펫 파라다이스', '제주도의 아름다운 자연 속에서 반려동물과 함께 힐링할 수 있는 최고의 펜션입니다.', '제주시 애월읍 고내리 333', '064-2222-7777', 33.4506921, 126.4017004, 95000.00, 30, 'https://example.com/hotel8.jpg', NOW(), NOW());
+
+-- 호텔별 지원 펫 타입 데이터 삽입
+INSERT IGNORE INTO hotel_supported_pet_types (hotel_id, pet_type) VALUES
+(1, 'DOG'), (2, 'CAT'), (3, 'DOG'), (3, 'CAT'), (4, 'DOG'), (4, 'CAT'),
+(5, 'DOG'), (6, 'DOG'), (6, 'CAT'), (7, 'DOG'), (8, 'DOG'), (8, 'CAT');
+
+
+
+-- ===================================
+-- 예약 테스트 데이터
+-- ==================================
+-- 💡 새로운 방식: 날짜 선택 기반 예약 데이터
+INSERT INTO reservations (user_id, pet_id, hotel_id, total_price, status, special_requests, created_at, updated_at) VALUES
+-- 완료된 예약들 (과거 - 임의로 과거 날짜들 예약된 것으로 가정)
+(1, 1, 1, 160000.00, 'COMPLETED', '초코는 다른 강아지들과 잘 어울려요!', '2025-07-01 10:00:00', NOW()),
+(3, 3, 5, 140000.00, 'COMPLETED', '하루는 산책을 좋아해요', '2025-07-05 14:30:00', NOW()),
+
+-- 확정된 미래 예약들 (오늘부터 7일 후 시작하는 2박 예약)
+(1, 2, 2, 130000.00, 'CONFIRMED', '밤이는 조용한 환경을 좋아합니다', NOW(), NOW()),
+(4, 4, 2, 130000.00, 'CONFIRMED', '나비는 털 관리를 자주 해주세요', NOW(), NOW()),
+(5, 6, 4, 110000.00, 'CONFIRMED', '뽀삐는 작은 강아지라 따뜻하게 해주세요', NOW(), NOW()),
+
+-- 결제 대기 중인 예약들
+(1, 1, 5, 140000.00, 'PENDING', '초코 두 번째 방문이에요!', NOW(), NOW()),
+(6, 9, 7, 150000.00, 'PENDING', '달이는 바다를 처음 봐요', NOW(), NOW());
+
+-- 예약된 날짜들과 예약 연결 (reservation_dates 테이블)
+-- 예약 ID 3: 호텔 ID 2, 오늘부터 7일 후부터 2박
+INSERT INTO reservation_dates (reservation_id, available_date_id)
+SELECT 3, ad.id 
+FROM available_dates ad 
+WHERE ad.hotel_id = 2 
+  AND ad.date BETWEEN DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND DATE_ADD(CURDATE(), INTERVAL 8 DAY)
+  AND ad.status = 'AVAILABLE'
+LIMIT 2;
+
+-- 예약 ID 4: 호텔 ID 2, 오늘부터 14일 후부터 2박  
+INSERT INTO reservation_dates (reservation_id, available_date_id)
+SELECT 4, ad.id 
+FROM available_dates ad 
+WHERE ad.hotel_id = 2 
+  AND ad.date BETWEEN DATE_ADD(CURDATE(), INTERVAL 14 DAY) AND DATE_ADD(CURDATE(), INTERVAL 15 DAY)
+  AND ad.status = 'AVAILABLE'
+LIMIT 2;
+
+-- 예약 ID 5: 호텔 ID 4, 오늘부터 21일 후부터 2박
+INSERT INTO reservation_dates (reservation_id, available_date_id)
+SELECT 5, ad.id 
+FROM available_dates ad 
+WHERE ad.hotel_id = 4 
+  AND ad.date BETWEEN DATE_ADD(CURDATE(), INTERVAL 21 DAY) AND DATE_ADD(CURDATE(), INTERVAL 22 DAY)
+  AND ad.status = 'AVAILABLE'
+LIMIT 2;
+
+-- 예약된 날짜들을 BOOKED 상태로 변경
+UPDATE available_dates 
+SET status = 'BOOKED' 
+WHERE id IN (
+    SELECT available_date_id 
+    FROM reservation_dates 
+    WHERE reservation_id IN (3, 4, 5)
+);
+
+-- =================================================================
+-- 새로운 방식의 결제 테스트 데이터
+-- =================================================================
+
+INSERT INTO payments (reservation_id, merchant_uid, imp_uid, amount, status, payment_method, paid_at, created_at, updated_at) VALUES
+-- 완료된 결제들
+(1, 'HOTEL_1_20250701100000', 'imp_123456789', 160000.00, 'PAID', 'KAKAOPAY', '2025-07-01 10:05:00', '2025-07-01 10:05:00', NOW()),
+(2, 'HOTEL_2_20250705143000', 'imp_234567890', 140000.00, 'PAID', 'CARD', '2025-07-05 14:35:00', '2025-07-05 14:35:00', NOW()),
+(3, 'HOTEL_3_20250808120000', 'imp_345678901', 130000.00, 'PAID', 'KAKAOPAY', NOW(), NOW(), NOW()),
+(4, 'HOTEL_4_20250808130000', 'imp_456789012', 130000.00, 'PAID', 'NAVERPAY', NOW(), NOW(), NOW()),
+(5, 'HOTEL_5_20250808140000', 'imp_567890123', 110000.00, 'PAID', 'CARD', NOW(), NOW(), NOW()),
+
+-- 결제 대기 중
+(6, 'HOTEL_6_20250808170000', NULL, 140000.00, 'PENDING', NULL, NULL, NOW(), NOW()),
+(7, 'HOTEL_7_20250808180000', NULL, 150000.00, 'PENDING', NULL, NULL, NOW(), NOW());
+
+-- safe 모드 활성화 
+SET SQL_SAFE_UPDATES = 1;
+
+-- missing_reports
+CREATE TABLE `missing_reports` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '실종 신고 고유 ID',
+    `user_id` BIGINT NOT NULL COMMENT '신고한 사용자 ID',
+    `pet_id` BIGINT NOT NULL COMMENT '실종된 반려동물 ID',
+    `region_id` BIGINT NOT NULL COMMENT '실종 지역 ID',
+    `address` VARCHAR(300) NOT NULL COMMENT '상세 주소',
+    `latitude` DECIMAL(10, 8) NOT NULL COMMENT '실종 위치 위도',
+    `longitude` DECIMAL(11, 8) NOT NULL COMMENT '실종 위치 경도',
+    `content` TEXT NOT NULL COMMENT '상세 내용 (상황, 특징 등)',
+    `status` ENUM('MISSING', 'FOUND', 'CANCELLED') NOT NULL DEFAULT 'MISSING' COMMENT '신고 상태 (실종, 찾음, 취소)',
+    `missing_at` DATETIME NOT NULL COMMENT '실종 일시',
+    `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '작성일시',
+    `updated_at` DATETIME NOT NULL DEFAULT NOW() ON UPDATE NOW() COMMENT '수정일시',
+    `deleted_at` DATETIME NULL COMMENT '삭제일시',
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`pet_id`) REFERENCES `pets`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
+) COMMENT '반려동물 실종 신고 정보';
+
+
+-- sightings
+CREATE TABLE `sightings` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '목격 제보 고유 ID',
+    `user_id` BIGINT NOT NULL COMMENT '제보한 사용자 ID',
+    `region_id` BIGINT NOT NULL COMMENT '목격 지역 ID',
+    `address` VARCHAR(300) NOT NULL COMMENT '상세 주소',
+    `latitude` DECIMAL(10, 8) NOT NULL COMMENT '목격 위치 위도',
+    `longitude` DECIMAL(11, 8) NOT NULL COMMENT '목격 위치 경도',
+    `content` TEXT NOT NULL COMMENT '상세 내용 (상황, 특징 등)',
+    `sighted_at` DATETIME NOT NULL COMMENT '목격 일시',
+    `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '작성일시',
+    `deleted_at` DATETIME NULL COMMENT '삭제일시',
+    PRIMARY KEY (`id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
+) COMMENT '실종 동물 목격 제보 정보';
+
+
+-- sighting_matches
+CREATE TABLE `sighting_matches` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `sighting_id` BIGINT NOT NULL COMMENT '목격 제보 ID',
+    `missing_report_id` BIGINT NOT NULL COMMENT '연결된 실종 신고 ID',
+    `score` DECIMAL(5, 4) NOT NULL COMMENT '모델이 계산한 유사도 점수 (0.0000 ~ 1.0000)',
+    `status` ENUM('PENDING', 'CONFIRMED', 'REJECTED') NOT NULL DEFAULT 'PENDING' COMMENT '매칭 상태 (대기, 주인 확인, 관계 없음)',
+    `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '매칭 생성일시',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_sighting_missing` (`sighting_id`, `missing_report_id`),
+    FOREIGN KEY (`sighting_id`) REFERENCES `sightings`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`missing_report_id`) REFERENCES `missing_reports`(`id`) ON DELETE CASCADE,
+    INDEX `idx_score` (`score`)
+) COMMENT '목격-실종 자동 매칭 결과';
+
+
+-- sightings 테이블에 breed 컬럼 추가
+ALTER TABLE `sightings`
+ADD COLUMN `breed` ENUM('POMERANIAN','MALTESE','POODLE','CHIHUAHUA','BICHON_FRISE','SHIBA_INU','GOLDEN_RETRIEVER','LABRADOR_RETRIEVER','SIBERIAN_HUSKY','DACHSHUND','BULLDOG','COCKER_SPANIEL','YORKSHIRE_TERRIER','KOREAN_SHORTHAIR','RUSSIAN_BLUE','SIAMESE','PERSIAN','SCOTTISH_FOLD','MAINE_COON','BENGAL','NORWEGIAN_FOREST','NETHERLAND_DWARF','MINI_REX','LIONHEAD','GOLDEN_HAMSTER','DWARF_HAMSTER','ROBOROVSKI','LOVEBIRD','COCKATIEL','BUDGERIGAR','RUSSIAN_TORTOISE','RED_EARED_SLIDER','LEOPARD_GECKO','BEARDED_DRAGON','UNKNOWN') NULL COMMENT 'AI 모델이 예측한 품종' AFTER `content`;
+
+
+COMMIT;
+

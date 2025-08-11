@@ -11,5 +11,9 @@ public interface ImageService {
 
     List<ImageResponse> getImages(ImageType refType, Long refId);
 
+
+
+
     ImageResponse deleteImages(Long id);
+
 }
