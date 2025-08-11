@@ -217,11 +217,11 @@ public class CBFRecommendationService {
 
         // 3) "3시간 이내 내가 작성한 최신 글 최대 3개"를 먼저 고정
         final int PIN_OWN_LIMIT = 3;
-        LocalDateTime threeHoursAgo = LocalDateTime.now().minusHours(3);
+        LocalDateTime fiveMinutesAgo= LocalDateTime.now().minusMinutes(5);
 
         List<Long> myRecentFeedIds = feedRepository
-                .findTop3IdsByAuthorIdAndCreatedAtAfterOrderByCreatedAtDesc(
-                        user.getId(), threeHoursAgo
+                .findTop3IdsByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(
+                        user.getId(), fiveMinutesAgo
                 );
 
         // (선택) 가시성 필터(삭제/비공개/차단 등) 필요 시 여기서 한 번 더 거르세요.
@@ -279,7 +279,7 @@ public class CBFRecommendationService {
 //  - 타이밍: CPU(계산) 구간과 I/O(레디스 저장) 구간을 분리 측정하여 평균(ms/건)과 W/C 비율 로그 출력
 //  - @Async: 호출자는 즉시 반환, 실제 배치는 백그라운드 스레드에서 수행
 // =====================================================================
-    @Scheduled(cron ="0 0 3 * * *", zone = "Asis/Seoul") // 새벽 3시마다 배치실행
+    @Scheduled(cron ="0 0 3 * * *", zone = "Asia/Seoul") // 새벽 3시마다 배치실행
     @Async("recommendationExecutor") // executor 빈 이름을 등록했을 때. 없다면 @Async 만 사용해도 됨.
     public void batchRecommendationToRedisAsync() {
 

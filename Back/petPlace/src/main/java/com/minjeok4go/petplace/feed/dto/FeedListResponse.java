@@ -2,8 +2,12 @@
 package com.minjeok4go.petplace.feed.dto;
 import com.minjeok4go.petplace.comment.dto.FeedComment;
 import com.minjeok4go.petplace.common.constant.FeedCategory;
+import com.minjeok4go.petplace.common.constant.ImageType;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
+import com.minjeok4go.petplace.image.repository.ImageRepository;
+import com.minjeok4go.petplace.like.repository.LikeRepository;
+import com.minjeok4go.petplace.user.entity.User;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import java.time.LocalDateTime;
@@ -34,7 +38,29 @@ public class FeedListResponse extends FeedDetailResponse {
                 .score(score)
                 .build();
     }
-    public static FeedListResponse from(Feed feed) {
+    public static FeedListResponse from(Feed feed,
+                                        double score,
+                                        ImageRepository imageRepository,
+                                        LikeRepository likeRepository,
+                                        User currentUser) {
+        // 태그
+        List<TagResponse> tags = feed.getFeedTags().stream()
+                .map(ft -> new TagResponse(ft.getTag().getId(), ft.getTag().getName()))
+                .distinct()
+                .toList();
+
+        // 이미지
+        List<ImageResponse> images = imageRepository
+                .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feed.getId())
+                .stream()
+                .map(img -> new ImageResponse(img.getSrc(), img.getSort()))
+                .toList();
+
+        // 댓글
+        List<FeedComment> comments = feed.getComments().stream()
+                .map(FeedComment::from)
+                .toList();
+
         return FeedListResponse.builder()
                 .id(feed.getId())
                 .content(feed.getContent())
@@ -42,17 +68,19 @@ public class FeedListResponse extends FeedDetailResponse {
                 .userNick(feed.getUserNick())
                 .userImg(feed.getUserImg())
                 .regionId(feed.getRegionId())
-                .category(feed.getCategory().name())
+                .category(feed.getCategory().getDisplayName()) // .name() 대신 보기 좋은 이름
                 .createdAt(feed.getCreatedAt())
                 .updatedAt(feed.getUpdatedAt())
                 .deletedAt(feed.getDeletedAt())
+                .liked(likeRepository.existsByFeedAndUser(feed, currentUser))
                 .likes(feed.getLikes())
                 .views(feed.getViews())
-                // 이미 fetch join으로 User와 Pet을 불러왔다면 여기서 바로 사용 가능
-                // pets 정보를 DTO로 변환해서 넣고 싶다면 아래 예시처럼
-                // .pets(feed.getUser().getPets().stream()
-                //        .map(PetListResponse::from)
-                //        .collect(Collectors.toList()))
+                .score(score)
+                .tags(tags)
+                .images(images)
+                .comments(comments)
+                .commentCount(comments.size())
                 .build();
     }
+
 }

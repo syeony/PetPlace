@@ -38,6 +38,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ssafy
       SPRING_DATASOURCE_PASSWORD: admin
       LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: OFF
+      LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL: OFF
 
 
       # --- Redis (compose 네트워크 이름 'redis' 사용) ---

@@ -36,8 +36,8 @@ public interface FeedRepository extends JpaRepository<Feed, Long> {
             "WHERE f.userId = :userId " +
             "AND f.createdAt > :afterTime " +
             "ORDER BY f.createdAt DESC")
-    List<Long> findTop3IdsByAuthorIdAndCreatedAtAfterOrderByCreatedAtDesc(
-            @Param("authorId") Long authorId,
+    List<Long> findTop3IdsByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(
+            @Param("userId") Long userId,
             @Param("afterTime") LocalDateTime afterTime);
 
 
