@@ -49,6 +49,9 @@ class PetPlaceApp : Application() {
             .putString("refresh_token", refreshToken)
             .putString("user_info", gson.toJson(user))
             .apply()
+
+//        Log.d("userInfo", "saveLoginData:${user.userName}")
+
     }
     fun saveTokens(
         accessToken: String,
@@ -67,7 +70,9 @@ class PetPlaceApp : Application() {
     //유저정보 불러오기
     fun getUserInfo(): LoginApiService.User? {
         val json = prefs.getString("user_info", null) ?: return null
-        return gson.fromJson(json, LoginApiService.User::class.java)
+//        Log.d("userInfo", "saveLoginData:${gson.fromJson(json, LoginApiService.User::class.java).userName}")
+
+            return gson.fromJson(json, LoginApiService.User::class.java)
     }
 
     //로그아웃

@@ -50,8 +50,8 @@ fun DateSelectionScreen(
     val today = LocalDate.now()
 
     val reservationState by viewModel.reservationState.collectAsState()
-    var startDate by remember { mutableStateOf<LocalDate?>(null) }
-    var endDate by remember { mutableStateOf<LocalDate?>(null) }
+    var startDate by remember { mutableStateOf(today) }
+    var endDate by remember { mutableStateOf(today.plusDays(1)) }
     Log.d("animal" , "고른 동물 :${reservationState.selectedAnimal}")
     // 날짜 변경될 때마다 ViewModel에 반영
     LaunchedEffect(startDate, endDate) {
@@ -138,7 +138,6 @@ fun DateSelectionScreen(
                         val inRange = startDate != null && endDate != null &&
                                 day.date.isAfter(startDate) && day.date.isBefore(endDate)
 
-                        // ✅ 선택 없으면 오늘 색칠
                         val isTodayHighlight =
                             startDate == null && endDate == null && day.date == today
 

@@ -35,20 +35,17 @@ import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.join.JoinViewModel
 import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.missing_list.MissingListScreen
-import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
-import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
-import androidx.navigation.compose.navigation
+import com.example.petplace.presentation.feature.hotel.HotelDetailScreen
+import com.example.petplace.presentation.feature.hotel.ReservationCheckoutScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
-import com.example.petplace.presentation.feature.join.CertificationScreen
 import com.example.petplace.presentation.feature.join.KakaoCertificationScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinCheckScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinScreen
 import com.example.petplace.presentation.feature.splash.SplashScreen
-import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnrememberedGetBackStackEntry")
@@ -157,6 +154,23 @@ fun MainScaffold() {
                     val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
                     HotelListScreen(navController, viewModel)
                 }
+                composable("hotel/detail") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                    HotelDetailScreen(navController, viewModel)
+                }
+
+                composable("hotel/checkout") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                    ReservationCheckoutScreen(navController, viewModel)
+                }
+
+
             }
 
 

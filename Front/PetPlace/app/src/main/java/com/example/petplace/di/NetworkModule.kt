@@ -6,6 +6,7 @@ import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.remote.ChatApiService
 import com.example.petplace.data.remote.FeedApiService
+import com.example.petplace.data.remote.HotelApiService
 import com.example.petplace.data.remote.ImageApiService
 import com.example.petplace.data.remote.JoinApiService
 import com.example.petplace.data.remote.KakaoApiService
@@ -186,6 +187,12 @@ object NetworkModule {
     fun provideChatApi(
         @Named("Server") retrofit: Retrofit
     ): ChatApiService = retrofit.create(ChatApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideHotelApi(
+        @Named("Server") retrofit: Retrofit
+    ): HotelApiService = retrofit.create(HotelApiService::class.java)
 
 
 }

@@ -2,6 +2,11 @@ package com.example.petplace.presentation.feature.hotel
 
 import androidx.camera.video.AudioSpec.ChannelCount
 import androidx.lifecycle.ViewModel
+import com.example.petplace.data.model.hotel.HotelDetail
+import com.example.petplace.data.model.hotel.HotelSearchResponse
+import com.example.petplace.data.remote.HotelApiService
+import com.example.petplace.data.remote.LoginApiService
+import com.example.petplace.data.repository.HotelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,25 +20,28 @@ data class HotelReservationState(
     val animalCount: Int? = 1
 )
 
-data class Hotel(
-    val id: Int,
-    val name: String,
-    val description: String,
-    val latitude: Double,
-    val longitude: Double,
-    val pricePerNight: Int,
-    val grade: Int,         // 별점 or 등급
-    val imageUrl: String,
-    val animalType: Int     // 1=강아지, 2=고양이, 3=둘 다
-)
 
 @HiltViewModel
-class HotelSharedViewModel @Inject constructor() : ViewModel() {
+class HotelSharedViewModel @Inject constructor(
+    private val hotelApi : HotelApiService
+) : ViewModel() {
 
     // 상태를 StateFlow로 관리
     private val _reservationState = MutableStateFlow(HotelReservationState())
     val reservationState: StateFlow<HotelReservationState> = _reservationState
     val current = _reservationState.value.animalCount
+
+
+    private val _hotelList = MutableStateFlow<List<HotelDetail>>(emptyList())
+    val hotelList: StateFlow<List<HotelDetail>> = _hotelList
+
+    private val _hotelDetail = MutableStateFlow<HotelDetail?>(null)
+    val hotelDetail: StateFlow<HotelDetail?> = _hotelDetail
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+
+
     fun selectAnimal(animal: String) {
         _reservationState.value = _reservationState.value.copy(selectedAnimal = animal)
     }
@@ -72,61 +80,40 @@ class HotelSharedViewModel @Inject constructor() : ViewModel() {
         _reservationState.value = HotelReservationState()
     }
 
-    val sampleHotels = listOf(
-        Hotel(
-            id = 1,
-            name = "펫팰리스 호텔",
-            description = "반려동물 친화적인 5성급 호텔. 프리미엄 케어 서비스 제공",
-            latitude = 36.1105,
-            longitude = 128.4187,
-            pricePerNight = 120000,
-            grade = 5,
-            imageUrl = "https://picsum.photos/400/200?random=1",
-            animalType = 3
-        ),
-        Hotel(
-            id = 2,
-            name = "러브펫 하우스",
-            description = "조용한 시골 감성의 펫 호텔, 넓은 산책 공간 제공",
-            latitude = 36.1068,
-            longitude = 128.4212,
-            pricePerNight = 90000,
-            grade = 4,
-            imageUrl = "https://picsum.photos/400/200?random=2",
-            animalType = 1
-        ),
-        Hotel(
-            id = 3,
-            name = "댕댕스테이",
-            description = "중형견, 대형견 모두 환영! 야외 운동장이 있는 호텔",
-            latitude = 36.1043,
-            longitude = 128.4159,
-            pricePerNight = 70000,
-            grade = 3,
-            imageUrl = "https://picsum.photos/400/200?random=3",
-            animalType = 1
-        ),
-        Hotel(
-            id = 4,
-            name = "캣츠빌리지",
-            description = "고양이 전용 호텔. 층별 캣타워와 개별 방 제공",
-            latitude = 36.1091,
-            longitude = 128.4125,
-            pricePerNight = 80000,
-            grade = 4,
-            imageUrl = "https://picsum.photos/400/200?random=4",
-            animalType = 2
-        ),
-        Hotel(
-            id = 5,
-            name = "펫라운지 호텔",
-            description = "호텔과 카페가 함께 있는 공간. 보호자 대기 라운지 제공",
-            latitude = 36.1112,
-            longitude = 128.4163,
-            pricePerNight = 100000,
-            grade = 4,
-            imageUrl = "https://picsum.photos/400/200?random=5",
-            animalType = 3
-        )
-    )
+    suspend fun getHotelDetail() {
+        try {
+            val resp = hotelApi.getHotelDetail(reservationState.value.selectedHotelId!!)
+            if (!resp.isSuccessful) {
+                _error.value = "HTTP ${resp.code()}: ${resp.errorBody()?.string()}"
+                return
+            }
+            val body = resp.body() ?: run { _error.value = "빈 응답"; return }
+            if (!body.success) { _error.value = body.message; return }
+            _hotelDetail.value = body.data
+        } catch (e: Exception) {
+            _error.value = e.message
+        }
+    }
+
+    suspend fun getHotelList(address: String = "강남") {
+        try {
+            val resp = hotelApi.searchHotelWithAddress(address) // Response<ApiResponse<List<HotelSearchResponse>>>
+            if (!resp.isSuccessful) {
+                _error.value = "HTTP ${resp.code()}: ${resp.errorBody()?.string()}"
+                return
+            }
+            val body = resp.body() ?: run {
+                _error.value = "빈 응답"
+                return
+            }
+            if (!body.success) {
+                _error.value = body.message
+                return
+            }
+            _hotelList.value = body.data
+        } catch (e: Exception) {
+            _error.value = e.message
+        }
+    }
+
 }
