@@ -69,12 +69,18 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import java.util.Calendar
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.CircularProgressIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PetProfileScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: PetProfileViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
     var petName by remember { mutableStateOf("") }
@@ -97,9 +103,16 @@ fun PetProfileScreen(
     val launcherGallery =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) {
-                profileImageUri = uri
+                viewModel.updateProfileImage(uri)
             }
         }
+
+    uiState.error?.let { error ->
+        LaunchedEffect(error) {
+            // 에러 표시 로직
+            viewModel.clearError()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -137,10 +150,10 @@ fun PetProfileScreen(
                 modifier = Modifier.size(120.dp),
                 contentAlignment = Alignment.BottomEnd
             ) {
-                if (profileImageUri != null) {
+                if (uiState.profileImageUri != null) {
                     // 이미지 있을 때
                     Image(
-                        painter = rememberAsyncImagePainter(profileImageUri),
+                        painter = rememberAsyncImagePainter(uiState.profileImageUri),
                         contentDescription = "프로필 이미지",
                         modifier = Modifier
                             .size(120.dp)
@@ -206,8 +219,8 @@ fun PetProfileScreen(
         )
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
-            value = petName,
-            onValueChange = { petName = it },
+            value = uiState.petName,
+            onValueChange = { viewModel.updatePetName(it) },
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
@@ -236,11 +249,11 @@ fun PetProfileScreen(
         )
         Spacer(Modifier.height(8.dp))
         ExposedDropdownMenuBox(
-            expanded = showBreedMenu,
-            onExpandedChange = { showBreedMenu = it }
+            expanded = uiState.showBreedMenu,
+            onExpandedChange = { viewModel.toggleBreedMenu() }
         ) {
             OutlinedTextField(
-                value = breed,
+                value = uiState.breed,
                 onValueChange = {},
                 readOnly = true,
                 shape = RoundedCornerShape(8.dp),
@@ -259,15 +272,14 @@ fun PetProfileScreen(
                 )
             )
             ExposedDropdownMenu(
-                expanded = showBreedMenu,
-                onDismissRequest = { showBreedMenu = false }
+                expanded = uiState.showBreedMenu,
+                onDismissRequest = { viewModel.toggleBreedMenu() }
             ) {
-                breedOptions.forEach { option ->
+                uiState.breedOptions.forEach { option ->
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            breed = option
-                            showBreedMenu = false
+                            viewModel.updateBreed(option)
                         }
                     )
                 }
@@ -289,10 +301,10 @@ fun PetProfileScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Button(
-                onClick = { gender = "여아" },
+                onClick = { viewModel.updateGender("여아") },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (gender == "여아") Color(0xFFFFB745) else Color.White,
-                    contentColor = if (gender == "여아") Color.White else Color.Black
+                    containerColor = if (uiState.gender == "여아") Color(0xFFFFB745) else Color.White,
+                    contentColor = if (uiState.gender == "여아") Color.White else Color.Black
                 ),
                 border = BorderStroke(1.dp, Color(0xFFFFB745)),
                 shape = RoundedCornerShape(8.dp),
@@ -304,10 +316,10 @@ fun PetProfileScreen(
             }
 
             Button(
-                onClick = { gender = "남아" },
+                onClick = { viewModel.updateGender("남아") },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (gender == "남아") Color(0xFFFFB745) else Color.White,
-                    contentColor = if (gender == "남아") Color.White else Color.Black
+                    containerColor = if (uiState.gender == "남아") Color(0xFFFFB745) else Color.White,
+                    contentColor = if (uiState.gender == "남아") Color.White else Color.Black
                 ),
                 border = BorderStroke(1.dp, Color(0xFFFFB745)),
                 shape = RoundedCornerShape(8.dp),
@@ -331,8 +343,8 @@ fun PetProfileScreen(
             Text("중성화했어요")
             Spacer(Modifier.weight(1f))
             Switch(
-                checked = neutered,
-                onCheckedChange = { neutered = it }
+                checked = uiState.neutered,
+                onCheckedChange = { viewModel.updateNeutered(it) }
             )
         }
 
@@ -355,8 +367,8 @@ fun PetProfileScreen(
 
         // 나이
         OutlinedTextField(
-            value = age,
-            onValueChange = { age = it },
+            value = uiState.age,
+            onValueChange = { viewModel.updateAge(it) },
             shape = RoundedCornerShape(8.dp),
             placeholder = { Text("나이") },
             label = { Text("나이") },
@@ -373,19 +385,40 @@ fun PetProfileScreen(
 
         // 다음 버튼
         Button(
-            onClick = { navController.navigate("pet_complete") },
+            onClick = {
+                viewModel.savePetProfile {
+                    navController.navigate("pet_complete")
+                }
+            },
+            enabled = !uiState.isSaving,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
         ) {
-            Text("다음", color = Color.White)
+            if (uiState.isSaving) {
+                CircularProgressIndicator(
+                    color = Color.White
+                )
+            } else {
+                Text("다음", color = Color.White)
+            }
+        }
+        uiState.validationErrors.forEach { (field, error) ->
+            Text(
+                text = error,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
 
 @Composable
-fun BirthDatePicker() {
+fun BirthDatePicker(
+    viewModel: PetProfileViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsState()
     val amber = Color(0xFFFFC981)
     val context = LocalContext.current
     var birthDate by remember { mutableStateOf("") }
@@ -402,14 +435,14 @@ fun BirthDatePicker() {
         { _, selectedYear, selectedMonth, selectedDay ->
             val formattedDate =
                 "%02d/%02d/%04d".format(selectedMonth + 1, selectedDay, selectedYear)
-            birthDate = formattedDate
+            viewModel.updateBirthDate(formattedDate)
         },
         year, month, day
     )
 
     OutlinedTextField(
-        value = birthDate,
-        onValueChange = { birthDate = it },
+        value = uiState.birthDate,
+        onValueChange = { viewModel.updateBirthDate(it)},
         placeholder = { Text("mm/dd/yyyy") },
         shape = RoundedCornerShape(8.dp),
         label = { Text("생일") },

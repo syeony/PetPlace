@@ -25,12 +25,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,14 +50,38 @@ import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.PrimaryColor
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @Composable
 fun MyPageScreen(
     navController: NavController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: MyPageViewModel = hiltViewModel()
 ) {
-    val app = PetPlaceApp.getAppContext() as PetPlaceApp
-    val userInfo = app.getUserInfo()
+    val uiState by viewModel.uiState.collectAsState()
+    // val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    // val userInfo = app.getUserInfo()
+
+    // Error 처리
+    uiState.error?.let { error ->
+        LaunchedEffect(error) {
+            // 에러 표시 로직 (SnackBar 등)
+            viewModel.clearError()
+        }
+    }
+
+    // Loading 처리
+    if (uiState.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     LazyColumn(
         modifier = modifier
@@ -113,13 +139,13 @@ fun MyPageScreen(
 
                             Column {
                                 Text(
-                                    text = userInfo?.nickname.toString(),
+                                    text = uiState.userProfile.nickname,
                                     style = AppTypography.titleSmall.copy(
                                         fontWeight = FontWeight.Bold
                                     )
                                 )
                                 Text(
-                                    text = "인의동",
+                                    text = uiState.userProfile.location,
                                     style = AppTypography.bodySmall,
                                     color = Color.Gray
                                 )
@@ -151,7 +177,7 @@ fun MyPageScreen(
                                 color = Color.Gray
                             )
                             Text(
-                                text = "1 Lv.",
+                                text = "${uiState.userProfile.level} Lv.",
                                 style = AppTypography.bodySmall.copy(
                                     fontWeight = FontWeight.Bold
                                 ),
@@ -162,7 +188,7 @@ fun MyPageScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         LinearProgressIndicator(
-                            progress = 0.6f,
+                            progress = uiState.userProfile.experienceProgress,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(8.dp)
@@ -175,16 +201,8 @@ fun MyPageScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "안녕하세요!",
-                        style = AppTypography.bodyMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                    Text(
-                        text = "안녕하세요!\n" +
-                                "저는 평소에 강아지에 관심이 많아서 돌봄을 많이 해 보고 싶어서 가입하게 되었습니다!\n" +
-                                "돌봄이 필요할때 언제든 연락주세요! 그리고... 더보기",
-                        style = AppTypography.bodySmall,
+                        text = uiState.userProfile.introduction,
+                        style = AppTypography.bodyMedium,
                         color = Color.Gray,
                         lineHeight = 18.sp
                     )
@@ -279,22 +297,24 @@ fun MyPageScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
 
                                 Column {
-                                    Text(
-                                        text = "두부",
-                                        style = AppTypography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Bold
+                                    uiState.pets.firstOrNull()?.let { pet ->
+                                        Text(
+                                            text = pet.name,  // 변경된 부분
+                                            style = AppTypography.bodyMedium.copy(
+                                                fontWeight = FontWeight.Bold
+                                            )
                                         )
-                                    )
-                                    Text(
-                                        text = "말티즈",
-                                        style = AppTypography.bodySmall,
-                                        color = Color.Gray
-                                    )
-                                    Text(
-                                        text = "여아 8살",
-                                        style = AppTypography.bodySmall,
-                                        color = Color.Gray
-                                    )
+                                        Text(
+                                            text = pet.breed,  // 변경된 부분
+                                            style = AppTypography.bodySmall,
+                                            color = Color.Gray
+                                        )
+                                        Text(
+                                            text = "${pet.gender} ${pet.age}살",  // 변경된 부분
+                                            style = AppTypography.bodySmall,
+                                            color = Color.Gray
+                                        )
+                                    }
                                 }
 
                             }
@@ -493,7 +513,7 @@ fun MyPageScreen(
         item {
             Button(
                 onClick = {
-                    app.clearLoginData()
+                    viewModel.logout()
                     navController.navigate("login")
                 },
                 modifier = Modifier.fillMaxWidth(),

@@ -23,30 +23,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.petplace.R
-
-// Post 데이터 클래스
-data class Post(
-    val category: String,
-    val title: String,
-    val body: String,
-    val meta: String, // 날짜 or 기타 메타 정보
-    val imageRes: Int,
-    val commentCount: Int
-)
-
-// 카테고리별 색상 스타일
-val categoryStyles = mapOf(
-    "잡담" to Pair(Color(0xFFFFF3E0), Color(0xFFF57C00)),
-    "질문" to Pair(Color(0xFFE3F2FD), Color(0xFF1976D2)),
-    "정보" to Pair(Color(0xFFE8F5E9), Color(0xFF388E3C))
-)
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 
 // 메인 화면
 @Composable
 fun MyPostScreen(
     navController: NavController,
-    posts: List<Post> = samplePosts
+    viewModel: MyPostViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    uiState.error?.let { error ->
+        LaunchedEffect(error) {
+            // 에러 표시 로직
+            viewModel.clearError()
+        }
+    }
+
     Scaffold(
         topBar = {
             Surface(
@@ -82,15 +78,33 @@ fun MyPostScreen(
             }
         },
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(posts) { post ->
-                MyPostCard(post)
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.posts) { post ->  // 변경된 부분
+                        MyPostCard(
+                            post = post,
+                            onDeleteClick = { viewModel.deletePost(post.id) }
+                        )
+                    }
+                }
+            }
+
+            // Pull to refresh 추가 (선택사항)
+            if (uiState.isRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.TopCenter)
+                )
             }
         }
     }
@@ -98,7 +112,7 @@ fun MyPostScreen(
 
 // 게시글 카드 UI
 @Composable
-fun MyPostCard(post: Post) {
+fun MyPostCard(post: Post,onDeleteClick: (() -> Unit)? = null) {
     val style = categoryStyles[post.category] ?: Pair(Color.LightGray, Color.DarkGray)
 
     Surface(

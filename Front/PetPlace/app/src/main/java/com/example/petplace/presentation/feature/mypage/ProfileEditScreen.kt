@@ -48,23 +48,17 @@ import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.BackgroundColor
 import com.example.petplace.presentation.common.theme.PrimaryColor
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileEditScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: ProfileEditViewModel = hiltViewModel()
 ) {
-    val app = PetPlaceApp.getAppContext() as PetPlaceApp
-    val userInfo = app.getUserInfo()
-
-    var newPwVisible by remember { mutableStateOf(false) }
-    var confirmPwVisible by remember { mutableStateOf(false) }
-    var currentPwVisible by remember { mutableStateOf(false) }
-
-    var newPassword by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var currentPassword by remember { mutableStateOf("") }
-    var nickname by remember { mutableStateOf(userInfo?.nickname ?: "") }
+    val uiState by viewModel.uiState.collectAsState()
 
     val amber = Color(0xFFFFC981)
     val bg = Color.White
@@ -78,9 +72,28 @@ fun ProfileEditScreen(
     val launcherGallery =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) {
-                profileImageUri = uri
+                viewModel.updateProfileImage(uri)
             }
         }
+    uiState.error?.let { error ->
+        LaunchedEffect(error) {
+            // 에러 표시 로직
+            viewModel.clearMessages()
+        }
+    }
+
+    uiState.successMessage?.let { message ->
+        LaunchedEffect(message) {
+            // 성공 메시지 표시 로직
+            viewModel.clearMessages()
+        }
+    }
+
+    uiState.passwordValidationError?.let { error ->
+        LaunchedEffect(error) {
+            // 패스워드 검증 에러 표시 로직
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -138,9 +151,9 @@ fun ProfileEditScreen(
                         contentAlignment = Alignment.BottomEnd
                     ) {
                         Image(
-                            painter = if (profileImageUri != null)
+                            painter = if (uiState.profileImageUri != null)
                                 rememberAsyncImagePainter(
-                                    profileImageUri
+                                    uiState.profileImageUri
                                 ) else painterResource(R.drawable.ic_mypage),
                             contentDescription = "프로필 이미지",
                             modifier = Modifier
@@ -182,7 +195,7 @@ fun ProfileEditScreen(
                 // 아이디 (비활성)
                 FieldLabel("아이디")
                 OutlinedTextField(
-                    value = userInfo?.userName ?: "",
+                    value = uiState.userName,
                     onValueChange = {},
                     enabled = false,
                     modifier = Modifier
@@ -200,8 +213,8 @@ fun ProfileEditScreen(
                 // 닉네임
                 FieldLabel("닉네임")
                 OutlinedTextField(
-                    value = nickname,
-                    onValueChange = { nickname = it },
+                    value = uiState.nickname,
+                    onValueChange = { viewModel.updateNickname(it) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
@@ -224,20 +237,20 @@ fun ProfileEditScreen(
                 // 새로운 비밀번호
                 FieldLabel("새로운 비밀번호")
                 OutlinedTextField(
-                    value = newPassword,
-                    onValueChange = { newPassword = it },
+                    value = uiState.newPassword,
+                    onValueChange = { viewModel.updateNewPassword(it) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("새로운 비밀번호를 입력하세요") },
-                    visualTransformation = if (newPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    visualTransformation = if (uiState.newPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        IconButton(onClick = { newPwVisible = !newPwVisible }) {
+                        IconButton(onClick = { viewModel.toggleNewPasswordVisibility() }) {
                             Icon(
-                                imageVector = if (newPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = if (newPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
+                                imageVector = if (uiState.newPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = if (uiState.newPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
                             )
                         }
                     },
@@ -257,20 +270,20 @@ fun ProfileEditScreen(
                 // 새로운 비밀번호 확인
                 FieldLabel("새로운 비밀번호 확인")
                 OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it },
+                    value = uiState.confirmPassword,
+                    onValueChange = { viewModel.updateConfirmPassword(it) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("새로운 비밀번호를 다시 입력하세요") },
-                    visualTransformation = if (confirmPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    visualTransformation = if (uiState.confirmPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        IconButton(onClick = { confirmPwVisible = !confirmPwVisible }) {
+                        IconButton(onClick = { viewModel.toggleConfirmPasswordVisibility() }) {
                             Icon(
-                                imageVector = if (confirmPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = if (confirmPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
+                                imageVector = if (uiState.confirmPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = if (uiState.confirmPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
                             )
                         }
                     },
@@ -290,20 +303,20 @@ fun ProfileEditScreen(
                 // 현재 비밀번호 확인
                 FieldLabel("현재 비밀번호 확인")
                 OutlinedTextField(
-                    value = currentPassword,
-                    onValueChange = { currentPassword = it },
+                    value = uiState.currentPassword,
+                    onValueChange = { viewModel.updateCurrentPassword(it) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("현재 비밀번호를 입력하세요") },
-                    visualTransformation = if (currentPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    visualTransformation = if (uiState.currentPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
-                        IconButton(onClick = { currentPwVisible = !currentPwVisible }) {
+                        IconButton(onClick = { viewModel.toggleCurrentPasswordVisibility() }) {
                             Icon(
-                                imageVector = if (currentPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = if (currentPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
+                                imageVector = if (uiState.currentPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = if (uiState.currentPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
                             )
                         }
                     },
@@ -334,7 +347,12 @@ fun ProfileEditScreen(
                     .imePadding() // 키보드가 올라올 때 버튼도 같이 올라감
             ) {
                 Button(
-                    onClick = { navController.popBackStack() },
+                    onClick = {
+                        viewModel.saveProfile {
+                            navController.popBackStack()
+                        }
+                    },
+                    enabled = !uiState.isSaving,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 16.dp)
@@ -342,11 +360,17 @@ fun ProfileEditScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        "변경하기",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    if (uiState.isSaving) {
+                        CircularProgressIndicator(
+                            color = Color.White
+                        )
+                    } else {
+                        Text(
+                            "변경하기",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
                 }
             }
         }
