@@ -44,6 +44,7 @@ import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 import com.example.petplace.presentation.feature.splash.SplashScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
+import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareWriteScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkPostDetailScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -133,6 +134,9 @@ fun MainScaffold() {
                     reporterName      = backStackEntry.arguments?.getString("name") ?: "",
                     reporterAvatarUrl = avatar
                 )
+            }
+            composable("walk_write") {
+                WalkAndCareWriteScreen(navController = navController)
             }
 
 

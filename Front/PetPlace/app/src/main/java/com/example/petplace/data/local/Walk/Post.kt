@@ -10,3 +10,13 @@ data class Post(
     val reporterName: String,
     val reporterAvatarUrl:String
 )
+
+data class WalkWriteForm(
+    val category: String,
+    val title: String,
+    val details: String,
+    val date: String,
+    val startTime: String,
+    val endTime: String,
+    val image: String?
+)

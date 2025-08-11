@@ -72,7 +72,7 @@ fun WalkAndCareScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {  },
+                onClick = { navController.navigate("walk_write") },   // ✅ 이동
                 containerColor = Color(0xFFF79800),
                 contentColor   = Color.White,
                 shape = CircleShape,
