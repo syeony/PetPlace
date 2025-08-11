@@ -1,8 +1,11 @@
 package com.example.petplace.presentation.feature.mypage
 
+import android.content.ContentValues.TAG
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.repository.MyPageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,31 +15,31 @@ import javax.inject.Inject
 
 data class UserProfileState(
     val nickname: String = "",
-    val location: String = "인의동",
+    val location: String = "",
     val level: Int = 1,
-    val experienceProgress: Float = 0.6f,
-    val introduction: String = "안녕하세요!\n저는 평소에 강아지에 관심이 많아서 돌봄을 많이 해 보고 싶어서 가입하게 되었습니다!\n돌봄이 필요할때 언제든 연락주세요! 그리고... 더보기"
+    val experienceProgress: Float = 0f,
+    val introduction: String = "",
+    val userImgSrc: String = ""  // 추가
 )
 
 data class PetInfo(
-    val name: String = "두부",
-    val breed: String = "말티즈",
-    val gender: String = "여아",
-    val age: Int = 8
+    val name: String = "",
+    val breed: String = "",
+    val gender: String = "",
+    val age: Int = 0,
+    val imgSrc: String? = ""  // 추가
 )
 
 data class MyPageUiState(
     val userProfile: UserProfileState = UserProfileState(),
-    val pets: List<PetInfo> = listOf(PetInfo()),
+    val pets: List<PetInfo> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
 @HiltViewModel
 class MyPageViewModel @Inject constructor(
-    // TODO: Add repositories when they're implemented
-    // private val userRepository: UserRepository,
-    // private val petRepository: PetRepository
+    private val myPageRepository: MyPageRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MyPageUiState())
@@ -51,24 +54,63 @@ class MyPageViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
 
-                // Get user info from app context for now
-                val app = PetPlaceApp.getAppContext() as? PetPlaceApp
-                val userInfo = app?.getUserInfo()
+                myPageRepository.getMyPageInfo()
+                    .onSuccess { response ->
+                        Log.d(TAG, "loadUserProfile: $response")
+                        Log.d("MyPage", "nickname=${response.nickname}")
+                        val userProfile = UserProfileState(
+                            nickname = response.nickname ?: "",
+                            location = response.regionName ?: "",
+                            level = response.level,
+                            experienceProgress = response.experience / 100f,
+                            introduction = response.introduction ?: ""
+                        )
+                        Log.d("MyPage", "after uiState update")
+                        Log.d("MyPage", "nickname=${response.nickname}")
 
-                val userProfile = UserProfileState(
-                    nickname = userInfo?.nickname ?: "사용자"
-                )
+                        val pets = response.petList?.map { pet ->
+                            PetInfo(
+                                name = pet.name,
+                                breed = pet.breed,
+                                gender = pet.sex,
+                                age = calculateAge(pet.birthday)
+                            )
+                        } ?: emptyList()
 
-                _uiState.value = _uiState.value.copy(
-                    userProfile = userProfile,
-                    isLoading = false
-                )
+                        Log.d("MyPage", "after uiState update")
+                        Log.d("MyPage", "nickname=${response.nickname}")
+
+                        _uiState.value = _uiState.value.copy(
+                            userProfile = userProfile,
+                            pets = pets,
+                            isLoading = false
+                        )
+                    }
+                    .onFailure { exception ->
+                        Log.e("MyPage", "getMyPageInfo failed", exception)
+                        _uiState.value = _uiState.value.copy(
+                            error = exception.message,
+                            isLoading = false
+                        )
+                    }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = e.message,
                     isLoading = false
                 )
             }
+        }
+    }
+
+    private fun calculateAge(birthday: String): Int {
+        // birthday 형식에 따라 나이 계산 로직 구현
+        // 예: "2020-01-01" 형식이라면
+        return try {
+            val birthYear = birthday.substring(0, 4).toInt()
+            val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+            currentYear - birthYear
+        } catch (e: Exception) {
+            0
         }
     }
 

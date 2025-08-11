@@ -53,6 +53,7 @@ import com.example.petplace.presentation.common.theme.PrimaryColor
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import coil.compose.AsyncImage
 
 @Composable
 fun MyPageScreen(
@@ -127,9 +128,11 @@ fun MyPageScreen(
                                     .size(60.dp)
                                     .clip(CircleShape)
                             ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ic_mypage), // 실제 이미지로 교체
+                                AsyncImage(
+                                    model = uiState.userProfile.userImgSrc,
                                     contentDescription = "프로필 이미지",
+                                    placeholder = painterResource(id = R.drawable.ic_mypage),
+                                    error = painterResource(id = R.drawable.ic_mypage),
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
                                 )
@@ -286,9 +289,10 @@ fun MyPageScreen(
                                         .clip(CircleShape)
                                         .background(Color(0xFFE0E0E0))
                                 ) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24), // 실제 이미지로 교체
-                                        contentDescription = "두부",
+                                    AsyncImage(
+                                        model = uiState.pets.firstOrNull()?.imgSrc,
+                                        contentDescription = "반려동물 이미지",
+                                        placeholder = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24),
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = ContentScale.Crop
                                     )
