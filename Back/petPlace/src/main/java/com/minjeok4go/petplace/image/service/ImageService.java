@@ -10,4 +10,6 @@ public interface ImageService {
     ImageResponse upload(ImageRequest req);
 
     List<ImageResponse> getImages(ImageType refType, Long refId);
+
+
 }
