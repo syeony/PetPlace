@@ -33,12 +33,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.delay
@@ -64,8 +66,8 @@ fun ProfileEditScreen(
     var currentPassword by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf(userInfo?.nickname ?: "") }
 
-    val amber = PrimaryColor
-    val bg = BackgroundColor
+    val amber = Color(0xFFFFC981)
+    val bg = Color.White
 
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
@@ -87,37 +89,32 @@ fun ProfileEditScreen(
     ) {
         // 커스텀 상단 바
         Surface(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth(),
+            color = Color.White
         ) {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(bg)
-                    .padding(horizontal = 4.dp, vertical = 8.dp)
-                    .statusBarsPadding(),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(vertical = 16.dp)
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
                     Icon(
                         Icons.Filled.ArrowBack,
                         contentDescription = "뒤로가기",
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                Spacer(Modifier.weight(1f))
+
                 Text(
                     text = "프로필 수정",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    modifier = Modifier.align(Alignment.Center)
                 )
-                Spacer(Modifier.weight(1f))
-
-                TextButton(onClick = { navController.popBackStack() }) {
-                    Text(
-                        "완료",
-                        color = amber
-                    )
-                }
             }
         }
         Box(
@@ -153,16 +150,17 @@ fun ProfileEditScreen(
                         )
 
                         Surface(
-                            color = amber,
+                            color = PrimaryColor,
                             shape = CircleShape,
                             shadowElevation = 2.dp,
                             modifier = Modifier
                                 .offset(x = (-5).dp, y = (-5).dp)
-                                .size(36.dp)
+                                .size(30.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     modifier = Modifier
+                                        .size(16.dp)
                                         .clickable {
                                             launcherGallery.launch(
                                                 PickVisualMediaRequest(
@@ -187,11 +185,14 @@ fun ProfileEditScreen(
                     value = userInfo?.userName ?: "",
                     onValueChange = {},
                     enabled = false,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF3F4F6), shape = RoundedCornerShape(8.dp)),
                     singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        disabledBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        disabledBorderColor = Color(0xFFE5E7EB),
+                        disabledTextColor = Color(0xFF6B7280)
                     )
                 )
                 Spacer(Modifier.height(16.dp))
@@ -202,12 +203,19 @@ fun ProfileEditScreen(
                     value = nickname,
                     onValueChange = { nickname = it },
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
                     singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("닉네임을 입력하세요") },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
                     )
                 )
 
@@ -219,8 +227,10 @@ fun ProfileEditScreen(
                     value = newPassword,
                     onValueChange = { newPassword = it },
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
                     singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("새로운 비밀번호를 입력하세요") },
                     visualTransformation = if (newPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -234,6 +244,11 @@ fun ProfileEditScreen(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
                     )
                 )
 
@@ -245,8 +260,10 @@ fun ProfileEditScreen(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
                     singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("새로운 비밀번호를 다시 입력하세요") },
                     visualTransformation = if (confirmPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -260,6 +277,11 @@ fun ProfileEditScreen(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
                     )
                 )
 
@@ -271,8 +293,10 @@ fun ProfileEditScreen(
                     value = currentPassword,
                     onValueChange = { currentPassword = it },
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
                     singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
                     placeholder = { Text("현재 비밀번호를 입력하세요") },
                     visualTransformation = if (currentPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -286,6 +310,11 @@ fun ProfileEditScreen(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
                         onDone = { focusManager.clearFocus() } // 키보드 숨김
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
                     )
                 )
 
@@ -310,7 +339,7 @@ fun ProfileEditScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp, vertical = 16.dp)
                         .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = amber),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
