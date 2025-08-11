@@ -333,33 +333,74 @@ fun MyPageScreen(
                 Column(
                     modifier = Modifier.padding(20.dp)
                 ) {
-                    Text(
-                        text = "펫 용품",
-                        style = AppTypography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
+                    Row {
+                        Text(
+                            text = "펫 용품",
+                            style = AppTypography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(
+                            onClick = {
+                                // 클릭 이벤트 처리
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "추가",
+                            )
+                        }
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         // 펫 용품 이미지들
-                        repeat(3) { index ->
-                            Box(
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFE3F2FD))
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.bath_item), // 실제 이미지로 교체
+                                contentDescription = "목욕 용품",
+                                modifier = Modifier.fillMaxSize()
+                                    .padding(8.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFE3F2FD))
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.bowl_item), // 실제 이미지로 교체
+                                contentDescription = "밥그릇",
+                                modifier = Modifier.fillMaxSize()
+                                    .padding(8.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFE3F2FD))
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.poo_item), // 실제 이미지로 교체
+                                contentDescription = "배변 용품",
                                 modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(Color(0xFFE3F2FD))
-                            ) {
-                                Image(
-                                    painter = painterResource(id = R.drawable.ball), // 실제 이미지로 교체
-                                    contentDescription = "펫 용품",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
+                                    .fillMaxSize()
+                                    .padding(8.dp),
+                                contentScale = ContentScale.Crop
+                            )
                         }
                     }
                 }
@@ -485,7 +526,7 @@ fun MyMenuItem(
     // 아이콘 배경 박스
     Box(
         modifier = Modifier
-            .size(80.dp) // 아이콘 영역 크기
+            .size(96.dp) // 아이콘 영역 크기
             .clip(RoundedCornerShape(12.dp)) // 둥근 사각형
             .background(Color(0xFFF5F5F5)),
         contentAlignment = Alignment.Center

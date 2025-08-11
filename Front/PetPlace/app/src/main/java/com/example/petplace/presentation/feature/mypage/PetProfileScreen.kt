@@ -417,9 +417,11 @@ fun BirthDatePicker() {
             Icon(
                 imageVector = Icons.Default.DateRange,
                 contentDescription = "날짜 선택",
-                modifier = Modifier.clickable {
+                modifier = Modifier
+                    .clickable {
                     datePickerDialog.show()
-                }
+                },
+                tint = PrimaryColor
             )
         },
         modifier = Modifier
