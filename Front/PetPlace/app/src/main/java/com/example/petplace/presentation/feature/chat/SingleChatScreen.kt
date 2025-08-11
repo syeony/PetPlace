@@ -2,6 +2,8 @@ package com.example.petplace.presentation.feature.chat
 
 import android.content.ContentValues.TAG
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -11,6 +13,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -28,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
@@ -39,9 +45,13 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.petplace.R
+import com.example.petplace.data.local.chat.ChatMessage
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -55,6 +65,16 @@ fun SingleChatScreen(
     val messages by viewModel.messages.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val chatPartnerName by viewModel.chatPartnerName.collectAsState()
+    val imageUploadStatus by viewModel.imageUploadStatus.collectAsState()
+
+    // 이미지 선택 런처
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.sendImageMessage(uris)
+        }
+    }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
@@ -70,10 +90,12 @@ fun SingleChatScreen(
                     Log.d(TAG, "🔄 화면 Resume - WebSocket 활성화")
                     viewModel.onScreenVisible()
                 }
+
                 Lifecycle.Event.ON_PAUSE -> {
                     Log.d(TAG, "⏸️ 화면 Pause - WebSocket 대기")
                     viewModel.onScreenHidden()
                 }
+
                 else -> {}
             }
         }
@@ -184,14 +206,14 @@ fun SingleChatScreen(
                                 }
                                 Spacer(modifier = Modifier.width(4.dp))
                                 MessageBubble(
-                                    message = msg.content,
+                                    message = msg,
                                     backgroundColor = bgColor,
                                     textColor = textColor,
                                     isFromMe = true
                                 )
                             } else {
                                 MessageBubble(
-                                    message = msg.content,
+                                    message = msg,
                                     backgroundColor = bgColor,
                                     textColor = textColor,
                                     isFromMe = false
@@ -307,11 +329,31 @@ fun SingleChatScreen(
                     AttachmentOptionsGrid(
                         onCloseClick = { viewModel.closeAttachmentOptions() },
                         onOptionSelected = { option ->
-                            // 옵션 선택 처리
-                            Log.d(TAG, "첨부 옵션 선택: $option")
+                            when (option) {
+                                "album" -> {
+                                    imagePickerLauncher.launch("image/*")
+                                }
+
+                                else -> {
+                                    Log.d(TAG, "첨부 옵션 선택: $option")
+                                }
+                            }
                             viewModel.closeAttachmentOptions()
                         }
                     )
+                    // 업로드 상태 표시
+                    when (imageUploadStatus) {
+                        is ChatViewModel.ImageUploadStatus.Uploading -> {
+                            // 로딩 표시 (원하는 곳에 배치)
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+
+                        is ChatViewModel.ImageUploadStatus.Error -> {
+                            // 에러 메시지는 이미 addSystemMessage로 처리됨
+                        }
+
+                        else -> {}
+                    }
                 }
             }
         }
@@ -320,11 +362,13 @@ fun SingleChatScreen(
 
 @Composable
 fun MessageBubble(
-    message: String,
+    message: ChatMessage,
     backgroundColor: Color,
     textColor: Color,
     isFromMe: Boolean
 ) {
+    Log.d("MessageBubble", "렌더링: type=${message.messageType}, urls=${message.imageUrls}")
+
     Surface(
         color = backgroundColor,
         shape = RoundedCornerShape(
@@ -336,12 +380,84 @@ fun MessageBubble(
         shadowElevation = 1.dp,
         border = if (!isFromMe) BorderStroke(0.5.dp, Color.Gray.copy(alpha = 0.2f)) else null
     ) {
-        Text(
-            text = message,
-            color = textColor,
-            modifier = Modifier.padding(12.dp),
-            fontSize = 14.sp
-        )
+        when (message.messageType) {
+            ChatViewModel.MessageType.TEXT -> {
+                Text(
+                    text = message.content,
+                    color = textColor,
+                    modifier = Modifier.padding(12.dp),
+                    fontSize = 14.sp
+                )
+            }
+
+            ChatViewModel.MessageType.IMAGE -> {
+                if (message.imageUrls.isNotEmpty()) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        // 이미지 개수에 따라 다른 레이아웃
+                        when (message.imageUrls.size) {
+                            1 -> {
+                                // 단일 이미지
+                                AsyncImage(
+                                    model = "http://43.201.108.195:8081" + message.imageUrls[0],
+                                    contentDescription = "전송된 이미지",
+                                    modifier = Modifier
+                                        .widthIn(max = 200.dp)
+                                        .heightIn(max = 200.dp)
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    contentScale = ContentScale.Crop,
+                                    onError = { error ->
+                                        Log.e(
+                                            "AsyncImage",
+                                            "이미지 로드 실패: ${message.imageUrls[0]}",
+                                            error.result.throwable
+                                        )
+                                    },
+                                    onSuccess = {
+                                        Log.d("AsyncImage", "이미지 로드 성공: ${message.imageUrls[0]}")
+                                    }
+                                )
+                            }
+
+                            else -> {
+                                // 여러 이미지 - 그리드
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(2),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.heightIn(max = 300.dp)
+                                ) {
+                                    items(message.imageUrls) { imageUrl ->
+                                        AsyncImage(
+                                            model = "http://43.201.108.195:8081" + imageUrl,
+                                            contentDescription = "전송된 이미지",
+                                            modifier = Modifier
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(8.dp)),
+                                            contentScale = ContentScale.Crop,
+                                            onError = { error ->
+                                                Log.e(
+                                                    "AsyncImage",
+                                                    "이미지 로드 실패: $imageUrl",
+                                                    error.result.throwable
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // 이미지 URL이 없는 경우 - 디버깅용
+                    Text(
+                        text = "이미지 URL이 없습니다",
+                        color = Color.Red,
+                        modifier = Modifier.padding(12.dp),
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
     }
 }
 

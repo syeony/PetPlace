@@ -1,5 +1,7 @@
 package com.example.petplace.data.local.chat
 
+import com.example.petplace.presentation.feature.chat.ChatViewModel
+
 data class ChatRoom(
     val id: Long,              // 채팅방 ID (백엔드 연동 시 필수)
     val name: String,                // 사용자 이름
@@ -12,9 +14,11 @@ data class ChatRoom(
 
 
 data class ChatMessage(
-    val id:Long?,
-    val isRead: Boolean = false,
+    val id: Long?,
     val content: String,
+    val messageType: ChatViewModel.MessageType = ChatViewModel.MessageType.TEXT, // 추가
+    val imageUrls: List<String> = emptyList(), // 추가
     val isFromMe: Boolean,
-    val timestamp: String = ""
+    val timestamp: String,
+    val isRead: Boolean
 )

@@ -1,5 +1,6 @@
 package com.example.petplace.presentation.feature.chat
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -10,6 +11,7 @@ import com.example.petplace.data.model.chat.ChatMessageDTO
 import com.example.petplace.data.model.chat.ChatReadDTO
 import com.example.petplace.data.remote.websocket.WebSocketManager
 import com.example.petplace.data.repository.ChatRepository
+import com.example.petplace.data.repository.ImageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +27,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
+    private val imageRepository: ImageRepository,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -57,6 +60,10 @@ class ChatViewModel @Inject constructor(
 
     private val _chatPartnerName = MutableStateFlow<String?>(null)
     val chatPartnerName: StateFlow<String?> = _chatPartnerName.asStateFlow()
+
+    private val _imageUploadStatus = MutableStateFlow<ImageUploadStatus>(ImageUploadStatus.Idle)
+    val imageUploadStatus: StateFlow<ImageUploadStatus> = _imageUploadStatus.asStateFlow()
+
 
     // 화면 가시성 상태 관리
     private var isScreenVisible = false
@@ -246,16 +253,56 @@ class ChatViewModel @Inject constructor(
     // ChatMessageDTO -> ChatMessage 변환
     private fun ChatMessageDTO.toChatMessage(myUserId: Long): ChatMessage {
         Log.d(TAG, "🔄 메시지 변환: dto.userId=${this.userId}, myUserId=$myUserId")
+        Log.d(TAG, "🔄 메시지 변환 시작: dto.message='${this.message}'")
         val isFromMe = this.userId == myUserId
-        return ChatMessage(
+        // 메시지 타입 구분
+        val (messageType, displayContent, imageUrls) = parseMessage(this.message)
+        val result = ChatMessage(
             id = this.chatId,
-            content = this.message,
-            isFromMe = this.userId == myUserId,
+            content = displayContent,
+            messageType = messageType,
+            imageUrls = imageUrls,
+            isFromMe = isFromMe,
             timestamp = formatToHHmm(this.createdAt!!),
             isRead = !isFromMe
-        ).also {
-            Log.d(TAG, "🔄 변환 결과: content='${it.content}', isFromMe=${it.isFromMe}")
+        )
+
+        Log.d(TAG, "🔄 변환 결과: type=${result.messageType}, imageUrls=${result.imageUrls}, content='${result.content}'")
+        return result
+    }
+
+    // 메시지 파싱 함수
+    private fun parseMessage(message: String): Triple<MessageType, String, List<String>> {
+        Log.d(TAG, "🔍 메시지 파싱 시작: '$message'")
+
+        return when {
+            message.startsWith("IMAGE:") -> {
+                val urlPart = message.removePrefix("IMAGE:")
+                Log.d(TAG, "🔍 IMAGE 헤더 감지, URL 부분: '$urlPart'")
+
+                val urls = urlPart.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                Log.d(TAG, "🔍 파싱된 URL 목록: $urls")
+
+                Triple(MessageType.IMAGE, "", urls)
+            }
+            else -> {
+                Log.d(TAG, "🔍 TEXT 메시지로 처리: '$message'")
+                Triple(MessageType.TEXT, message, emptyList())
+            }
         }
+    }
+
+    // 이미지 업로드 상태 enum
+    sealed class ImageUploadStatus {
+        object Idle : ImageUploadStatus()
+        object Uploading : ImageUploadStatus()
+        object Success : ImageUploadStatus()
+        data class Error(val message: String) : ImageUploadStatus()
+    }
+
+    // 메시지 타입 enum
+    enum class MessageType {
+        TEXT, IMAGE
     }
 
     fun onMessageInputChange(newValue: String) {
@@ -358,52 +405,46 @@ class ChatViewModel @Inject constructor(
         return maxOf(latestOpponentMessageId, lastReadMessageId)
     }
 
-//    fun markMessagesAsRead() {
-//        if (!shouldMarkAsRead) {
-//            Log.d(TAG, "📖 읽음 처리가 비활성화됨")
-//            return
-//        }
-//
-//        if (!_connectionStatus.value) {
-//            Log.w(TAG, "⚠️ 연결되지 않은 상태 - 읽음 처리 연기")
-//            return
-//        }
-//
-//        val latestOpponentMessageId = _messages.value
-//            .filter { !it.isFromMe && it.id != null && it.id > 0 }
-//            .maxByOrNull { it.id!! }
-//            ?.id
-//
-//        Log.d(TAG, "📊 읽음 처리 대상 조사: latestOpponentMessageId=$latestOpponentMessageId, lastMessageId=$lastMessageId")
-//
-//        val targetMessageId = when {
-//            latestOpponentMessageId != null -> latestOpponentMessageId
-//            lastMessageId > 0 -> lastMessageId
-//            else -> {
-//                Log.d(TAG, "📖 읽음 처리할 메시지가 없음")
-//                return
-//            }
-//        }
-//
-//        if (targetMessageId > 0) {
-//            Log.d(TAG, "📖 읽음 처리 실행: targetMessageId=$targetMessageId")
-//
-//            val readDTO = ChatReadDTO(
-//                chatRoomId = currentChatRoomId,
-//                userId = currentUserId,
-//                lastReadCid = targetMessageId
-//            )
-//
-//            try {
-//                webSocketManager.markAsRead(readDTO)
-//                Log.d(TAG, "✅ 읽음 처리 요청 전송 완료")
-//            } catch (e: Exception) {
-//                Log.e(TAG, "❌ 읽음 처리 요청 실패", e)
-//            }
-//        } else {
-//            Log.d(TAG, "📖 유효하지 않은 메시지 ID: $targetMessageId")
-//        }
-//    }
+    // 이미지 전송 함수
+    fun sendImageMessage(imageUris: List<Uri>) {
+        if (imageUris.isEmpty()) return
+
+        if (!_connectionStatus.value) {
+            Log.w(TAG, "⚠️ 연결되지 않은 상태에서 이미지 전송 시도")
+            addSystemMessage("연결되지 않았습니다. 연결을 확인해주세요.")
+            ensureConnection()
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _imageUploadStatus.value = ImageUploadStatus.Uploading
+                Log.d(TAG, "📷 이미지 업로드 시작: ${imageUris.size}개")
+
+                val imageUrls = imageRepository.uploadImages(imageUris)
+                Log.d(TAG, "✅ 이미지 업로드 완료: $imageUrls")
+
+                // 이미지 URL들을 헤더와 함께 메시지로 전송
+                val imageMessage = "IMAGE:" + imageUrls.joinToString(",")
+
+                val messageDTO = ChatMessageDTO(
+                    chatRoomId = currentChatRoomId,
+                    userId = currentUserId,
+                    message = imageMessage,
+                    imageUrls = emptyList()
+                )
+
+                webSocketManager.sendMessage(messageDTO)
+                _imageUploadStatus.value = ImageUploadStatus.Success
+                Log.d(TAG, "📤 이미지 메시지 전송 완료")
+
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ 이미지 전송 실패", e)
+                _imageUploadStatus.value = ImageUploadStatus.Error(e.message ?: "이미지 전송 실패")
+                addSystemMessage("이미지 전송에 실패했습니다: ${e.message}")
+            }
+        }
+    }
 
     // ⭐ 화면 생명주기 관리 메서드들
     fun onScreenVisible() {
