@@ -478,9 +478,12 @@ class ChatViewModel @Inject constructor(
                 val result = chatRepository.getChatMessages(currentChatRoomId)
                 result.onSuccess { messageDTOs ->
                     val chatMessages = messageDTOs.map { dto ->
+                        val (messageType, displayContent, imageUrls) = parseMessage(dto.message)
                         ChatMessage(
                             id = dto.chatId,
-                            content = dto.message,
+                            content = displayContent,
+                            messageType = messageType,
+                            imageUrls = imageUrls,
                             isFromMe = dto.userId == currentUserId,
                             timestamp = formatToHHmm(dto.createdAt ?: ""),
                             isRead = true // 기존 메시지들은 읽음 처리
@@ -504,6 +507,11 @@ class ChatViewModel @Inject constructor(
                     }
 
                     Log.d(TAG, "✅ 초기 메시지 로드 완료: ${chatMessages.size}개")
+                    chatMessages.forEach { message ->
+                        if (message.messageType == MessageType.IMAGE) {
+                            Log.d(TAG, "🖼️ 이미지 메시지 로드됨: urls=${message.imageUrls}")
+                        }
+                    }
                 }.onFailure { e ->
                     Log.e(TAG, "❌ 메시지 로드 실패", e)
                     addSystemMessage("대화 기록을 불러오는데 실패했습니다.")

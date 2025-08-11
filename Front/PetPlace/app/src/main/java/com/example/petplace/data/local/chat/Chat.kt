@@ -16,8 +16,8 @@ data class ChatRoom(
 data class ChatMessage(
     val id: Long?,
     val content: String,
-    val messageType: ChatViewModel.MessageType = ChatViewModel.MessageType.TEXT, // 추가
-    val imageUrls: List<String> = emptyList(), // 추가
+    val messageType: ChatViewModel.MessageType = ChatViewModel.MessageType.TEXT,
+    val imageUrls: List<String> = emptyList(),
     val isFromMe: Boolean,
     val timestamp: String,
     val isRead: Boolean
