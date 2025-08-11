@@ -177,22 +177,22 @@ fun ChatListScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             // 로딩 상태 표시
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                        Text("채팅방 목록을 불러오는 중...")
-                    }
-                }
-            }
+//            if (isLoading) {
+//                Box(
+//                    modifier = Modifier.fillMaxWidth(),
+//                    contentAlignment = Alignment.Center
+//                ) {
+//                    Row(
+//                        verticalAlignment = Alignment.CenterVertically,
+//                        modifier = Modifier.padding(16.dp)
+//                    ) {
+//                        CircularProgressIndicator(
+//                            modifier = Modifier.padding(end = 8.dp)
+//                        )
+//                        Text("채팅방 목록을 불러오는 중...")
+//                    }
+//                }
+//            }
 
             // 채팅방 목록 또는 빈 상태 표시
             if (!isLoading) {
