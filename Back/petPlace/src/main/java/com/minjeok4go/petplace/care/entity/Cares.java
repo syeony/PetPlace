@@ -107,9 +107,9 @@ public class Cares {
 
     public enum CareCategory {
         WALK_WANT("산책 구인"),     // 산책시켜줄 사람 구함
-        WALK_REQ("산책 의뢰"),    // 산책시킬 강아지 구함
-        CARE_WANT("돌봄 구인"),     // 돌봐줄 사람 구함  
-        CARE_REQ("돌봄 의뢰");    // 돌볼 반려동물 구함
+        WALK_REQ("산책견 구인"),    // 산책시킬 강아지 구함
+        CARE_WANT("돌봄 구인"),     // 돌봐줄 사람 구함
+        CARE_REQ("돌봄견 구인");    // 돌볼 반려동물 구함
 
         private final String description;
 

@@ -3,11 +3,12 @@ package com.minjeok4go.petplace.care.dto;
 import com.minjeok4go.petplace.care.entity.Cares;
 import com.minjeok4go.petplace.care.entity.Cares.CareCategory;
 import com.minjeok4go.petplace.care.entity.Cares.CareStatus;
-import com.minjeok4go.petplace.common.constant.Animal;
+import com.minjeok4go.petplace.image.dto.ImageResponse;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -26,7 +27,7 @@ public class CareResponseDto {
     private String petName;
     private String petBreed;
     private String petImg;
-    private Animal animalType;
+    private String animalType;
 
     // 지역 정보
     private Long regionId;
@@ -46,7 +47,10 @@ public class CareResponseDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static CareResponseDto from(Cares care) {
+    // 이미지 정보
+    private List<ImageResponse> images;
+
+    public static CareResponseDto from(Cares care, List<ImageResponse> images) {
         return CareResponseDto.builder()
                 .id(care.getId())
                 .title(care.getTitle())
@@ -58,7 +62,7 @@ public class CareResponseDto {
                 .petName(care.getPet().getName())
                 .petBreed(care.getPet().getBreed().name())
                 .petImg(care.getPet().getImgSrc())
-                .animalType(care.getPet().getAnimalType())
+                .animalType(care.getPet().getAnimal().getDisplayName())
                 .regionId(care.getRegion().getId())
                 .regionName(care.getRegion().getName())
                 .category(care.getCategory())
@@ -69,6 +73,7 @@ public class CareResponseDto {
                 .views(care.getViews())
                 .createdAt(care.getCreatedAt())
                 .updatedAt(care.getUpdatedAt())
+                .images(images)
                 .build();
     }
 }

@@ -51,7 +51,7 @@ public class CareListResponseDto {
                 .petId(care.getPet().getId())
                 .petName(care.getPet().getName())
                 .petImg(care.getPet().getImgSrc())
-                .animalType(care.getPet().getAnimalType())
+                .animalType(care.getPet().getAnimal().getDisplayName())
                 .regionName(care.getRegion().getName())
                 .category(care.getCategory())
                 .categoryDescription(care.getCategory().getDescription())
