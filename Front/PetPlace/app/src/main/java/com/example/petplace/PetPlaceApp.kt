@@ -1,5 +1,6 @@
 package com.example.petplace
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.util.Log
@@ -67,6 +68,7 @@ class PetPlaceApp : Application() {
     fun getRefreshToken(): String? = prefs.getString("refresh_token", null)
 
     //유저정보 불러오기
+    @SuppressLint("SuspiciousIndentation")
     fun getUserInfo(): LoginApiService.User? {
         val json = prefs.getString("user_info", null) ?: return null
 //        Log.d("userInfo", "saveLoginData:${gson.fromJson(json, LoginApiService.User::class.java).userName}")

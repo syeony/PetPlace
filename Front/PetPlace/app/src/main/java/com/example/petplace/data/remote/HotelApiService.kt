@@ -43,7 +43,7 @@ interface HotelApiService {
     @POST("/api/reservations")
     suspend fun makeHotelReservation(
         @Body request: HotelReservationRequest
-    ): Response<ApiResponse<String>>
+    ): Response<ApiResponse<ReservationResponse>>
 
     @PUT("/api/reservations/{reservationId}/confirm")
     suspend fun confirmReservation(
@@ -51,4 +51,21 @@ interface HotelApiService {
     ): ApiResponse<Unit?>
 
 
-}
+}// 예약 생성 응답 DTO
+data class ReservationResponse(
+    val id: Long,
+    val userId: Int,
+    val petId: Int,
+    val hotelId: Int,
+    val hotelName: String,
+    val reservedDates: List<String>,
+    val checkInDate: String,
+    val checkOutDate: String,
+    val totalDays: Int,
+    val totalPrice: Int,
+    val status: String,
+    val specialRequests: String?,
+    val createdAt: String,
+    val consecutiveReservation: Boolean,
+    val reservationPeriod: String
+)

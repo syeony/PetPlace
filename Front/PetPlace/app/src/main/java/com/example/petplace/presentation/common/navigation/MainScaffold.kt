@@ -215,6 +215,14 @@ fun MainScaffold() {
                     val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
                     ReservationCheckoutScreen(navController, viewModel)
                 }
+                composable("hotel/success") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                    ReservationSuccessScreen(navController, viewModel)
+                }
+
 
 
             }

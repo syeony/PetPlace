@@ -12,6 +12,7 @@ import com.example.petplace.data.remote.JoinApiService
 import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.LoginApiService
 import com.example.petplace.data.remote.MyPageApiService
+import com.example.petplace.data.remote.PaymentsApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -201,5 +202,11 @@ object NetworkModule {
         @Named("Server") retrofit: Retrofit
     ): MyPageApiService = retrofit.create(MyPageApiService::class.java)
 
+
+    @Provides
+    @Singleton
+    fun providePyamentApi(
+        @Named("Server") retrofit: Retrofit
+    ): PaymentsApiService = retrofit.create(PaymentsApiService::class.java)
 
 }

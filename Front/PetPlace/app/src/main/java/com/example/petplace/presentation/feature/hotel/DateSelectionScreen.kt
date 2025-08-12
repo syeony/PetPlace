@@ -85,7 +85,8 @@ fun DateSelectionScreen(
         Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize(),
+                .fillMaxSize()
+            ,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 달력 박스
@@ -288,7 +289,7 @@ fun DateSelectionScreen(
 
 
             }
-            Spacer(modifier = Modifier.weight(1f))
+//            Spacer(modifier = Modifier.weight(1f))
             Button(
                 onClick = {
                     if (startDate == null) {
@@ -307,10 +308,10 @@ fun DateSelectionScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
-                shape = RoundedCornerShape(12.dp), // 원래 이미지가 둥글다면 그대로
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
             ) {
-                Text("검색하기", color = Color.White)
+                Text("검색하기", color = Color.Black)
             }
         }
     }

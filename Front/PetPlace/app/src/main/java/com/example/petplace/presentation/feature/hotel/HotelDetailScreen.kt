@@ -1,5 +1,7 @@
 package com.example.petplace.presentation.feature.hotel
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +28,7 @@ import com.kakao.vectormap.label.LabelOptions
 import com.kakao.vectormap.label.LabelStyle
 import com.kakao.vectormap.label.LabelStyles
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HotelDetailScreen(
@@ -41,7 +44,12 @@ fun HotelDetailScreen(
     LaunchedEffect(reservation.selectedHotelId) {
         reservation.selectedHotelId?.let { viewModel.getHotelDetail() }
     }
-
+    val uiState by viewModel.uiState.collectAsState()
+    LaunchedEffect(uiState.isAvailable) {
+        if (uiState.isAvailable == true) {
+            navController.navigate("hotel/checkout")
+        }
+    }
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -57,7 +65,7 @@ fun HotelDetailScreen(
             Surface(tonalElevation = 4.dp) {
                 Button(
                     onClick = {
-                        detail?.let { navController.navigate("hotel/checkout") }
+                        viewModel.checkReservationAvailability()
                     },
                     enabled = detail != null,              // 로딩 중엔 비활성
                     modifier = Modifier
@@ -186,7 +194,6 @@ fun HotelDetailScreen(
     }
 }
 
-/** Kakao v2 MapView */
 @Composable
 private fun HotelKakaoMap(
     latitude: Double,

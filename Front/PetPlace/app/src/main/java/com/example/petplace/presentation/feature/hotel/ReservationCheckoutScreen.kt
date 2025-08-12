@@ -2,6 +2,7 @@ package com.example.petplace.presentation.feature.hotel
 
 import android.annotation.SuppressLint
 import android.os.Build
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
@@ -38,6 +39,7 @@ import kotlin.math.max
 import com.iamport.sdk.domain.core.Iamport
 import com.iamport.sdk.data.sdk.IamPortRequest
 import com.iamport.sdk.data.sdk.PayMethod
+import kotlin.math.log
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -86,45 +88,43 @@ fun ReservationCheckoutScreen(
     // (권장: 서버발급) 데모용 merchantUid
     fun newMerchantUid(): String = "pp_${System.currentTimeMillis()}_${(1000..9999).random()}"
     fun startKakaoPay(
-        userCode: String,          // 포트원 가맹점 식별코드
+        userCode: String,
         merchantUid: String,
         amount: Int,
         buyerName: String?,
-        buyerTel: String?
+        buyerTel: String?,
+        onSuccess: suspend (impUid: String, merchantUid: String) -> Unit
     ) {
         val req = IamPortRequest(
             pg = "kakaopay",
-            pay_method = PayMethod.card.name,   // enum → String
+            pay_method = PayMethod.card.name,
             name = detail?.name ?: "호텔 예약 결제",
             merchant_uid = merchantUid,
-            amount = amount.toString(),         // 이 버전은 String 권장
+            amount = amount.toString(),
             buyer_name = buyerName,
             buyer_tel = buyerTel,
             app_scheme = "iamportapp"
         )
 
         Iamport.payment(
-//            activity = context,
             userCode = userCode,
             iamPortRequest = req,
             paymentResultCallback = { result ->
-                if (result?.success == true) {
-                    val impUid = result.imp_uid!!
-                    val mUid = result.merchant_uid!!
-                    scope.launch {
-
-//                        navController.navigate("reservation_success/$mUid") {
-//                            popUpTo(navController.graph.startDestinationId) { inclusive = false }
-//                        }
-                    }
-                } else {
-                    scope.launch {
-                        // 실패/취소 처리 (result?.error_msg 로 메시지 확인 가능)
+                android.util.Log.d("PAY", "result=$result success=${result?.success} msg=${result?.error_msg}")
+                scope.launch {
+                    if (result?.imp_success == true) {
+                        val impUid = result.imp_uid ?: return@launch
+                        val mUid = result.merchant_uid ?: return@launch
+                        onSuccess(impUid, mUid)
+                    } else {
+                        // 실패/취소 사유확인: result?.error_msg
                     }
                 }
             }
         )
+
     }
+
 
 
 
@@ -147,24 +147,42 @@ fun ReservationCheckoutScreen(
                 KakaoPayButton(
                     enabled = detail != null,
                     onClick = {
-                        val d = detail ?: return@KakaoPayButton
-                        val amount = calcAmount()
-                        val merchantUid = newMerchantUid()
-                        startKakaoPay(
-                            merchantUid = merchantUid,
-                            amount = amount,
-                            buyerName = userInfo?.nickname,
-                            buyerTel = "01090290774",
-                            userCode = BuildConfig.IMP_KEY
-                        )
+                        scope.launch {
+                            // 1) 예약 생성
+                            val reservationId = viewModel.makeHotelReservation() ?: return@launch
+
+                            // 2) 결제 준비(서버에서 merchantUid/amount 받기)
+                            val prep = viewModel.preparePayment(reservationId) ?: return@launch
+
+                            // 3) 결제창 오픈 (성공 후 후속 처리 전달)
+                            startKakaoPay(
+                                userCode = BuildConfig.IMP_KEY,
+                                merchantUid = prep.merchantUid,
+                                amount = prep.amount,
+                                buyerName = userInfo?.nickname,
+                                buyerTel = userInfo?.phoneNumber
+                            ) { impUid, mUid ->
+                                // 4) 결제 검증
+                                Log.d("PAY", "$impUid $mUid")
+                                val ok = viewModel.verifyPayment(impUid, mUid)
+                                if (ok) {
+                                    // 5) 예약 확정
+                                    viewModel.confirmReservation(reservationId)
+
+                                    // (선택) 성공 화면 이동
+                                     navController.navigate("hotel/success")
+                                } else {
+                                    // 검증 실패 알림 처리
+
+                                }
+                            }
+                        }
                     }
-
-
-
-
                 )
+
             }
         }
+
     ) { innerPadding ->
         Column(
             modifier = Modifier

@@ -38,7 +38,7 @@
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
+                <data android:scheme="iamportapp" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
