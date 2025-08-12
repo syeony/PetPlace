@@ -32,17 +32,33 @@ fun AnimalSelectScreen(
     var selected by remember { mutableStateOf<String?>(null) }
     Scaffold(topBar = {
         CenterAlignedTopAppBar(
-            title = { Text("펫호텔")},
-            navigationIcon = {
-                IconButton(onClick = {navController.popBackStack() }){
-                    Icon(Icons.Default.ArrowBack , contentDescription = "뒤로가기")
+            title = {
+                Box(
+                    modifier = Modifier.fillMaxHeight(),
+                    contentAlignment = Alignment.Center // 세로 중앙 정렬
+                ) {
+                    Text(
+                        "펫호텔",
+                        style = AppTypography.titleMedium
+                    )
                 }
             },
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor =  BackgroundColor)
+            navigationIcon = {
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
+                }
+            },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = BackgroundColor
+            ),
+            modifier = Modifier.height(48.dp), // 높이 줄이기
+            windowInsets = WindowInsets(0.dp)  // 상단 패딩 제거
         )
+
     }) { innerPadding ->
         Column(
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
+                .padding(innerPadding)
                 .fillMaxSize()
                 .padding(horizontal = 32.dp),
             verticalArrangement = Arrangement.Center,

@@ -35,7 +35,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.math.log
 
-@SuppressLint("StateFlowValueCalledInComposition")
+@SuppressLint("StateFlowValueCalledInComposition", "UnusedMaterial3ScaffoldPaddingParameter")
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,19 +72,34 @@ fun DateSelectionScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("날짜 선택") },
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxHeight(),
+                        contentAlignment = Alignment.Center // 세로 중앙 정렬
+                    ) {
+                        Text(
+                            "날짜 선택",
+                            style = AppTypography.titleMedium
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BackgroundColor)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = BackgroundColor
+                ),
+                modifier = Modifier.height(48.dp), // 높이 줄이기
+                windowInsets = WindowInsets(0.dp)  // 상단 패딩 제거
             )
         }
-    ) { innerPadding ->
+    ) {
         Column(
             modifier = Modifier
-                .padding(innerPadding)
+//                .padding(innerPadding)// 이거 쓰면 bottomnav만큼 여백생김
+                .padding(0.dp)
                 .fillMaxSize()
             ,
             horizontalAlignment = Alignment.CenterHorizontally
@@ -289,7 +304,7 @@ fun DateSelectionScreen(
 
 
             }
-//            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
             Button(
                 onClick = {
                     if (startDate == null) {
