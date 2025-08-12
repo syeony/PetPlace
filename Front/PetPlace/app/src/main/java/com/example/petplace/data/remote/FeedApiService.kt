@@ -39,13 +39,13 @@ interface FeedApiService {
     ): FeedCreateRes
 
     //좋아요 등록
-    @POST("/api/likes")
+    @POST("api/likes")
     suspend fun likeFeed(
         @Body body: LikeFeedReq
     ): LikesRes
 
     //좋아요 취소
-    @DELETE("/api/likes/{id}")
+    @DELETE("api/likes/{id}")
     suspend fun unlikeFeed(
         @Path("id") likeId: Long
     ): LikesRes
