@@ -3,6 +3,7 @@ package com.example.petplace.presentation.feature.mypage
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petplace.data.repository.PetRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,18 +24,42 @@ data class PetProfileUiState(
     val isSaving: Boolean = false,
     val error: String? = null,
     val validationErrors: Map<String, String> = emptyMap(),
-    val breedOptions: List<String> = listOf("푸들", "말티즈", "시바견", "골든 리트리버")
+    val breedOptions: List<String> = listOf("푸들", "말티즈", "시바견", "골든 리트리버"),
+    val petId: Int? = null,  // 수정 모드일 때 사용
+    val isEditMode: Boolean = false,
 )
 
 @HiltViewModel
 class PetProfileViewModel @Inject constructor(
-    // TODO: Add repositories when they're implemented
-    // private val petRepository: PetRepository,
-    // private val imageRepository: ImageRepository
+    private val petRepository: PetRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PetProfileUiState())
     val uiState: StateFlow<PetProfileUiState> = _uiState.asStateFlow()
+
+    // 기존 펫 정보 로드 (수정 모드용)
+    fun loadPetInfo(petId: Int) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+
+                // MyPageRepository의 getMyPageInfo()에서 petList 가져오기
+                // 실제로는 개별 펫 정보를 가져오는 API가 필요할 수 있음
+
+                _uiState.value = _uiState.value.copy(
+                    petId = petId,
+                    isEditMode = true,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "펫 정보를 불러오는데 실패했습니다."
+                )
+            }
+        }
+    }
+
 
     fun updatePetName(name: String) {
         _uiState.value = _uiState.value.copy(
@@ -128,17 +153,38 @@ class PetProfileViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isSaving = true, error = null)
 
-                // TODO: Implement actual pet profile save logic
-                // val petProfile = PetProfile(...)
-                // petRepository.savePetProfile(petProfile)
-                // if image exists, imageRepository.uploadPetImage(...)
+                val state = _uiState.value
 
-                // Simulate network call
-                kotlinx.coroutines.delay(1500)
+                // 성별을 API 형식에 맞게 변환
+                val apiGender = when(state.gender) {
+                    "남아" -> "MALE"
+                    "여아" -> "FEMALE"
+                    else -> "MALE"
+                }
 
-                _uiState.value = _uiState.value.copy(isSaving = false)
-                onSuccess()
+                val result = petRepository.savePetInfo(
+                    petId = state.petId,  // null이면 추가, 값이 있으면 수정
+                    name = state.petName,
+                    animal = "DOG", // 현재는 고정, 필요시 UI에서 선택하도록 확장
+                    breed = mapBreedToApiFormat(state.breed), // 견종 매핑 필요
+                    sex = apiGender,
+                    birthday = formatBirthDateForApi(state.birthDate), // "2025-08-12" 형식으로 변환
+                    imgSrc = state.profileImageUri?.toString(),
+                    tnr = state.neutered
+                )
 
+                result.fold(
+                    onSuccess = {
+                        _uiState.value = _uiState.value.copy(isSaving = false)
+                        onSuccess()
+                    },
+                    onFailure = { exception ->
+                        _uiState.value = _uiState.value.copy(
+                            isSaving = false,
+                            error = exception.message ?: "펫 프로필 저장에 실패했습니다."
+                        )
+                    }
+                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
@@ -146,6 +192,31 @@ class PetProfileViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    // 헬퍼 메서드들 추가
+    private fun mapBreedToApiFormat(breed: String): String {
+        return when(breed) {
+            "푸들" -> "POODLE"
+            "말티즈" -> "MALTESE"
+            "시바견" -> "SHIBA_INU"
+            "골든 리트리버" -> "GOLDEN_RETRIEVER"
+            else -> "MIXED" // 기본값
+        }
+    }
+
+    private fun formatBirthDateForApi(dateStr: String): String {
+        // "mm/dd/yyyy" -> "yyyy-mm-dd" 형식으로 변환
+        if (dateStr.isBlank()) return ""
+
+        val parts = dateStr.split("/")
+        if (parts.size == 3) {
+            val month = parts[0].padStart(2, '0')
+            val day = parts[1].padStart(2, '0')
+            val year = parts[2]
+            return "$year-$month-$day"
+        }
+        return dateStr
     }
 
     fun clearError() {

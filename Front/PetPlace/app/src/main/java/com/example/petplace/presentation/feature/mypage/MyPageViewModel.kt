@@ -25,6 +25,7 @@ data class UserProfileState(
 )
 
 data class PetInfo(
+    val id: Int,
     val name: String = "",
     val breed: String = "",
     val gender: String = "",
@@ -84,6 +85,7 @@ class MyPageViewModel @Inject constructor(
 
                         val pets = response.petList?.map { pet ->
                             PetInfo(
+                                id = pet.id,
                                 name = pet.name,
                                 breed = pet.breed,
                                 gender = pet.sex,

@@ -279,8 +279,8 @@ fun MyPageScreen(
 
                             PetInfoCard(
                                 pet = pet,
-                                onEditClick = {
-                                    // 정보수정 로직 (pet의 ID나 index를 전달)
+                                onEditClick = { petId ->
+                                    navController.navigate("pet_profile?petId=$petId")
                                 },
                                 onCardClick = {
                                     // 반려동물 상세 정보 로직
@@ -491,7 +491,7 @@ fun MyPageScreen(
 @Composable
 fun PetInfoCard(
     pet: PetInfo,
-    onEditClick: () -> Unit,
+    onEditClick: (Int) -> Unit,
     onCardClick: () -> Unit
 ) {
     Box(
@@ -552,7 +552,7 @@ fun PetInfoCard(
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
-                onClick = onEditClick,
+                onClick = { onEditClick(pet.id) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFF5F5F5)
