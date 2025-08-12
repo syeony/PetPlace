@@ -2,11 +2,18 @@ package com.minjeok4go.petplace.user.service;
 
 import com.minjeok4go.petplace.comment.repository.CommentRepository;
 import com.minjeok4go.petplace.common.constant.Animal;
+import com.minjeok4go.petplace.common.constant.ImageType;
 import com.minjeok4go.petplace.feed.dto.FeedListResponse;
+import com.minjeok4go.petplace.feed.dto.FeedTagJoin;
+import com.minjeok4go.petplace.feed.dto.TagResponse;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.repository.FeedRepository;
 import com.minjeok4go.petplace.feed.repository.FeedTagRepository;
 import com.minjeok4go.petplace.feed.repository.TagRepository;
+import com.minjeok4go.petplace.image.dto.ImageResponse;
+import com.minjeok4go.petplace.image.entity.Image;
+import com.minjeok4go.petplace.image.repository.ImageRepository;
+import com.minjeok4go.petplace.like.repository.LikeRepository;
 import com.minjeok4go.petplace.pet.entity.Pet;
 import com.minjeok4go.petplace.pet.repository.PetRepository;
 import com.minjeok4go.petplace.region.entity.Region;
@@ -43,6 +50,7 @@ public class CBFRecommendationService {
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final RegionRepository regionRepository;
+    private final LikeRepository likeRepository;
 
     // 개인 프로필(태그/동물) 읽기용
     private final CBFUserProfileService userProfileService;
@@ -56,6 +64,7 @@ public class CBFRecommendationService {
     private static final double WEIGHT_COMMENT = 1.0;
     private static final double WEIGHT_SAME_ANIMAL_WRITER = 7.0;
     private static final double WEIGHT_NEW_FEED = 10.0;
+    private final ImageRepository imageRepository;
 
     /**
      * 배치: 그룹별 추천 ZSET 생성 (N+1 제거, 파이프라인 적용)
@@ -336,19 +345,57 @@ public class CBFRecommendationService {
                     .forEach(ordered::add);
         }
 
-        // 5) 상세 조회 & 응답
+        // 5) 상세 조회 & 응답 (HYDRATE)
         List<Long> finalIds = ordered.stream().limit(size).toList();
-        List<Feed> feeds = finalIds.isEmpty() ? List.of() : feedRepository.findAllById(finalIds);
-        Map<Long, Feed> feedById = feeds.stream().collect(Collectors.toMap(Feed::getId, Function.identity()));
+        if (finalIds.isEmpty()) return List.of();
 
+// (A) 본문 배치 로딩
+        List<Feed> feeds = feedRepository.findAllById(finalIds); // 순서는 보장 안 됨 → map
+        Map<Long, Feed> feedById = feeds.stream()
+                .collect(Collectors.toMap(Feed::getId, Function.identity()));
+
+// (B) 이미지 배치 로딩 (refType/refId 기준)
+        List<Image> images = imageRepository
+                .findAllByRefTypeAndRefIdInOrderBySortAsc(ImageType.FEED, finalIds);
+
+        Map<Long, List<ImageResponse>> imagesByFeed = images.stream()
+                .collect(Collectors.groupingBy(
+                        Image::getRefId, // 🔴 targetId가 아니라 refId 기준으로 묶기
+                        Collectors.mapping(ImageResponse::new, Collectors.toList())
+                ));
+
+// (C) 태그 배치 로딩
+        List<FeedTagJoin> tagRows = feedTagRepository.findAllByFeedIdIn(finalIds);
+        Map<Long, List<TagResponse>> tagsByFeed = tagRows.stream()
+                .collect(Collectors.groupingBy(FeedTagJoin::getFeedId,
+                        Collectors.mapping(r -> new TagResponse(r.getTagId(), r.getTagName()), Collectors.toList())));
+
+// (D) 좋아요 여부 배치 로딩
+        Set<Long> likedIds = likeRepository.findFeedIdsLikedByUser(userId, finalIds);
+
+// (E) 최종 DTO 조립 (finalIds 순서 유지)
         List<FeedListResponse> out = new ArrayList<>(finalIds.size());
         for (Long id : finalIds) {
             Feed f = feedById.get(id);
             if (f == null) continue;
+
             double finalScore = finalScoreById.getOrDefault(id, 1.0);
-            out.add(FeedListResponse.from(f, finalScore));
+            List<ImageResponse> imgs = imagesByFeed.getOrDefault(id, List.of());
+            List<TagResponse> tags  = tagsByFeed.getOrDefault(id, List.of());
+            boolean liked           = likedIds.contains(id);
+
+            // 방법 1) 팩토리 확장
+//            out.add(FeedListResponse.of(f, tags, imgs, liked, finalScore));
+
+            // 방법 2) 기존 from(...)만 유지하고 나중에 세터로 채우고 싶다면:
+             FeedListResponse dto = FeedListResponse.from(f, finalScore);
+             dto.setTags(tags);
+             dto.setImages(imgs);
+             dto.setLiked(liked); // null 방지: Boolean 대신 boolean이면 더 좋음
+             out.add(dto);
         }
         return out;
+
     }
 
     // CBFRecommendationService.java

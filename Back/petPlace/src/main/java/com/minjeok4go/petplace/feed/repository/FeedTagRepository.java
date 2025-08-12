@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.feed.repository;
 
+import com.minjeok4go.petplace.feed.dto.FeedTagJoin;
 import com.minjeok4go.petplace.feed.entity.FeedTag;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,5 +25,12 @@ public interface FeedTagRepository extends JpaRepository<FeedTag, Long> {
     // 후보 피드들에 대한 (feedId, tagId) 일괄 조회
     @Query("select ft.feed.id as feedId, ft.tag.id as tagId from FeedTag ft where ft.feed.id in :feedIds")
     List<FeedTagPair> findFeedTagPairsByFeedIdIn(@Param("feedIds") Collection<Long> feedIds);
+
+    @Query("""
+        select new com.minjeok4go.petplace.feed.dto.FeedTagJoin(ft.feed.id, t.id, t.name)
+        from FeedTag ft join ft.tag t
+        where ft.feed.id in :ids
+        """)
+    List<FeedTagJoin> findAllByFeedIdIn(@Param("ids") List<Long> ids);
 }
 

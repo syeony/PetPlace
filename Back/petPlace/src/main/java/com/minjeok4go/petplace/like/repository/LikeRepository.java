@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Set;
 
 public interface LikeRepository extends JpaRepository<Likes, Long> {
 
@@ -19,6 +20,16 @@ public interface LikeRepository extends JpaRepository<Likes, Long> {
     // 유저가 좋아요한 피드 ID 목록
     @Query("select l.feed.id from Likes l where l.user.id = :uid")
     List<Long> findFeedIdsByUserId(@Param("uid") Long userId);
+
+    @Query("""
+select l.feed.id
+from Likes l
+where l.user.id = :userId
+  and l.feed.id in :ids
+""")
+    Set<Long> findFeedIdsLikedByUser(@Param("userId") Long userId,
+                                     @Param("ids") List<Long> ids);
+
 
     @Query("""
    select l.feed.id

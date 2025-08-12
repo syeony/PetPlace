@@ -6,9 +6,11 @@ import com.minjeok4go.petplace.user.repository.UserRepository;
 import com.minjeok4go.petplace.user.service.CBFRecommendationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -46,13 +48,18 @@ public class RecommendationController {
 
     @GetMapping("/group")
     public ResponseEntity<List<FeedListResponse>> getRecommendedFeeds(
-            @AuthenticationPrincipal User user,
+            @AuthenticationPrincipal String principal,  // <= String으로 받기
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        long userId = user.getId(); // null 불가
+        if (principal == null) {
+            // 인증 필수라면 401
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."
+            );
+        }
+        long userId = Long.parseLong(principal); // "8" → 8
         return ResponseEntity.ok(recommendationService.getRecommendedFeeds(userId, page, size));
     }
-
 
 }
