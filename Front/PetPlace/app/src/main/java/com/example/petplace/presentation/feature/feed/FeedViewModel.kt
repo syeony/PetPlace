@@ -35,8 +35,11 @@ class BoardViewModel @Inject constructor(
 
     /* ─── 상수 ─── */
     private val USER_ID = userInfo         // ← 로그인 완료되면 Token or DataStore 에서 꺼내 쓰면 됨
-    private val PAGE    = 0
-    private val SIZE    = 20
+    // 페이지네이션 상태
+    private var page = 0
+    private val size = 20
+    private var isPaging = false
+    private var endReached = false
 
     /* ─── UI State ─── */
     val allCategories = listOf("내새꾸자랑", "정보", "나눔", "후기", "자유")
@@ -60,15 +63,12 @@ class BoardViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    init { loadFeeds() }
+    init { loadFirstPage() }
 
     // 내가 좋아요 누른 피드 id 집합 (앱 단 관리)
     private val _likedFeeds = MutableStateFlow<Set<Long>>(emptySet())
     val likedFeeds: StateFlow<Set<Long>> = _likedFeeds
 
-    // 댓글 리스트
-//    private val _commentList = MutableStateFlow<List<CommentRes>>(emptyList())
-//    val commentList: StateFlow<List<CommentRes>> = _commentList
 
     // 댓글 리스트 (서버에서 가져온)
     private val _commentList = MutableStateFlow<List<CommentRes>>(emptyList())
@@ -166,18 +166,20 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    private fun loadFeeds() = viewModelScope.launch {
+    /** 최초 페이지 로드 (reset) */
+    fun loadFirstPage() = viewModelScope.launch {
         _loading.value = true
         _error.value = null
         try {
-            val result = repo.fetchRecommendedFeeds(USER_ID, PAGE, SIZE)
-            // 1) 원본 피드 리스트 반영
+            page = 0
+            endReached = false
+
+            val result = repo.fetchRecommendedFeeds(userInfo, page, size)
+
             _remoteFeeds.value = result
-            // 2) 서버가 반환한 liked 상태로 _likedFeeds 초기화
-            _likedFeeds.value = result
-                .filter { it.liked == true }
-                .map { it.id }
-                .toSet()
+            _likedFeeds.value = result.filter { it.liked == true }.map { it.id }.toSet()
+            endReached = result.size < size
+
             applyFilters()
         } catch (e: Exception) {
             _error.value = e.message ?: "알 수 없는 오류"
@@ -186,18 +188,54 @@ class BoardViewModel @Inject constructor(
         }
     }
 
+    /** 다음 페이지 로드 (append) */
+    fun loadNextPage() {
+        if (isPaging || endReached) return
+        isPaging = true
+
+        viewModelScope.launch {
+            try {
+                val next = page + 1
+                val result = repo.fetchRecommendedFeeds(userInfo, next, size)
+
+                // 중복 제거하며 "append" (서버 순서 보존)
+                val existing = _remoteFeeds.value
+                val existIds = existing.asSequence().map { it.id }.toHashSet()
+                val onlyNew  = result.filter { it.id !in existIds }
+                _remoteFeeds.value = existing + onlyNew
+
+                // liked 세트 갱신
+                _likedFeeds.update { set ->
+                    set + result.filter { it.liked == true }.map { it.id }.toSet()
+                }
+
+                endReached = result.size < size
+                if (!endReached) page = next
+
+                applyFilters()
+            } catch (e: Exception) {
+                _error.value = e.message ?: "알 수 없는 오류"
+            } finally {
+                isPaging = false
+            }
+        }
+    }
+
+
+    /** 새로고침 (맨 처음부터 다시) */
     fun refreshFeeds(onFinish: () -> Unit) {
         viewModelScope.launch {
             _loading.value = true
             _error.value = null
             try {
-                val result = repo.fetchRecommendedFeeds(USER_ID, PAGE, SIZE)
+                page = 0
+                endReached = false
+
+                val result = repo.fetchRecommendedFeeds(userInfo, page, size)
                 _remoteFeeds.value = result
-                // 여기에도 반드시!
-                _likedFeeds.value = result
-                    .filter { it.liked == true }
-                    .map { it.id }
-                    .toSet()
+                _likedFeeds.value = result.filter { it.liked == true }.map { it.id }.toSet()
+                endReached = result.size < size
+
                 applyFilters()
             } catch (e: Exception) {
                 _error.value = e.message ?: "알 수 없는 오류"

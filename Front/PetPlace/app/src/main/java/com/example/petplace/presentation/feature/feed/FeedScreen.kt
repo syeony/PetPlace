@@ -139,20 +139,36 @@ fun FeedScreen(
     val listState = rememberLazyListState()
     var showBars by remember { mutableStateOf(true) }
 
-    // 1) 스크롤 방향 감지: 초깃값을 현재 스크롤로
     LaunchedEffect(listState) {
         var prevIndex  = listState.firstVisibleItemIndex
         var prevOffset = listState.firstVisibleItemScrollOffset
-        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
-            .collectLatest { (idx, off) ->
-                val scrollingUp =
-                    (idx < prevIndex) || (idx == prevIndex && off < prevOffset)
-                val atTop = (idx == 0 && off == 0)
-                showBars = scrollingUp || atTop
-                prevIndex = idx
-                prevOffset = off
+        val thresholdPx = 12
+
+        snapshotFlow {
+            // 헤더 토글 + 페이지네이션에 필요한 모든 값 모아서 한 번에 관찰
+            val firstIndex  = listState.firstVisibleItemIndex
+            val firstOffset = listState.firstVisibleItemScrollOffset
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            val total       = listState.layoutInfo.totalItemsCount
+            arrayOf(firstIndex, firstOffset, lastVisible, total)
+        }.collectLatest { (firstIndex, firstOffset, lastVisible, total) ->
+            // 1) 헤더 숨김/표시
+//            val dy = (firstOffset - prevOffset) + (firstIndex - prevIndex) * 1000
+//            val scrollingDown = dy > thresholdPx
+//            val scrollingUp   = dy < -thresholdPx
+//            val atTop         = (firstIndex == 0 && firstOffset == 0)
+//            showBars = atTop || scrollingUp || (!scrollingDown && showBars)
+//
+//            prevIndex  = firstIndex
+//            prevOffset = firstOffset
+
+            // 2) 리스트 끝 근처 감지 → 다음 페이지
+            if (total > 0 && lastVisible >= total - 1) {   // ← 버퍼 5개
+                viewModel.loadNextPage()
             }
+        }
     }
+
 
     Box(
         modifier = modifier
@@ -303,6 +319,13 @@ fun FeedScreen(
                             onDeleteFeed = { deleteFeed(it) }      // 삭제 콜백
                         )
                         Spacer(Modifier.height(6.dp))
+                    }
+                }
+                // 로딩
+                val isLoading by viewModel.loading.collectAsState()
+                if (isLoading) {
+                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                        androidx.compose.material3.CircularProgressIndicator()
                     }
                 }
                 // 이건 그거임. 스크롤 땡기면 업데이트되는거.
