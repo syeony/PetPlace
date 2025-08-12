@@ -9,6 +9,7 @@ USE petplace_local;
 -- 기존 SNS 및 공통 기능 테이블
 -- =================================================================
 
+
 -- ✅ Region
 CREATE TABLE `regions` (
     `id` BIGINT NOT NULL COMMENT '지역 고유 ID (행정 표준 코드)',
@@ -29,13 +30,13 @@ CREATE TABLE `users` (
     `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '가입일시',
     `deleted_at` DATETIME NULL COMMENT '탈퇴일시',
     `region_id` BIGINT NOT NULL COMMENT '지역 ID',
-    `default_pet_id` INT NULL COMMENT '대표 반려동물 ID',
+    `default_pet_id` BIGINT NULL COMMENT '대표 반려동물 ID',
     `login_type` ENUM('EMAIL', 'KAKAO', 'NAVER', 'GOOGLE') NOT NULL DEFAULT 'EMAIL' COMMENT '로그인 타입',
     `social_id` VARCHAR(200) NULL COMMENT '소셜 플랫폼 고유 ID',
     `social_email` VARCHAR(100) NULL COMMENT '소셜 계정 이메일',
     `user_img_src` VARCHAR(500) NULL COMMENT '프로필 이미지',
     `pet_smell` DECIMAL(4,1) NOT NULL DEFAULT 36.5 COMMENT '펫 온도',
-    `default_badge_id` INT NULL COMMENT '대표 뱃지 ID',
+    `default_badge_id` BIGINT NULL COMMENT '대표 뱃지 ID',
     `ci` VARCHAR(88) NOT NULL COMMENT '본인인증 고유키 (CI)',
     `phone_number` VARCHAR(20) NOT NULL COMMENT '휴대폰 번호',
     `gender` ENUM('male', 'female') NOT NULL COMMENT '성별',
@@ -69,7 +70,7 @@ CREATE TABLE `refresh_tokens` (
 
 -- ✅ Pet
 CREATE TABLE `pets` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL COMMENT '사용자 ID',
     `name` VARCHAR(20) NOT NULL,
     `animal` ENUM('DOG','CAT','RABBIT','HAMSTER','GUINEA_PIG','HEDGEHOG','FERRET','BIRD','TURTLE','FISH','REPTILE','AMPHIBIAN','OTHER') NOT NULL,
@@ -85,7 +86,7 @@ CREATE TABLE `pets` (
 
 -- ✅ ChatRoom
 CREATE TABLE `chat_rooms` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_id_1` BIGINT NOT NULL,
     `user_id_2` BIGINT NOT NULL,
     `last_message` VARCHAR(1000) NOT NULL DEFAULT '',
@@ -98,8 +99,8 @@ CREATE TABLE `chat_rooms` (
 
 -- ✅ Chat
 CREATE TABLE `chats` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `chat_rooms_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `chat_rooms_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `message` VARCHAR(1000) NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
@@ -110,7 +111,7 @@ CREATE TABLE `chats` (
 
 -- ✅ Feed
 CREATE TABLE `feeds` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `content` TEXT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `user_nick` VARCHAR(200) NOT NULL,
@@ -129,9 +130,9 @@ CREATE TABLE `feeds` (
 
 -- ✅ Comment
 CREATE TABLE `comments` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `parent_comment_id` INT NULL,
-    `feed_id` INT NOT NULL,
+    `feed_id` BIGINT NOT NULL,
     `content` VARCHAR(200) NOT NULL,
     `user_id` BIGINT NOT NULL,
     `user_nick` VARCHAR(200) NOT NULL,
@@ -147,7 +148,7 @@ CREATE TABLE `comments` (
 
 -- ✅ Care
 CREATE TABLE `cares` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(200) NOT NULL,
     `content` TEXT NOT NULL,
     `user_id` BIGINT NOT NULL,
@@ -169,7 +170,7 @@ CREATE TABLE `cares` (
 
 -- ✅ Badge
 CREATE TABLE `badges` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(20) NOT NULL,
     `description` VARCHAR(200) NOT NULL,
     PRIMARY KEY (`id`)
@@ -177,9 +178,9 @@ CREATE TABLE `badges` (
 
 -- ✅ BadgeList
 CREATE TABLE `badge_lists` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
-    `bedge_id` INT NOT NULL,
+    `bedge_id` BIGINT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
@@ -190,8 +191,8 @@ CREATE TABLE `badge_lists` (
 
 -- ✅ Image
 CREATE TABLE `images` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `ref_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `ref_id` BIGINT NOT NULL,
     `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT') NOT NULL,
     `src` VARCHAR(500) NOT NULL,
     `sort` INT NOT NULL,
@@ -201,8 +202,8 @@ CREATE TABLE `images` (
 
 -- ✅ UserChatRoom
 CREATE TABLE `user_chat_rooms` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `chat_room_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `chat_room_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `last_read_cid` INT NULL,
     `leave_at` DATETIME NULL,
@@ -214,8 +215,8 @@ CREATE TABLE `user_chat_rooms` (
 
 -- ✅ Like
 CREATE TABLE `likes` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `feed_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `feed_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `liked_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`),
@@ -226,7 +227,7 @@ CREATE TABLE `likes` (
 
 -- ✅ Place
 CREATE TABLE `places` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `region_id` BIGINT NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `category` ENUM('HOTEL', 'HOSPITAL', 'BEAUTY', 'CAFE', 'PARK') NOT NULL,
@@ -245,8 +246,8 @@ CREATE TABLE `places` (
 
 -- ✅ Review
 CREATE TABLE `reviews` (
-    `id` INT NOT NULL AUTO_INCREMENT,
-    `place_id` INT NOT NULL,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `place_id` BIGINT NOT NULL,
     `region_id` BIGINT NOT NULL,
     `user_id` BIGINT NOT NULL,
     `title` VARCHAR(100) NOT NULL,
@@ -263,7 +264,7 @@ CREATE TABLE `reviews` (
 
 -- ✅ Tag
 CREATE TABLE `tags` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(50) NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `uq_tag_name` (`name`)
@@ -271,8 +272,8 @@ CREATE TABLE `tags` (
 
 -- ✅ FeedTag
 CREATE TABLE `feed_tags` (
-    `feed_id` INT NOT NULL,
-    `tag_id` INT NOT NULL,
+    `feed_id` BIGINT NOT NULL,
+    `tag_id` BIGINT NOT NULL,
     PRIMARY KEY (`feed_id`, `tag_id`),
     FOREIGN KEY (`feed_id`) REFERENCES `feeds`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON DELETE CASCADE
@@ -280,7 +281,7 @@ CREATE TABLE `feed_tags` (
 
 -- ✅ Introduction
 CREATE TABLE `introduction` (
-    `id` INT NOT NULL AUTO_INCREMENT,
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL,
     `content` VARCHAR(2000) NOT NULL DEFAULT '',
     PRIMARY KEY (`id`),
@@ -292,7 +293,7 @@ CREATE TABLE `introduction` (
 -- NEW: 호텔 예약 시스템을 위한 신규 테이블
 -- =================================================================
 
--- ✅ Hotel (신규, 상세화된 테이블)
+-- ✅ Hotel 
 CREATE TABLE `hotels` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '호텔 고유 ID',
     `name` VARCHAR(100) NOT NULL COMMENT '호텔 이름',
@@ -310,7 +311,7 @@ CREATE TABLE `hotels` (
     PRIMARY KEY (`id`)
 ) COMMENT '반려동물 호텔 정보 테이블';
 
--- ✅ Hotel Supported Pet Types (신규, 다대다 관계 테이블)
+-- ✅ Hotel Supported Pet Types 
 CREATE TABLE `hotel_supported_pet_types` (
     `hotel_id` BIGINT NOT NULL COMMENT '호텔 ID',
     `pet_type` ENUM('DOG', 'CAT') NOT NULL COMMENT '수용 가능한 펫 종류',
@@ -318,11 +319,11 @@ CREATE TABLE `hotel_supported_pet_types` (
     FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`) ON DELETE CASCADE
 ) COMMENT '호텔별 수용 가능한 반려동물 타입 매핑';
 
--- ✅ Reservation (기존 hotel_reservations 대체)
+-- ✅ Reservation
 CREATE TABLE `reservations` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '예약 고유 ID',
     `user_id` BIGINT NOT NULL COMMENT '예약한 사용자 ID',
-    `pet_id` INT NOT NULL COMMENT '맡길 반려동물 ID',
+    `pet_id` BIGINT NOT NULL COMMENT '맡길 반려동물 ID',
     `hotel_id` BIGINT NOT NULL COMMENT '예약된 호텔 ID',
     `check_in` DATETIME NOT NULL COMMENT '체크인 일시',
     `check_out` DATETIME NOT NULL COMMENT '체크아웃 일시',

@@ -42,6 +42,10 @@ import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
+import com.example.petplace.presentation.feature.mypage.MyPostScreen
+import com.example.petplace.presentation.feature.mypage.PetProfileScreen
+import com.example.petplace.presentation.feature.mypage.ProfileCompleteScreen
+import com.example.petplace.presentation.feature.mypage.ProfileEditScreen
 import com.example.petplace.presentation.feature.splash.SplashScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareWriteScreen
@@ -163,6 +167,13 @@ fun MainScaffold() {
                     regionId = regionId
                 )
             }
+
+            composable("profile_edit") { ProfileEditScreen(navController) }
+            composable("pet_profile") { PetProfileScreen(navController) }
+            composable("pet_complete") { ProfileCompleteScreen(navController) }
+            composable("my_post") { MyPostScreen(navController) }
+
+
 //            composable("hotel"){AnimalSelectScreen(navController)}
 //            composable("DateSelectionScreen"){DateSelectionScreen(navController)}
 //            composable("HotelListScreen"){ HotelListScreen(navController) }

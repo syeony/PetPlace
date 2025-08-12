@@ -1,5 +1,7 @@
 package com.minjeok4go.petplace.user.entity;
 
+import com.minjeok4go.petplace.profile.entity.Introduction;
+import com.minjeok4go.petplace.pet.entity.Pet;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -11,6 +13,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "Users") // 데이터베이스의 'User' 테이블과 매핑됩니다.
@@ -91,6 +95,11 @@ public class User {
     // [개선] 소셜 계정의 이메일을 저장하는 컬럼 추가
     @Column(name = "social_email", length = 100)
     private String socialEmail;
+
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
+    private Introduction introduction;
+
+    public void setIntroduction(Introduction intro) { this.introduction = intro; }
 
     // [개선] 기존 이메일 회원가입용 빌더 수정
     @Builder
@@ -180,5 +189,12 @@ public class User {
      */
     public boolean hasSocialAccount() {
         return this.socialId != null && !this.socialId.isEmpty();
+    }
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Pet> pets = new ArrayList<>();
+
+    public void setImage(String imgSrc) {
+        this.userImgSrc = imgSrc;
     }
 }
