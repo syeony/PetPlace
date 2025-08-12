@@ -91,7 +91,8 @@ public class SocialAuthService {
                     user.getUserImgSrc(),
                     user.getLevel(),
                     user.getDefaultPetId(),
-                    user.getRegionId()
+                    user.getRegionId(),
+                    user.getPhoneNumber()
             );
 
         } catch (IllegalArgumentException e) {
@@ -144,7 +145,8 @@ public class SocialAuthService {
                 user.getUserImgSrc(),
                 user.getLevel(),
                 user.getDefaultPetId(),
-                user.getRegionId()
+                user.getRegionId(),
+                user.getPhoneNumber()
         );
 
         return SocialLoginResponse.existingUser(tokenDto);

@@ -4,9 +4,8 @@ import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.feed.dto.CreateFeedRequest;
 import com.minjeok4go.petplace.feed.dto.DeleteFeedResponse;
 import com.minjeok4go.petplace.feed.dto.FeedDetailResponse;
-import com.minjeok4go.petplace.feed.dto.FeedListResponse;
 import com.minjeok4go.petplace.feed.service.FeedService;
-import com.minjeok4go.petplace.feed.service.RecommendationService;
+//import com.minjeok4go.petplace.feed.service.RecommendationService;
 import com.minjeok4go.petplace.user.entity.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -15,7 +14,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +28,7 @@ import java.util.List;
 public class FeedController {
 
     private final FeedService feedService;
-    private final RecommendationService recommendationService;
+//    private final RecommendationService recommendationService;
     private final AuthService authService;
 
     @Operation(
@@ -51,22 +49,22 @@ public class FeedController {
     @GetMapping("/me")
     public List<FeedDetailResponse> getMyFeed(@AuthenticationPrincipal String tokenUserId) {
         User me = authService.getUserFromToken(tokenUserId);
-        return feedService.findByUserId(me.getId());
+        return feedService.findByUserId(me);
     }
 
-    @Operation(
-        summary = "유저 데이터 기반 추천 피드",
-        description = "토큰으로 받아온 유저 ID에 적합한 피드들을\n" +
-                "Param 변수로 넘어온 현재 페이지와 사이즈 만큼 반환합니다."
-    )
-    @GetMapping("/recommend")
-    public ResponseEntity<List<FeedListResponse>> getRecommendedFeeds(@RequestParam(defaultValue = "0") int page,
-                                                                      @RequestParam(defaultValue = "20") int size,
-                                                                      @AuthenticationPrincipal String tokenUserId
-    ) {
-        User me = authService.getUserFromToken(tokenUserId);
-        return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me, page, size));
-    }
+//    @Operation(
+//        summary = "유저 데이터 기반 추천 피드",
+//        description = "토큰으로 받아온 유저 ID에 적합한 피드들을\n" +
+//                "Param 변수로 넘어온 현재 페이지와 사이즈 만큼 반환합니다."
+//    )
+//    @GetMapping("/recommend")
+//    public ResponseEntity<List<FeedListResponse>> getRecommendedFeeds(@RequestParam(defaultValue = "0") int page,
+//                                                                      @RequestParam(defaultValue = "20") int size,
+//                                                                      @AuthenticationPrincipal String tokenUserId
+//    ) {
+//        User me = authService.getUserFromToken(tokenUserId);
+//        return ResponseEntity.ok(recommendationService.getRecommendedFeeds(me, page, size));
+//    }
 
     @Operation(
         summary = "피드 등록",

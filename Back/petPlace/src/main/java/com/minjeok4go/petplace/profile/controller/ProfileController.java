@@ -4,10 +4,7 @@ import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.image.dto.FeedImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.dto.UserProfileImageRequest;
-import com.minjeok4go.petplace.profile.dto.CreateIntroductionRequest;
-import com.minjeok4go.petplace.profile.dto.CreateIntroductionResponse;
-import com.minjeok4go.petplace.profile.dto.DeleteIntroductionResponse;
-import com.minjeok4go.petplace.profile.dto.MyProfileResponse;
+import com.minjeok4go.petplace.profile.dto.*;
 import com.minjeok4go.petplace.profile.service.ProfileService;
 import com.minjeok4go.petplace.profile.service.UserUpdateService;
 import com.minjeok4go.petplace.user.entity.User;
@@ -48,6 +45,18 @@ public class ProfileController {
     public MyProfileResponse getMyProfile(@AuthenticationPrincipal String tokenUserId) {
         User me = authService.getUserFromToken(tokenUserId);
         return profileService.getProfile(me.getId());
+    }
+
+    @Operation(
+            summary = "내 정보 수정",
+            description = "토큰으로 넘어온 유저 ID에 해당하는 유저의\n" +
+                    "닉네임, 비밀번호, 프로필 이미지, 지역정보를 수정합니다."
+    )
+    @PutMapping("/me/update")
+    public MyProfileResponse updateMyInformation(@Valid @RequestBody UpdateUserRequest req,
+                                                  @AuthenticationPrincipal String tokenUserId) {
+        User me = authService.getUserFromToken(tokenUserId);
+        return userUpdateService.updateUser(req, me);
     }
 
     @Operation(
