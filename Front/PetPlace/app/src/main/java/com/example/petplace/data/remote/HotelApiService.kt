@@ -40,7 +40,7 @@ interface HotelApiService {
         @Body request: CheckReservationAvailabilityRequest
     ): Response<ApiResponse<Boolean>>
 
-    @POST("/api/reservations/check-availability")
+    @POST("/api/reservations")
     suspend fun makeHotelReservation(
         @Body request: HotelReservationRequest
     ): Response<ApiResponse<String>>

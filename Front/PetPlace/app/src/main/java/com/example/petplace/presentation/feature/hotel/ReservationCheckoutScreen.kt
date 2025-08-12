@@ -1,5 +1,9 @@
 package com.example.petplace.presentation.feature.hotel
 
+import android.annotation.SuppressLint
+import android.os.Build
+import androidx.activity.ComponentActivity
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -21,9 +26,22 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import kotlin.math.max
 
+import com.iamport.sdk.domain.core.Iamport
+import com.iamport.sdk.data.sdk.IamPortRequest
+import com.iamport.sdk.data.sdk.PayMethod
+
+
+@RequiresApi(Build.VERSION_CODES.O)
+@SuppressLint("ContextCastToActivity")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReservationCheckoutScreen(
@@ -34,19 +52,85 @@ fun ReservationCheckoutScreen(
     val detail by viewModel.hotelDetail.collectAsState()
     val error by viewModel.error.collectAsState()
 
+    val context = LocalContext.current as ComponentActivity
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(reservation.selectedHotelId) {
         reservation.selectedHotelId?.let { viewModel.getHotelDetail() }
     }
 
-    // 날짜 텍스트 (날짜만 표시)
-    val checkInText = reservation.checkInDate ?: "-"      // 예: "2025-05-27"
-    val checkOutText = reservation.checkOutDate ?: "-"    // 예: "2025-05-29"
+    // 날짜 텍스트
+    val checkInText = reservation.checkInDate ?: "-"
+    val checkOutText = reservation.checkOutDate ?: "-"
 
-    // 특이사항(요청사항) — UI 로컬 상태로만 유지(연결 X)
+    // 특이사항(로컬 상태)
     var specialRequest by rememberSaveable { mutableStateOf("") }
-    // var specialRequest by rememberSaveable { mutableStateOf(reservation.specialRequests ?: "") }
     val app = PetPlaceApp.getAppContext() as PetPlaceApp
     val userInfo = app.getUserInfo()
+
+    // ===== 결제 유틸 =====
+    val dateFmt = remember { DateTimeFormatter.ofPattern("yyyy-MM-dd") }
+
+    fun calcNights(from: String?, to: String?): Int = try {
+        val start = LocalDate.parse(from, dateFmt)
+        val end = LocalDate.parse(to, dateFmt)
+        max(1, ChronoUnit.DAYS.between(start, end).toInt())
+    } catch (_: Throwable) { 1 }
+
+    fun calcAmount(): Int {
+        val pricePerNight = detail?.pricePerNight ?: 0
+        val nights = calcNights(reservation.checkInDate, reservation.checkOutDate)
+        return pricePerNight * nights
+    }
+
+    // (권장: 서버발급) 데모용 merchantUid
+    fun newMerchantUid(): String = "pp_${System.currentTimeMillis()}_${(1000..9999).random()}"
+    fun startKakaoPay(
+        userCode: String,          // 포트원 가맹점 식별코드
+        merchantUid: String,
+        amount: Int,
+        buyerName: String?,
+        buyerTel: String?
+    ) {
+        val req = IamPortRequest(
+            pg = "kakaopay",
+            pay_method = PayMethod.card.name,   // enum → String
+            name = detail?.name ?: "호텔 예약 결제",
+            merchant_uid = merchantUid,
+            amount = amount.toString(),         // 이 버전은 String 권장
+            buyer_name = buyerName,
+            buyer_tel = buyerTel,
+            app_scheme = "iamportapp"
+        )
+
+        Iamport.payment(
+//            activity = context,
+            userCode = userCode,
+            iamPortRequest = req,
+            paymentResultCallback = { result ->
+                if (result?.success == true) {
+                    val impUid = result.imp_uid!!
+                    val mUid = result.merchant_uid!!
+                    scope.launch {
+
+//                        navController.navigate("reservation_success/$mUid") {
+//                            popUpTo(navController.graph.startDestinationId) { inclusive = false }
+//                        }
+                    }
+                } else {
+                    scope.launch {
+                        // 실패/취소 처리 (result?.error_msg 로 메시지 확인 가능)
+                    }
+                }
+            }
+        )
+    }
+
+
+
+
+
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -63,8 +147,21 @@ fun ReservationCheckoutScreen(
                 KakaoPayButton(
                     enabled = detail != null,
                     onClick = {
-                        detail?.let { navController.navigate("hotel/reserve/${it.id}") }
+                        val d = detail ?: return@KakaoPayButton
+                        val amount = calcAmount()
+                        val merchantUid = newMerchantUid()
+                        startKakaoPay(
+                            merchantUid = merchantUid,
+                            amount = amount,
+                            buyerName = userInfo?.nickname,
+                            buyerTel = "01090290774",
+                            userCode = BuildConfig.IMP_KEY
+                        )
                     }
+
+
+
+
                 )
             }
         }
@@ -123,6 +220,8 @@ fun ReservationCheckoutScreen(
                     DateItem(label = "체크아웃", value = checkOutText, modifier = Modifier.weight(1f))
                 }
             }
+
+            // 유저 정보
             SectionCard(title = "유저 정보") {
                 Column(Modifier.fillMaxWidth()) {
                     userInfo?.nickname
@@ -130,14 +229,14 @@ fun ReservationCheckoutScreen(
                         ?.let { name ->
                             DateItem(
                                 label = "이름",
-                                value = name,                 // weight 제거
+                                value = name,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
                 }
             }
 
-            // 특이사항(요청사항)
+            // 특이사항
             SectionCard(title = "특이사항") {
                 OutlinedTextField(
                     value = specialRequest,
@@ -166,7 +265,6 @@ fun ReservationCheckoutScreen(
     }
 }
 
-/** 공통 섹션 카드 */
 @Composable
 private fun SectionCard(
     title: String,
@@ -190,13 +288,12 @@ private fun DateItem(
         modifier = modifier
             .padding(end = 4.dp)
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFEE9B00)) // 강조색
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFEE9B00))
         Spacer(Modifier.height(4.dp))
         Text(value, style = MaterialTheme.typography.titleMedium)
     }
 }
 
-/** 카카오페이 스타일 버튼 */
 @Composable
 private fun KakaoPayButton(
     enabled: Boolean,

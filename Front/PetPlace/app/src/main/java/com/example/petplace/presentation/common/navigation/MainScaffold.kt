@@ -41,6 +41,7 @@ import com.example.petplace.presentation.feature.mypage.MyPageScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import com.example.petplace.presentation.feature.hotel.HotelDetailScreen
 import com.example.petplace.presentation.feature.hotel.ReservationCheckoutScreen
+import com.example.petplace.presentation.feature.hotel.ReservationSuccessScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
 import com.example.petplace.presentation.feature.join.KakaoCertificationScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinCheckScreen
@@ -106,7 +107,7 @@ fun MainScaffold() {
             }
 
 
-
+            composable("missing_report") { ReservationSuccessScreen(navController) }
 
             composable("missing_report") { ReportScreen(navController) }
             composable("missing_map") { MissingMapScreen(navController) }
