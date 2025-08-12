@@ -274,78 +274,61 @@ public class CBFRecommendationService {
         return score;
     }
 
-    // 조회 API는 그대로 (필요시 유지)
     public List<FeedListResponse> getRecommendedFeeds(Long userId, int page, int size) {
         if (userId == null) {
             throw new AccessDeniedException("로그인이 필요합니다.");
         }
 
-        // 0) 그룹 키 산출
+        // 0) 그룹 키 산출 + 유저/펫 로드
         List<Pet> pets = petRepository.findByUserId(userId);
         User user = userRepository.getReferenceById(userId);
         String groupKey = userGroupService.determineGroupKey(user, pets);
 
         String redisKey = "group:" + groupKey;
-        long start = (long) page * size;
-        long end   = start + size - 1;
 
-        // 1) 후보 조회
+        // === [A] Redis ZSET에서 "순서 힌트"로 후보 ID를 빠르게 가져오기 (오버샘플: size * 3) ===
+        long start = (long) page * size;
+        long fetch = size * 3L; // 삭제/핀고정/재정렬로 빠지는 걸 대비
+        long end   = start + fetch - 1;
+
         Set<ZSetOperations.TypedTuple<String>> tuples =
                 redisTemplate.opsForZSet().reverseRangeWithScores(redisKey, start, end);
 
-        // 1-1) 캐시 비었을 때 fallback → 후보/점수 구성
-        List<Long> candidateIds;
-        Map<Long, Double> scoreById = new HashMap<>();
-        if (tuples == null || tuples.isEmpty()) {
-            log.warn("[Recommend] Redis 캐시 비어있음 → Fallback(DB 인기 상위)");
-            List<Feed> fallback = feedRepository.findTop200ByOrderByLikesDesc();
-            candidateIds = fallback.stream().map(Feed::getId).toList();
-            candidateIds.forEach(id -> scoreById.put(id, 1.0));
-        } else {
-            candidateIds = tuples.stream()
-                    .map(t -> Long.parseLong(Objects.requireNonNull(t.getValue())))
-                    .toList();
+        List<Long> candidateIds = new ArrayList<>();
+        Map<Long, Double> zsetScore = new HashMap<>(); // 배치 시점 점수(순서 힌트)
+        if (tuples != null) {
             for (ZSetOperations.TypedTuple<String> t : tuples) {
-                scoreById.put(Long.parseLong(Objects.requireNonNull(t.getValue())),
-                        Optional.ofNullable(t.getScore()).orElse(1.0));
+                if (t == null || t.getValue() == null) continue;
+                long fid = Long.parseLong(t.getValue());
+                candidateIds.add(fid);
+                zsetScore.put(fid, Optional.ofNullable(t.getScore()).orElse(1.0));
             }
         }
 
-        // 2) 개인 CBF 가산점
-        Map<Long, Double> cbfBoost = computePersonalCbfBoost(userId, candidateIds);
-        double ALPHA = 0.5;
-
-        Map<Long, Double> finalScoreById = new HashMap<>(candidateIds.size());
-        for (Long id : candidateIds) {
-            double base = scoreById.getOrDefault(id, 1.0);
-            double cbf  = cbfBoost.getOrDefault(id, 0.0);
-            finalScoreById.put(id, base + ALPHA * cbf);
+        // 캐시 비어있을 때 안전망: DB Top200 (라이브)
+        if (candidateIds.isEmpty()) {
+            List<Feed> fallback = feedRepository.findTop200ByOrderByLikesDesc(); // 반드시 deletedAt 제외/보조정렬 포함 권장
+            candidateIds = fallback.stream().map(Feed::getId).toList();
+            for (Long id : candidateIds) zsetScore.put(id, 1.0);
         }
 
-        // 3) 내 최신 글 고정(최근 3시간 내 최대 3개)
+        // === [B] 내 최근 글(3시간 내 최대 3개) 핀고정 후보 추가 ===
         LocalDateTime threeHoursAgo = LocalDateTime.now().minusHours(3);
         List<Long> myRecentFeedIds = feedRepository
                 .findTop3IdsByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(userId, threeHoursAgo);
 
-        // ==== 4) 최종 pool 만들기 (핀 고정 + 후보, 중복 제거, 여유분) ====
-        List<Long> pool = Stream.concat(
-                        myRecentFeedIds.stream(),
-                        candidateIds.stream()
-                ).distinct()
-                .limit(size * 3L)            // 삭제/필터로 빠질 걸 대비
+        // === [C] 1차 풀 구성(핀고정 우선 + 후보) → 중복 제거 후 오버샘플 크기 제한 ===
+        List<Long> pool = Stream.concat(myRecentFeedIds.stream(), candidateIds.stream())
+                .distinct()
+                .limit(fetch)
                 .toList();
-
         if (pool.isEmpty()) return List.of();
 
-        // ==== 5) 살아있는 글만 조회 (deletedAt 제외) ====
-        // ⚠ FeedRepository에 다음 메서드가 있어야 합니다:
-        // @Query("select f from Feed f where f.id in :ids and f.deletedAt is null")
-        // List<Feed> findAllActiveByIdIn(@Param("ids") List<Long> ids);
+        // === [D] 실시간 정합성 오버레이 ===
+        // D-1) 살아있는 글만 남기기(soft delete 제외) + 지워진 멤버는 Redis에서 lazy-clean
         List<Feed> alive = feedRepository.findAllActiveByIdIn(pool);
-        Map<Long, Feed> aliveById = alive.stream()
-                .collect(Collectors.toMap(Feed::getId, Function.identity()));
+        Map<Long, Feed> aliveById = alive.stream().collect(Collectors.toMap(Feed::getId, Function.identity()));
 
-        // (선택) 이 그룹 ZSET에서 죽은 멤버를 즉시 제거 (lazy clean)
         List<Object> deadMembers = pool.stream()
                 .filter(id -> !aliveById.containsKey(id))
                 .map(String::valueOf)
@@ -354,40 +337,127 @@ public class CBFRecommendationService {
         if (!deadMembers.isEmpty()) {
             redisTemplate.opsForZSet().remove(redisKey, deadMembers.toArray(new Object[0]));
         }
+        // 실존 ID만 대상으로 후속 계산
+        List<Long> liveIds = pool.stream().filter(aliveById::containsKey).toList();
+        if (liveIds.isEmpty()) return List.of();
 
-        // ==== 6) 최종 ID: pool 순서 유지하며 살아있는 것만 size개 ====
-        List<Long> finalIds = pool.stream()
-                .filter(aliveById::containsKey)
-                .limit(size)
+        // D-2) 현재 DB 상태로 "배치 점수"를 미니 재계산(좋아요/댓글/최신성/작성자 특성 반영)
+        //      - 윈도우 내에서만 계산하므로 비용 작음
+        // 댓글 수(삭제 제외) 벌크 조회
+        List<Object[]> commentCountsRows =
+                commentRepository.countByFeedIdInAndDeletedAtIsNullGroupByFeedId(liveIds);
+        Map<Long, Integer> commentCount = new HashMap<>(liveIds.size());
+        for (Object[] row : commentCountsRows) {
+            commentCount.put((Long) row[0], ((Long) row[1]).intValue());
+        }
+
+        // 작성자/작성자 동물
+        Set<Long> writerIds = alive.stream()
+                .map(Feed::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, User> writerMap = userRepository.findAllById(writerIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+        Map<Long, Set<Animal>> writerAnimals = petRepository.findByUserIdIn(writerIds).stream()
+                .collect(Collectors.groupingBy(
+                        p -> p.getUser().getId(),
+                        Collectors.mapping(Pet::getAnimal, Collectors.toSet())
+                ));
+
+        // 지역명 resolve(필요한 regionId만)
+        Set<Long> regionIds = new HashSet<>();
+        for (Feed f : alive) {
+            if (f.getRegionId() != null) regionIds.add(f.getRegionId());
+        }
+        if (user.getRegionId() != null) regionIds.add(user.getRegionId());
+        Map<Long, String> regionNameCache = regionRepository.findAllById(regionIds).stream()
+                .collect(Collectors.toMap(Region::getId, Region::getName));
+
+        // 유저 나이대/지역명
+        LocalDate today = LocalDate.now();
+        int userAge = Period.between(user.getBirthday(), today).getYears();
+        int userAgeGroup = (userAge / 10) * 10;
+        String userRegionName = regionNameCache.getOrDefault(user.getRegionId(), "UNKNOWN");
+
+        // 현재 상태로 기본 점수 재계산
+        Map<Long, Double> rtBaseScore = new HashMap<>(liveIds.size());
+        for (Long fid : liveIds) {
+            Feed f = aliveById.get(fid);
+            int cmtCnt = commentCount.getOrDefault(fid, 0);
+
+            User writer = (f.getUserId() == null) ? null : writerMap.get(f.getUserId());
+            int writerAgeGroup = -1;
+            String writerRegionName = null;
+            Set<Animal> writerAnimalSet = Collections.emptySet();
+
+            if (writer != null) {
+                int writerAge = Period.between(writer.getBirthday(), today).getYears();
+                writerAgeGroup = (writerAge / 10) * 10;
+                writerRegionName = regionNameCache.getOrDefault(writer.getRegionId(), "UNKNOWN");
+                writerAnimalSet = writerAnimals.getOrDefault(writer.getId(), Collections.emptySet());
+            }
+
+            double s = calculateScore(
+                    user, pets, f, cmtCnt,
+                    writerAgeGroup, writerRegionName, writerAnimalSet,
+                    userAgeGroup, userRegionName,
+                    today
+            );
+            rtBaseScore.put(fid, s);
+        }
+
+        // === [E] 개인 CBF 가산점 적용(프로필 캐시 기반) ===
+        Map<Long, Double> cbfBoost = computePersonalCbfBoost(userId, liveIds);
+        double ALPHA = 0.5;
+
+        Map<Long, Double> finalScoreById = new HashMap<>(liveIds.size());
+        for (Long id : liveIds) {
+            double base = rtBaseScore.getOrDefault(id, zsetScore.getOrDefault(id, 1.0)); // 재계산 점수 우선, 없으면 배치 점수
+            double cbf  = cbfBoost.getOrDefault(id, 0.0);
+            finalScoreById.put(id, base + ALPHA * cbf);
+        }
+
+        // === [F] 최종 정렬: "내 최근 글"을 최상단 고정, 나머지는 최종 점수로 내림차순 ===
+        Set<Long> pinSet = new LinkedHashSet<>(myRecentFeedIds); // 순서 유지
+        List<Long> sortedByScore = liveIds.stream()
+                .sorted(Comparator.comparingDouble(id -> finalScoreById.getOrDefault(id, 0.0)).reversed())
                 .toList();
 
+        List<Long> ordered = new ArrayList<>((int) fetch);
+        // 1) 핀 고정
+        for (Long id : myRecentFeedIds) {
+            if (aliveById.containsKey(id)) ordered.add(id);
+            if (ordered.size() >= fetch) break;
+        }
+        // 2) 점수 정렬(핀 제외)
+        for (Long id : sortedByScore) {
+            if (pinSet.contains(id)) continue;
+            ordered.add(id);
+            if (ordered.size() >= fetch) break;
+        }
+
+        // === [G] 페이지 사이즈만큼 잘라서 반환 준비 ===
+        List<Long> finalIds = ordered.stream().limit(size).toList();
         if (finalIds.isEmpty()) return List.of();
 
-        // ==== 7) HYDRATE (이미지/태그/좋아요) ====
-        // 본문
+        // === [H] HYDRATE (이미지/태그/좋아요 여부) ===
         List<Feed> feeds = feedRepository.findAllById(finalIds);
-        Map<Long, Feed> feedById = feeds.stream()
-                .collect(Collectors.toMap(Feed::getId, Function.identity()));
+        Map<Long, Feed> feedById = feeds.stream().collect(Collectors.toMap(Feed::getId, Function.identity()));
 
-        // 이미지 (refType/refId 구조)
-        List<Image> images = imageRepository
-                .findAllByRefTypeAndRefIdInOrderBySortAsc(ImageType.FEED, finalIds);
+        List<Image> images = imageRepository.findAllByRefTypeAndRefIdInOrderBySortAsc(ImageType.FEED, finalIds);
         Map<Long, List<ImageResponse>> imagesByFeed = images.stream()
                 .collect(Collectors.groupingBy(
                         Image::getRefId,
                         Collectors.mapping(ImageResponse::new, Collectors.toList())
                 ));
 
-        // 태그
         List<FeedTagJoin> tagRows = feedTagRepository.findAllByFeedIdIn(finalIds);
         Map<Long, List<TagResponse>> tagsByFeed = tagRows.stream()
                 .collect(Collectors.groupingBy(FeedTagJoin::getFeedId,
                         Collectors.mapping(r -> new TagResponse(r.getTagId(), r.getTagName()), Collectors.toList())));
 
-        // 좋아요
         Set<Long> likedIds = likeRepository.findFeedIdsLikedByUser(userId, finalIds);
 
-        // ==== 8) DTO 조립 (finalIds 순서 유지) ====
         List<FeedListResponse> out = new ArrayList<>(finalIds.size());
         for (Long id : finalIds) {
             Feed f = feedById.get(id);
@@ -398,7 +468,6 @@ public class CBFRecommendationService {
             List<TagResponse> tags  = tagsByFeed.getOrDefault(id, List.of());
             boolean liked           = likedIds.contains(id);
 
-            // 팩토리 없으면 from + 세터 사용
             FeedListResponse dto = FeedListResponse.from(f, finalScore);
             dto.setTags(tags);
             dto.setImages(imgs);

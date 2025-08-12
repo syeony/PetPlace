@@ -51,16 +51,26 @@ public class FeedService {
         return mapFeedToDetail(feed, user);
     }
 
+//    private FeedComment mapCommentWithRepliesFiltered(Comment comment) {
+//        List<FeedComment> replyDtos = comment.getReplies().stream()
+//                .filter(r -> r.getDeletedAt() == null) // 대댓글도 삭제 제외
+//                .sorted(Comparator.comparing(Comment::getId)) // 또는 createdAt
+//                .map(this::mapCommentWithRepliesFiltered)
+//                .toList();
+//
+//        return new FeedComment(comment, replyDtos);
+//    }
     private FeedComment mapCommentWithRepliesFiltered(Comment comment) {
-        List<FeedComment> replyDtos = comment.getReplies().stream()
-                .filter(r -> r.getDeletedAt() == null) // 대댓글도 삭제 제외
-                .sorted(Comparator.comparing(Comment::getId)) // 또는 createdAt
+        // 대댓글은 항상 쿼리로 재조회 → soft delete/동시성 즉시 반영
+        List<Comment> activeReplies =
+                commentRepository.findByParentCommentIdAndDeletedAtIsNullOrderByIdAsc(comment.getId());
+
+        List<FeedComment> replyDtos = activeReplies.stream()
                 .map(this::mapCommentWithRepliesFiltered)
                 .toList();
 
         return new FeedComment(comment, replyDtos);
     }
-
     @Transactional
     public FeedDetailResponse createFeed(CreateFeedRequest req, User user) {
         // 1) 피드 저장

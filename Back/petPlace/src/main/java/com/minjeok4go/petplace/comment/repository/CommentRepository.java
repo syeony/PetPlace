@@ -23,6 +23,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("select distinct c.feed.id from Comment c where c.userId = :uid and c.deletedAt is null")
     List<Long> findFeedIdsByUserId(@Param("uid") Long userId);
 
-
+    List<Comment> findByParentCommentIdAndDeletedAtIsNullOrderByIdAsc(Long parentCommentId);
     List<Comment> findByFeedAndDeletedAtIsNullOrderByIdAsc(Feed feed);
 }
