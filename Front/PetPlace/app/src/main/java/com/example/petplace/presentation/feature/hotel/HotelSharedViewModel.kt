@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.data.model.hotel.HotelReservationRequest
+import com.example.petplace.data.model.mypage.MyPageInfoResponse
 import com.example.petplace.data.model.payment.PreparePaymentRequest
 import com.example.petplace.data.model.payment.PreparePaymentResponse
 import com.example.petplace.data.model.payment.VerifyPaymentRequest
@@ -34,7 +35,8 @@ data class HotelReservationState(
     val checkOutDate: String? = null,
     val selectedHotelId: Int? = null,
     val animalCount: Int? = 1,
-    val selectedPetId: Int = 0
+    val selectedPetId: Int? = null,
+    val specialRequest: String = ""
 )
 
 
@@ -53,6 +55,10 @@ class HotelSharedViewModel @Inject constructor(
     private val _hotelList = MutableStateFlow<List<HotelDetail>>(emptyList())
     val hotelList: StateFlow<List<HotelDetail>> = _hotelList
 
+    private val _myPetList = MutableStateFlow<List<MyPageInfoResponse.Pet>>(emptyList())
+    val myPetList : StateFlow<List<MyPageInfoResponse.Pet>> = _myPetList
+
+
     private val _hotelDetail = MutableStateFlow<HotelDetail?>(null)
     val hotelDetail: StateFlow<HotelDetail?> = _hotelDetail
 
@@ -68,9 +74,16 @@ class HotelSharedViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+
+    fun updateSpecialRequest(text: String) {
+        _reservationState.update { it.copy(specialRequest = text) }
+    }
+
     private val _event = Channel<String>(Channel.BUFFERED)
     val event = _event.receiveAsFlow()
-
+    fun selecMyPet(petId:Int){
+        _reservationState.value =_reservationState.value.copy(selectedPetId = petId)
+    }
     fun selectAnimal(animal: String) {
         _reservationState.value = _reservationState.value.copy(selectedAnimal = animal)
     }
@@ -190,6 +203,27 @@ class HotelSharedViewModel @Inject constructor(
         }
     }
 
+
+    // 내 펫 불러오기
+    suspend fun getMyPets() {
+        runCatching {
+            hotelApi.getMyPets()
+        }.onSuccess { res ->
+            if (res.isSuccessful) {
+                res.body()?.let { pets ->
+                    _myPetList.value = pets
+                } ?: run {
+                    // body가 null인 경우 처리
+                    _event.send("펫 정보가 없습니다.")
+                }
+            } else {
+                _event.send("펫 정보 불러오기 실패 (${res.code()})")
+            }
+        }.onFailure { e ->
+            _event.send("네트워크 오류: ${e.message}")
+        }
+    }
+
     // 호출: 입력 없이 상태에서 꺼내서 요청 보냄
     @RequiresApi(Build.VERSION_CODES.O)
     fun checkReservationAvailability() = launchCatching {
@@ -271,8 +305,8 @@ class HotelSharedViewModel @Inject constructor(
                     null
                 } else {
                     val req = HotelReservationRequest(
-//                        petId = state.selectedPetId, // 13 하드코딩 말고 상태값 사용 권장
-                        petId = 13,
+                        petId = state.selectedPetId!!, // 13 하드코딩 말고 상태값 사용 권장
+//                        petId = 13,
                         hotelId = state.selectedHotelId!!,
                         selectedDates = dates,
                         specialRequests = "",

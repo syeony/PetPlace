@@ -30,6 +30,8 @@ import coil.compose.AsyncImage
 import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
+import com.example.petplace.presentation.common.theme.AppTypography
+import com.example.petplace.presentation.common.theme.BackgroundColor
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -134,12 +136,25 @@ fun ReservationCheckoutScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = {},
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxHeight(),
+                        contentAlignment = Alignment.Center // 세로 중앙 정렬
+                    ) {
+                        Text(
+                            "예약 내용",
+                            style = AppTypography.titleMedium
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BackgroundColor),
+                modifier = Modifier.height(48.dp), // 높이 줄이기
+                windowInsets = WindowInsets(0.dp)  // 상단 패딩 제거
             )
         },
         bottomBar = {
@@ -257,12 +272,12 @@ fun ReservationCheckoutScreen(
             // 특이사항
             SectionCard(title = "특이사항") {
                 OutlinedTextField(
-                    value = specialRequest,
-                    onValueChange = { specialRequest = it },
+                    value = reservation.specialRequest,                  // ← ViewModel 값
+                    onValueChange = { viewModel.updateSpecialRequest(it) }, // ← ViewModel로 반영
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 96.dp),
-                    placeholder = { Text("예) 창가 쪽 방으로 부탁드려요.") },
+                    placeholder = { Text("예) 소고기 알러지가 있어요.") },
                     singleLine = false,
                     maxLines = 5,
                     keyboardOptions = KeyboardOptions(

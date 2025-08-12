@@ -78,9 +78,6 @@ fun HotelListScreen(
         firstDayOfWeek = DayOfWeek.MONDAY
     )
     val coroutineScope = rememberCoroutineScope()
-
-
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -94,7 +91,12 @@ fun HotelListScreen(
                             startDate != null -> startDate.toString()
                             else -> "체크인 / 체크아웃"
                         }
-                        Text(text = displayText, style = AppTypography.bodyLarge)
+                        Box(
+                            modifier = Modifier.fillMaxHeight(),
+                            contentAlignment = Alignment.Center // 세로 중앙 정렬
+                        ) {
+                            Text(text = displayText, style = AppTypography.bodyLarge)
+                        }
                         Icon(
                             imageVector = if (expanded) Icons.Default.KeyboardArrowUp
                             else Icons.Default.KeyboardArrowDown,
@@ -107,7 +109,9 @@ fun HotelListScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BackgroundColor)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BackgroundColor),
+                modifier = Modifier.height(48.dp), // 높이 줄이기
+                windowInsets = WindowInsets(0.dp)  // 상단 패딩 제거
             )
         }
     ) { innerPadding ->
@@ -205,19 +209,19 @@ fun HotelListScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // 마릿수 선택
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF2F2F2))
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(onClick = { viewModel.decreaseAnimalCount() }) { Text("-") }
-                        Text("${reservationState.animalCount} 마리")
-                        TextButton(onClick = { viewModel.increaseAnimalCount() }) { Text("+") }
-                    }
+//                    Row(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .clip(RoundedCornerShape(12.dp))
+//                            .background(Color(0xFFF2F2F2))
+//                            .padding(8.dp),
+//                        horizontalArrangement = Arrangement.SpaceBetween,
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        TextButton(onClick = { viewModel.decreaseAnimalCount() }) { Text("-") }
+//                        Text("${reservationState.animalCount} 마리")
+//                        TextButton(onClick = { viewModel.increaseAnimalCount() }) { Text("+") }
+//                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 

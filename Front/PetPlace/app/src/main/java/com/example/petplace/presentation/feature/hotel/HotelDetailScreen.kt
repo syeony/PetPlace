@@ -22,6 +22,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.petplace.R
+import com.example.petplace.presentation.common.theme.AppTypography
+import com.example.petplace.presentation.common.theme.BackgroundColor
 import com.kakao.vectormap.*
 import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
@@ -53,12 +55,25 @@ fun HotelDetailScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = {},
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxHeight(),
+                        contentAlignment = Alignment.Center // 세로 중앙 정렬
+                    ) {
+                        Text(
+                            "호텔 상세",
+                            style = AppTypography.titleMedium
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BackgroundColor),
+                modifier = Modifier.height(48.dp), // 높이 줄이기
+                windowInsets = WindowInsets(0.dp)  // 상단 패딩 제거
             )
         },
         bottomBar = {
@@ -129,6 +144,11 @@ fun HotelDetailScreen(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = Color(0xFFE0E0E0),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
 
             // 설명 (description) — 더보기/접기
             if (!detail?.description.isNullOrBlank()) {
@@ -167,7 +187,11 @@ fun HotelDetailScreen(
                     }
                 }
             }
-
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = Color(0xFFE0E0E0),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
             // 지도
             Card(
                 Modifier

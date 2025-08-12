@@ -8,6 +8,7 @@ import com.example.petplace.data.model.hotel.HotelDetailResponse
 import com.example.petplace.data.model.hotel.HotelReservationRequest
 import com.example.petplace.data.model.hotel.HotelSearchRequest
 import com.example.petplace.data.model.hotel.HotelSearchResponse
+import com.example.petplace.data.model.mypage.MyPageInfoResponse
 import com.example.petplace.presentation.feature.hotel.ApiResponse
 import retrofit2.Response
 import retrofit2.http.Body
@@ -49,6 +50,8 @@ interface HotelApiService {
     suspend fun confirmReservation(
         @Path("reservationId") reservationId: Long
     ): ApiResponse<Unit?>
+    @GET("/api/pets/me")
+    suspend fun getMyPets(): Response<List<MyPageInfoResponse.Pet>>
 
 
 }// 예약 생성 응답 DTO
