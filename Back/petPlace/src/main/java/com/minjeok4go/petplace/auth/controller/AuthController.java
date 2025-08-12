@@ -31,12 +31,7 @@ import java.util.Map;
 @Slf4j
 @Tag(
         name = "🔐 Auth Management",
-        description = """
-        ## 인증 및 인가 API
-        
-        ### 보안
-        - 토큰이 필요한 모든 API는 HTTP Header에 `Authorization: Bearer {AccessToken}`을 포함하여 요청해야 합니다.
-        """
+        description = "## 인증 및 인가 API"
 )
 @RestController
 @RequestMapping("/api/auth")
