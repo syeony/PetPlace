@@ -4,7 +4,6 @@ import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.feed.dto.CreateFeedRequest;
 import com.minjeok4go.petplace.feed.dto.DeleteFeedResponse;
 import com.minjeok4go.petplace.feed.dto.FeedDetailResponse;
-import com.minjeok4go.petplace.feed.dto.FeedListResponse;
 import com.minjeok4go.petplace.feed.service.FeedService;
 //import com.minjeok4go.petplace.feed.service.RecommendationService;
 import com.minjeok4go.petplace.user.entity.User;
@@ -15,7 +14,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,7 +49,7 @@ public class FeedController {
     @GetMapping("/me")
     public List<FeedDetailResponse> getMyFeed(@AuthenticationPrincipal String tokenUserId) {
         User me = authService.getUserFromToken(tokenUserId);
-        return feedService.findByUserId(me.getId());
+        return feedService.findByUserId(me);
     }
 
 //    @Operation(
