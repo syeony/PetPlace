@@ -49,20 +49,6 @@ class BoardWriteViewModel @Inject constructor(
     }
     fun setImages(list: List<CreateImage>) { _images.value = list }
 
-//    suspend fun submit(): FeedCreateRes {
-//        val app = context as PetPlaceApp
-//        val user = app.getUserInfo() ?: throw IllegalStateException("로그인 필요")
-//
-//        val body = FeedCreateReq(
-//            content = _content.value.trim(),
-//            regionId = user.regionId,
-//            category = _category.value ?: "ANY",
-//            tagIds = _tagIds.value,
-//            images = _images.value
-//        )
-//        return feedrepo.createFeed(body)
-//    }
-
     // 이미지 업로드 및 피드 등록
     suspend fun uploadImagesAndSubmitFeed(): FeedCreateRes {
         // 1. 이미지 업로드

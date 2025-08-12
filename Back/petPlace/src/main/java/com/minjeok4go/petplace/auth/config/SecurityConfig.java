@@ -27,7 +27,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/payments/webhook"))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
@@ -78,7 +79,12 @@ public class SecurityConfig {
                                 // 호텔 API
                                 "/api/hotels/**",
                                 "/api/reservations/**",
-                                "/api/payments/**"
+                                "/api/payments/**",
+
+                                //호텔 결제
+                                "/api/payments/webhook",
+                                "/api/auth/**"
+
 
 
                         ).permitAll()
