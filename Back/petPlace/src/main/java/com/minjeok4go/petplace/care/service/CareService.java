@@ -14,9 +14,11 @@ import com.minjeok4go.petplace.region.repository.RegionRepository;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.repository.UserRepository;
 import com.minjeok4go.petplace.image.service.ImageService;
+import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
+import com.minjeok4go.petplace.image.entity.Image;
+import com.minjeok4go.petplace.image.repository.ImageRepository;
 import com.minjeok4go.petplace.common.constant.ImageType;
-import com.minjeok4go.petplace.common.exception.CustomException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -38,6 +40,7 @@ public class CareService {
     private final PetRepository petRepository;
     private final RegionRepository regionRepository;
     private final ImageService imageService;
+    private final ImageRepository imageRepository;
 
     /**
      * 돌봄/산책 요청 등록
@@ -79,15 +82,13 @@ public class CareService {
 
         Cares savedCare = careRepository.save(care);
 
-        // 이미지 저장 (있을 경우)
-        if (requestDto.getImageUrls() != null && !requestDto.getImageUrls().isEmpty()) {
-            imageService.saveImages(savedCare.getId(), ImageType.CARE, requestDto.getImageUrls());
-        }
+        // 이미지 저장 (기존 ImageService 활용)
+        saveImages(requestDto.getImageUrls(), savedCare.getId(), ImageType.CARE);
 
         log.info("돌봄/산책 요청 등록 완료 - ID: {}", savedCare.getId());
 
         // 이미지 정보 포함해서 응답
-        List<ImageResponse> images = imageService.getImagesByRefIdAndType(savedCare.getId(), ImageType.CARE);
+        List<ImageResponse> images = imageService.getImages(ImageType.CARE, savedCare.getId());
         return CareResponseDto.from(savedCare, images);
     }
 
@@ -102,7 +103,7 @@ public class CareService {
         care.increaseViews();
 
         // 이미지 정보 조회
-        List<ImageResponse> images = imageService.getImagesByRefIdAndType(careId, ImageType.CARE);
+        List<ImageResponse> images = imageService.getImages(ImageType.CARE, careId);
 
         return CareResponseDto.from(care, images);
     }
@@ -139,15 +140,13 @@ public class CareService {
         care.updateInfo(requestDto.getTitle(), requestDto.getContent(), pet, region,
                 requestDto.getCategory(), startDatetime, endDatetime);
 
-        // 이미지 업데이트 (있을 경우)
-        if (requestDto.getImageUrls() != null) {
-            imageService.updateImages(careId, ImageType.CARE, requestDto.getImageUrls());
-        }
+        // 기존 이미지 삭제 후 새 이미지 저장
+        updateImages(careId, ImageType.CARE, requestDto.getImageUrls());
 
         log.info("돌봄/산책 요청 수정 완료 - ID: {}", careId);
 
         // 이미지 정보 포함해서 응답
-        List<ImageResponse> images = imageService.getImagesByRefIdAndType(careId, ImageType.CARE);
+        List<ImageResponse> images = imageService.getImages(ImageType.CARE, careId);
         return CareResponseDto.from(care, images);
     }
 
@@ -162,9 +161,6 @@ public class CareService {
         validateOwnership(care, userId);
 
         care.delete();
-
-        // 관련 이미지도 삭제
-        imageService.deleteImagesByRefIdAndType(careId, ImageType.CARE);
 
         log.info("돌봄/산책 요청 삭제 완료 - ID: {}", careId);
     }
@@ -182,7 +178,7 @@ public class CareService {
         care.updateStatus(status);
 
         // 이미지 정보 포함해서 응답
-        List<ImageResponse> images = imageService.getImagesByRefIdAndType(careId, ImageType.CARE);
+        List<ImageResponse> images = imageService.getImages(ImageType.CARE, careId);
         return CareResponseDto.from(care, images);
     }
 
@@ -239,39 +235,39 @@ public class CareService {
 
     private User getUserById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
     }
 
     private Pet getPetById(Long petId) {
         return petRepository.findById(petId)
-                .orElseThrow(() -> new CustomException("반려동물을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("반려동물을 찾을 수 없습니다."));
     }
 
     private Region getRegionById(Long regionId) {
         return regionRepository.findById(regionId)
-                .orElseThrow(() -> new CustomException("지역을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("지역을 찾을 수 없습니다."));
     }
 
     private Cares getCareById(Long careId) {
         return careRepository.findByIdAndNotDeleted(careId)
-                .orElseThrow(() -> new CustomException("돌봄/산책 요청을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("돌봄/산책 요청을 찾을 수 없습니다."));
     }
 
     private void validateOwnership(Cares care, Long userId) {
         if (!care.getUser().getId().equals(userId)) {
-            throw new CustomException("본인이 등록한 요청만 수정/삭제할 수 있습니다.");
+            throw new IllegalArgumentException("본인이 등록한 요청만 수정/삭제할 수 있습니다.");
         }
     }
 
     private void validatePetOwnership(Pet pet, Long userId) {
         if (!pet.getUser().getId().equals(userId)) {
-            throw new CustomException("본인의 반려동물만 등록할 수 있습니다.");
+            throw new IllegalArgumentException("본인의 반려동물만 등록할 수 있습니다.");
         }
     }
 
     private void validateFutureDateTime(LocalDateTime dateTime) {
         if (dateTime.isBefore(LocalDateTime.now())) {
-            throw new CustomException("과거 날짜/시간은 설정할 수 없습니다.");
+            throw new IllegalArgumentException("과거 날짜/시간은 설정할 수 없습니다.");
         }
     }
 
@@ -293,5 +289,42 @@ public class CareService {
 
     private boolean isWalkCategory(CareCategory category) {
         return category == CareCategory.WALK_WANT || category == CareCategory.WALK_REQ;
+    }
+
+    /**
+     * 이미지 저장 공통 메서드 (기존 ImageService 활용)
+     */
+    private void saveImages(List<String> imageUrls, Long refId, ImageType refType) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return;
+        }
+
+        for (int i = 0; i < imageUrls.size(); i++) {
+            ImageRequest imageRequest = ImageRequest.builder()
+                    .refId(refId)
+                    .refType(refType)
+                    .src(imageUrls.get(i))
+                    .sort(i + 1) // 1부터 시작하는 정렬 순서
+                    .build();
+
+            imageService.createImages(imageRequest);
+            log.debug("이미지 저장 완료 - refId: {}, refType: {}, src: {}", refId, refType, imageUrls.get(i));
+        }
+    }
+
+    /**
+     * 이미지 업데이트 (기존 이미지 삭제 후 새 이미지 저장)
+     */
+    private void updateImages(Long refId, ImageType refType, List<String> newImageUrls) {
+        // 기존 이미지 조회
+        List<Image> existingImages = imageRepository.findByRefTypeAndRefIdOrderBySortAsc(refType, refId);
+
+        // 기존 이미지 삭제
+        if (!existingImages.isEmpty()) {
+            imageRepository.deleteAll(existingImages);
+        }
+
+        // 새 이미지 저장
+        saveImages(newImageUrls, refId, refType);
     }
 }

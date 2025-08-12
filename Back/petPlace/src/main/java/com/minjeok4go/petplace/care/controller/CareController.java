@@ -228,10 +228,24 @@ public class CareController {
     // ===== 헬퍼 메서드들 =====
 
     /**
-     * Authentication에서 사용자 ID 추출
+     * Authentication에서 사용자 ID 추출 - 기존 프로젝트 방식과 동일하지만 안전하게 처리
      */
     private Long getUserIdFromAuthentication(Authentication authentication) {
-        return Long.valueOf(authentication.getName()); // 실제 구현에 맞게 수정 필요
+        if (authentication == null) {
+            throw new IllegalArgumentException("인증 정보가 없습니다.");
+        }
+
+        try {
+            // JwtAuthenticationFilter에서 설정된 사용자 ID 추출
+            String userId = authentication.getName();
+            if (userId == null || userId.isEmpty()) {
+                throw new IllegalArgumentException("인증된 사용자 ID를 찾을 수 없습니다.");
+            }
+            return Long.valueOf(userId);
+        } catch (NumberFormatException e) {
+            log.error("사용자 ID 형식 오류: {}", authentication.getName());
+            throw new IllegalArgumentException("잘못된 사용자 ID 형식입니다.");
+        }
     }
 
     /**

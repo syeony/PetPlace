@@ -1,6 +1,7 @@
 package com.minjeok4go.petplace.care.dto;
 
 import com.minjeok4go.petplace.care.entity.Cares.CareCategory;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -39,10 +41,16 @@ public class CareRequestDto {
     private LocalDate endDate;
 
     // 산책일 경우 - 시작 시간 (돌봄일 경우 null)
+    @Schema(type = "string", pattern = "HH:mm", example = "14:30")
     private LocalTime startTime;
 
     // 산책일 경우 - 종료 시간 (돌봄일 경우 null)
+    @Schema(type = "string", pattern = "HH:mm", example = "18:00")
     private LocalTime endTime;
+
+    // 이미지 URL 리스트 (선택사항, 최대 5개)
+    @Size(max = 5, message = "이미지는 최대 5개까지 등록 가능합니다")
+    private List<String> imageUrls;
 
     /**
      * 유효성 검증 메서드
