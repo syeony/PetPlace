@@ -17,6 +17,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByParentCommentIdAndDeletedAtIsNull(Long parentCommentId);
     // 댓글 개수 카운트를 메서드로 추가
     int countByFeedIdAndDeletedAtIsNull(Long feedId);
+
     @Query("SELECT c.feed.id, COUNT(c.id) FROM Comment c WHERE c.feed.id IN :feedIds AND c.deletedAt IS NULL GROUP BY c.feed.id")
     List<Object[]> countByFeedIdInAndDeletedAtIsNullGroupByFeedId(@Param("feedIds") List<Long> feedIds);
 
