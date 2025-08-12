@@ -174,7 +174,7 @@ class BoardViewModel @Inject constructor(
             page = 0
             endReached = false
 
-            val result = repo.fetchRecommendedFeeds(userInfo, page, size)
+            val result = repo.fetchRecommendedFeeds2(page, size)
 
             _remoteFeeds.value = result
             _likedFeeds.value = result.filter { it.liked == true }.map { it.id }.toSet()
@@ -196,7 +196,7 @@ class BoardViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val next = page + 1
-                val result = repo.fetchRecommendedFeeds(userInfo, next, size)
+                val result = repo.fetchRecommendedFeeds2(next, size)
 
                 // 중복 제거하며 "append" (서버 순서 보존)
                 val existing = _remoteFeeds.value
@@ -231,7 +231,7 @@ class BoardViewModel @Inject constructor(
                 page = 0
                 endReached = false
 
-                val result = repo.fetchRecommendedFeeds(userInfo, page, size)
+                val result = repo.fetchRecommendedFeeds2(page, size)
                 _remoteFeeds.value = result
                 _likedFeeds.value = result.filter { it.liked == true }.map { it.id }.toSet()
                 endReached = result.size < size
