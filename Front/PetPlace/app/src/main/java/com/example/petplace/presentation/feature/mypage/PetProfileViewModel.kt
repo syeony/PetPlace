@@ -3,6 +3,7 @@ package com.example.petplace.presentation.feature.mypage
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petplace.data.repository.ImageRepository
 import com.example.petplace.data.repository.PetRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +32,8 @@ data class PetProfileUiState(
 
 @HiltViewModel
 class PetProfileViewModel @Inject constructor(
-    private val petRepository: PetRepository
+    private val petRepository: PetRepository,
+    private val imageRepository: ImageRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PetProfileUiState())
@@ -43,14 +45,36 @@ class PetProfileViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
 
-                // MyPageRepository의 getMyPageInfo()에서 petList 가져오기
-                // 실제로는 개별 펫 정보를 가져오는 API가 필요할 수 있음
+                petRepository.getPetInfo(petId)
+                    .onSuccess { pet ->
+                        // 서버 이미지 URL 처리
+                        val imageUrl = if (!pet.imgSrc.isNullOrEmpty()) {
+                            if (pet.imgSrc.startsWith("http")) {
+                                pet.imgSrc
+                            } else {
+                                "http://43.201.108.195:8081${pet.imgSrc}"
+                            }
+                        } else null
 
-                _uiState.value = _uiState.value.copy(
-                    petId = petId,
-                    isEditMode = true,
-                    isLoading = false
-                )
+                        _uiState.value = _uiState.value.copy(
+                            petId = petId,
+                            isEditMode = true,
+                            petName = pet.name,
+                            breed = mapApiBreedToDisplay(pet.breed),
+                            gender = mapApiGenderToDisplay(pet.sex),
+                            neutered = pet.tnr,
+                            birthDate = formatApiDateToDisplay(pet.birthday),
+                            age = calculateAge(pet.birthday).toString(),
+                            profileImageUri = imageUrl?.let { Uri.parse(it) },
+                            isLoading = false
+                        )
+                    }
+                    .onFailure { exception ->
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = "펫 정보를 불러오는데 실패했습니다: ${exception.message}"
+                        )
+                    }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -59,7 +83,6 @@ class PetProfileViewModel @Inject constructor(
             }
         }
     }
-
 
     fun updatePetName(name: String) {
         _uiState.value = _uiState.value.copy(
@@ -155,6 +178,31 @@ class PetProfileViewModel @Inject constructor(
 
                 val state = _uiState.value
 
+                // 1. 이미지 처리 로직 수정
+                var finalImageUrl: String? = null
+
+                if (state.profileImageUri != null) {
+                    val imageUriString = state.profileImageUri.toString()
+
+                    // 새로 선택한 이미지인지 확인 (기존 서버 URL이 아닌 경우)
+                    if (!imageUriString.startsWith("http://43.201.108.195:8081")) {
+                        // 새 이미지 업로드
+                        try {
+                            val uploadedUrls = imageRepository.uploadImages(listOf(state.profileImageUri))
+                            finalImageUrl = uploadedUrls.firstOrNull()
+                        } catch (e: Exception) {
+                            _uiState.value = _uiState.value.copy(
+                                isSaving = false,
+                                error = "이미지 업로드에 실패했습니다: ${e.message}"
+                            )
+                            return@launch
+                        }
+                    } else {
+                        // 기존 이미지 URL에서 서버 베이스 URL 제거하여 상대 경로로 변환
+                        finalImageUrl = imageUriString.replace("http://43.201.108.195:8081", "")
+                    }
+                }
+
                 // 성별을 API 형식에 맞게 변환
                 val apiGender = when(state.gender) {
                     "남아" -> "MALE"
@@ -162,14 +210,15 @@ class PetProfileViewModel @Inject constructor(
                     else -> "MALE"
                 }
 
+                // 2. 펫 정보 저장 (기존 이미지 URL도 포함)
                 val result = petRepository.savePetInfo(
-                    petId = state.petId,  // null이면 추가, 값이 있으면 수정
+                    petId = state.petId,
                     name = state.petName,
-                    animal = "DOG", // 현재는 고정, 필요시 UI에서 선택하도록 확장
-                    breed = mapBreedToApiFormat(state.breed), // 견종 매핑 필요
+                    animal = "DOG",
+                    breed = mapBreedToApiFormat(state.breed),
                     sex = apiGender,
-                    birthday = formatBirthDateForApi(state.birthDate), // "2025-08-12" 형식으로 변환
-                    imgSrc = state.profileImageUri?.toString(),
+                    birthday = formatBirthDateForApi(state.birthDate),
+                    imgSrc = finalImageUrl, // 기존 또는 새 이미지 URL
                     tnr = state.neutered
                 )
 
@@ -194,14 +243,66 @@ class PetProfileViewModel @Inject constructor(
         }
     }
 
-    // 헬퍼 메서드들 추가
+    // 헬퍼 메서드들
+    private fun mapApiBreedToDisplay(apiBreed: String): String {
+        return when(apiBreed) {
+            "POMERANIAN" -> "포메라니안"
+            "POODLE" -> "푸들"
+            "MALTESE" -> "말티즈"
+            "SHIBA_INU" -> "시바견"
+            "GOLDEN_RETRIEVER" -> "골든 리트리버"
+            "CHIHUAHUA" -> "치와와"
+            "BULLDOG" -> "불독"
+            "BEAGLE" -> "비글"
+            "MIXED" -> "믹스견"
+            else -> "기타"
+        }
+    }
+
     private fun mapBreedToApiFormat(breed: String): String {
         return when(breed) {
+            "포메라니안" -> "POMERANIAN"
             "푸들" -> "POODLE"
             "말티즈" -> "MALTESE"
             "시바견" -> "SHIBA_INU"
             "골든 리트리버" -> "GOLDEN_RETRIEVER"
-            else -> "MIXED" // 기본값
+            "치와와" -> "CHIHUAHUA"
+            "불독" -> "BULLDOG"
+            "비글" -> "BEAGLE"
+            "믹스견" -> "MIXED"
+            else -> "MIXED"
+        }
+    }
+
+    private fun mapApiGenderToDisplay(apiGender: String): String {
+        return when(apiGender) {
+            "MALE" -> "남아"
+            "FEMALE" -> "여아"
+            else -> "남아"
+        }
+    }
+
+    private fun formatApiDateToDisplay(apiDate: String): String {
+        // "2025-08-12" -> "08/12/2025" 형식으로 변환
+        if (apiDate.isBlank()) return ""
+
+        val parts = apiDate.split("-")
+        if (parts.size == 3) {
+            val year = parts[0]
+            val month = parts[1]
+            val day = parts[2]
+            return "$month/$day/$year"
+        }
+        return apiDate
+    }
+
+    private fun calculateAge(birthday: String): Int {
+        return try {
+            val birthYear = birthday.substring(0, 4).toInt()
+            val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+            currentYear - birthYear
+        } catch (e: Exception) {
+            0
         }
     }
 

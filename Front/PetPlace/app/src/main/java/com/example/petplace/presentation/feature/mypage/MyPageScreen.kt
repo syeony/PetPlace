@@ -80,6 +80,10 @@ fun MyPageScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.refreshData()
+    }
+
     // Loading 처리
     if (uiState.isLoading) {
         Box(
@@ -525,8 +529,16 @@ fun PetInfoCard(
                         .clip(CircleShape)
                         .background(Color(0xFFE0E0E0))
                 ) {
+                    val petImageUrl = if (!pet.imgSrc.isNullOrEmpty()) {
+                        if (pet.imgSrc.startsWith("http")) {
+                            pet.imgSrc
+                        } else {
+                            "http://43.201.108.195:8081${pet.imgSrc}"
+                        }
+                    } else null
+
                     AsyncImage(
-                        model = pet.imgSrc,
+                        model = petImageUrl,
                         contentDescription = "반려동물 이미지",
                         placeholder = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24),
                         error = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24),

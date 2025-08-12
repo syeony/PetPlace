@@ -65,6 +65,10 @@ class MyPageViewModel @Inject constructor(
         loadUserProfile()
     }
 
+    fun refreshData() {
+        loadUserProfile()
+    }
+
     private fun loadUserProfile() {
         viewModelScope.launch {
             try {
@@ -88,7 +92,7 @@ class MyPageViewModel @Inject constructor(
                                 id = pet.id,
                                 name = pet.name,
                                 breed = pet.breed,
-                                gender = pet.sex,
+                                gender = mapApiGenderToDisplay(pet.sex),
                                 age = calculateAge(pet.birthday),
                                 imgSrc = pet.imgSrc
                             )
@@ -261,6 +265,14 @@ class MyPageViewModel @Inject constructor(
             SupplyType.BATH -> _uiState.value.petSupplies.bathImageUrl
             SupplyType.FOOD -> _uiState.value.petSupplies.foodImageUrl
             SupplyType.WASTE -> _uiState.value.petSupplies.wasteImageUrl
+        }
+    }
+
+    private fun mapApiGenderToDisplay(apiGender: String): String {
+        return when(apiGender) {
+            "MALE" -> "남아"
+            "FEMALE" -> "여아"
+            else -> "남아"
         }
     }
 }

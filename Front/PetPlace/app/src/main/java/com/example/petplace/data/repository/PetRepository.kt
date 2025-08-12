@@ -1,6 +1,7 @@
 package com.example.petplace.data.repository
 
 import android.util.Log
+import com.example.petplace.data.model.pet.PetInfoResponse
 import com.example.petplace.data.model.pet.PetRequest
 import com.example.petplace.data.model.pet.PetResponse
 import com.example.petplace.data.model.pet.PetUpdateRequest
@@ -17,6 +18,32 @@ class PetRepository @Inject constructor(
     companion object {
         private const val TAG = "PetRepository"
     }
+
+    suspend fun getPetInfo(petId: Int): Result<PetInfoResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "펫 정보 조회 요청 - ID: $petId")
+                val response = api.getPetInfo(petId)
+                if (response.isSuccessful) {
+                    val petInfo = response.body()
+                    if (petInfo != null) {
+                        Log.d(TAG, "펫 정보 조회 성공 - 이름: ${petInfo.name}")
+                        Result.success(petInfo)
+                    } else {
+                        Log.e(TAG, "응답은 성공했지만 body가 null")
+                        Result.failure(Exception("응답은 성공했지만 body가 null"))
+                    }
+                } else {
+                    Log.e(TAG, "펫 정보 조회 실패: ${response.code()} ${response.message()}")
+                    Result.failure(Exception("펫 정보 조회 실패: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "펫 정보 조회 중 오류", e)
+                Result.failure(e)
+            }
+        }
+    }
+
 
     // 펫 추가
     suspend fun addPet(request: PetRequest): Result<PetResponse> {
