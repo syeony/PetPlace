@@ -144,6 +144,17 @@ class ChatListViewModel @Inject constructor(
 
         Log.d(TAG, "채팅방 변환: chatRoomId=${response.chatRoomId}, partner=${partnerInfo.nickname}")
 
+        // 프로필 이미지 URL 처리 - 서버 URL 결합
+        val profileImageUrl = partnerInfo.profileImageUrl?.let { imageUrl ->
+            if (imageUrl.startsWith("http")) {
+                // 이미 전체 URL인 경우
+                imageUrl
+            } else {
+                // 상대 경로인 경우 서버 URL과 결합
+                "http://43.201.108.195:8081$imageUrl"
+            }
+        }
+
         return ChatRoom(
             id = response.chatRoomId,
             name = partnerInfo.nickname,
@@ -151,7 +162,7 @@ class ChatListViewModel @Inject constructor(
             lastMessage = response.lastMessage ?: "아직 메시지가 없습니다.",
             time = formatLastMessageTime(response.lastMessageAt),
             unreadCount = unreadCount,
-            profileImageUrl = R.drawable.ic_mypage
+            profileImageUrl = profileImageUrl // String으로 변경
         )
     }
 
