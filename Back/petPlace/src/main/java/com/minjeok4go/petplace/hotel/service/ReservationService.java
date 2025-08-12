@@ -75,7 +75,31 @@ public class ReservationService {
     }
 
     /**
-     * 예약 취소
+     * 예약 취소 (결제 취소 시 호출)
+     */
+    @Transactional
+    public void cancelReservationByPayment(Long reservationId) {
+        log.info("예약 취소: 예약 ID {}", reservationId);
+
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ReservationNotFoundException("예약을 찾을 수 없습니다: " + reservationId));
+
+        // 예약된 날짜들을 다시 예약 가능 상태로 변경
+        List<Long> availableDateIds = reservation.getReservedDates().stream()
+                .map(AvailableDate::getId)
+                .collect(Collectors.toList());
+
+        availableDateService.releaseDates(availableDateIds);
+
+        // 예약 상태를 취소로 변경
+        reservation.setStatus(Reservation.ReservationStatus.CANCELLED);
+        reservationRepository.save(reservation);
+
+        log.info("예약 취소 완료: 예약 ID {}", reservationId);
+    }
+
+    /**
+     * 예약 취소 (사용자가 직접 취소)
      */
     @Transactional
     public void cancelReservation(Long userId, Long reservationId) {
