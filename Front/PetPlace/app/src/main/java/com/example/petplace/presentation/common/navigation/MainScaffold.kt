@@ -186,7 +186,23 @@ fun MainScaffold() {
                     petId = actualPetId
                 )
             }
-            composable("pet_complete") { ProfileCompleteScreen(navController) }
+            composable(
+                route = "pet_complete/{petId}",
+                arguments = listOf(
+                    navArgument("petId") {
+                        type = NavType.IntType
+                        defaultValue = -1
+                    }
+                )
+            ) { backStackEntry ->
+                val petId = backStackEntry.arguments?.getInt("petId")
+                val actualPetId = if (petId == -1) null else petId
+
+                ProfileCompleteScreen(
+                    navController = navController,
+                    petId = actualPetId
+                )
+            }
             composable("my_post") { MyPostScreen(navController) }
 
 

@@ -167,7 +167,7 @@ class PetProfileViewModel @Inject constructor(
         return errors.isEmpty()
     }
 
-    fun savePetProfile(onSuccess: () -> Unit) {
+    fun savePetProfile(onSuccess: (Int?) -> Unit) {
         if (!validateForm()) {
             return
         }
@@ -188,7 +188,8 @@ class PetProfileViewModel @Inject constructor(
                     if (!imageUriString.startsWith("http://43.201.108.195:8081")) {
                         // 새 이미지 업로드
                         try {
-                            val uploadedUrls = imageRepository.uploadImages(listOf(state.profileImageUri))
+                            val uploadedUrls =
+                                imageRepository.uploadImages(listOf(state.profileImageUri))
                             finalImageUrl = uploadedUrls.firstOrNull()
                         } catch (e: Exception) {
                             _uiState.value = _uiState.value.copy(
@@ -204,7 +205,7 @@ class PetProfileViewModel @Inject constructor(
                 }
 
                 // 성별을 API 형식에 맞게 변환
-                val apiGender = when(state.gender) {
+                val apiGender = when (state.gender) {
                     "남아" -> "MALE"
                     "여아" -> "FEMALE"
                     else -> "MALE"
@@ -223,9 +224,9 @@ class PetProfileViewModel @Inject constructor(
                 )
 
                 result.fold(
-                    onSuccess = {
+                    onSuccess = { responseData ->
                         _uiState.value = _uiState.value.copy(isSaving = false)
-                        onSuccess()
+                        onSuccess(responseData.id)
                     },
                     onFailure = { exception ->
                         _uiState.value = _uiState.value.copy(
@@ -245,7 +246,7 @@ class PetProfileViewModel @Inject constructor(
 
     // 헬퍼 메서드들
     private fun mapApiBreedToDisplay(apiBreed: String): String {
-        return when(apiBreed) {
+        return when (apiBreed) {
             "POMERANIAN" -> "포메라니안"
             "POODLE" -> "푸들"
             "MALTESE" -> "말티즈"
@@ -260,7 +261,7 @@ class PetProfileViewModel @Inject constructor(
     }
 
     private fun mapBreedToApiFormat(breed: String): String {
-        return when(breed) {
+        return when (breed) {
             "포메라니안" -> "POMERANIAN"
             "푸들" -> "POODLE"
             "말티즈" -> "MALTESE"
@@ -275,7 +276,7 @@ class PetProfileViewModel @Inject constructor(
     }
 
     private fun mapApiGenderToDisplay(apiGender: String): String {
-        return when(apiGender) {
+        return when (apiGender) {
             "MALE" -> "남아"
             "FEMALE" -> "여아"
             else -> "남아"
