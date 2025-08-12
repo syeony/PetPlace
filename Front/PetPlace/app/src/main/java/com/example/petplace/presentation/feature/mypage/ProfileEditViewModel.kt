@@ -2,6 +2,7 @@ package com.example.petplace.presentation.feature.mypage
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.location.Location
 import android.net.Uri
 import androidx.core.content.ContextCompat
@@ -17,11 +18,14 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import java.util.Locale
 import javax.inject.Inject
 import kotlin.coroutines.resume
 
@@ -57,6 +61,7 @@ class ProfileEditViewModel @Inject constructor(
     val uiState: StateFlow<ProfileEditUiState> = _uiState.asStateFlow()
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var geocoder: Geocoder
 
     init {
         initLocationClient()
@@ -64,9 +69,9 @@ class ProfileEditViewModel @Inject constructor(
     }
 
     private fun initLocationClient() {
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(
-            PetPlaceApp.getAppContext()
-        )
+        val context = PetPlaceApp.getAppContext()
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+        geocoder = Geocoder(context, Locale.KOREAN)
     }
 
     private fun loadCurrentUserData() {
@@ -116,13 +121,13 @@ class ProfileEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(profileImageUri = uri)
     }
     fun requestLocationVerification() {
-        if (_uiState.value.isLocationVerified) {
-            // 이미 인증된 경우 재인증 여부 확인
-            _uiState.value = _uiState.value.copy(
-                error = "이미 동네 인증이 완료되었습니다. 재인증하시겠습니까?"
-            )
-            return
-        }
+//        if (_uiState.value.isLocationVerified) {
+//            // 이미 인증된 경우 재인증 여부 확인
+//            _uiState.value = _uiState.value.copy(
+//                error = "이미 동네 인증이 완료되었습니다. 재인증하시겠습니까?"
+//            )
+//            return
+//        }
 
         viewModelScope.launch {
             try {
@@ -150,19 +155,25 @@ class ProfileEditViewModel @Inject constructor(
                 val location = getCurrentLocation()
 
                 if (location != null) {
-                    // TODO: Implement reverse geocoding to get address
-                    // val address = getAddressFromLocation(location.latitude, location.longitude)
-                    val address = "서울시 강남구 역삼동" // 임시 주소
+                    // 실제 주소로 변환
+                    val address = getAddressFromLocation(location.latitude, location.longitude)
 
-                    // TODO: 서버에 위치 인증 정보 저장
-                    // myPageRepository.updateLocationVerification(location.latitude, location.longitude, address)
+                    if (address != null) {
+                        // TODO: 서버에 위치 인증 정보 저장
+                        // myPageRepository.updateLocationVerification(location.latitude, location.longitude, address)
 
-                    _uiState.value = _uiState.value.copy(
-                        isVerifyingLocation = false,
-                        isLocationVerified = true,
-                        currentLocation = address,
-                        successMessage = "동네 인증이 완료되었습니다!"
-                    )
+                        _uiState.value = _uiState.value.copy(
+                            isVerifyingLocation = false,
+                            isLocationVerified = true,
+                            currentLocation = address,
+                            successMessage = "동네 인증이 완료되었습니다!"
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isVerifyingLocation = false,
+                            error = "주소를 찾을 수 없습니다. 네트워크 연결을 확인하고 다시 시도해주세요."
+                        )
+                    }
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isVerifyingLocation = false,
@@ -243,7 +254,32 @@ class ProfileEditViewModel @Inject constructor(
         }
     }
 
-//
+    // 좌표를 실제 주소로 변환하는 함수
+    private suspend fun getAddressFromLocation(latitude: Double, longitude: Double): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                if (Geocoder.isPresent()) {
+                    val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+
+                    if (!addresses.isNullOrEmpty()) {
+                        val address = addresses[0]
+                        val fullAddress = address.getAddressLine(0)
+
+                        if (!fullAddress.isNullOrEmpty()) {
+                            // "대한민국" 제거하고 반환
+                            return@withContext fullAddress.replace("대한민국 ", "")
+                        }
+                    }
+                }
+                return@withContext null
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return@withContext null
+            }
+        }
+    }
+
+
 //    fun toggleCurrentPasswordVisibility() {
 //        _uiState.value = _uiState.value.copy(
 //            currentPwVisible = !_uiState.value.currentPwVisible
