@@ -135,8 +135,16 @@ fun MyPageScreen(
                                     .size(60.dp)
                                     .clip(CircleShape)
                             ) {
+                                val profileImageUrl = if (!uiState.userProfile.userImgSrc.isNullOrEmpty()) {
+                                    if (uiState.userProfile.userImgSrc.startsWith("http")) {
+                                        uiState.userProfile.userImgSrc
+                                    } else {
+                                        "http://43.201.108.195:8081${uiState.userProfile.userImgSrc}"
+                                    }
+                                } else null
+
                                 AsyncImage(
-                                    model = uiState.userProfile.userImgSrc,
+                                    model = profileImageUrl,
                                     contentDescription = "프로필 이미지",
                                     placeholder = painterResource(id = R.drawable.ic_mypage),
                                     error = painterResource(id = R.drawable.ic_mypage),

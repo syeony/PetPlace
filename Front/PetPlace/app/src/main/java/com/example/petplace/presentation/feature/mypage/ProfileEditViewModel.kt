@@ -91,6 +91,7 @@ class ProfileEditViewModel @Inject constructor(
                             nickname = response.nickname ?: "",
                             introduction = response.introduction ?: "",
                             profileImageUrl = response.userImgSrc, // 서버 이미지 URL
+                            profileImageUri = null,
                             currentLocation = response.regionName,
                             isLocationVerified = !response.regionName.isNullOrEmpty(), // 지역 정보가 있으면 인증된 것으로 간주
                             isLoading = false

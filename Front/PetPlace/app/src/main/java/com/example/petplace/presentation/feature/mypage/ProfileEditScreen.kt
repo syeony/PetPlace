@@ -151,8 +151,19 @@ fun ProfileEditScreen(
                         modifier = Modifier.size(112.dp),
                         contentAlignment = Alignment.BottomEnd
                     ) {
-                        val imageToShow = uiState.profileImageUri
-                            ?: uiState.profileImageUrl?.let { Uri.parse(it) }
+                        val imageToShow = when {
+                            // 새로 선택한 이미지가 있으면 우선 표시
+                            uiState.profileImageUri != null -> uiState.profileImageUri
+                            // 서버 URL이 있으면 표시 (full URL 처리)
+                            !uiState.profileImageUrl.isNullOrEmpty() -> {
+                                if (uiState.profileImageUrl!!.startsWith("http")) {
+                                    uiState.profileImageUrl
+                                } else {
+                                    "http://43.201.108.195:8081${uiState.profileImageUrl}" // 서버 베이스 URL 추가
+                                }
+                            }
+                            else -> null
+                        }
 
                         if (imageToShow != null) {
                             Image(
