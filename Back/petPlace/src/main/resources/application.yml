@@ -19,8 +19,8 @@ spring:
       password: ssafy123
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 20MB
+      max-request-size: 20MB
   web:
     resources:
       static-locations: file:/home/ubuntu/upload/images/
@@ -61,3 +61,9 @@ logging:
   level:
     com.minjeok4go.petplace.auth: DEBUG
     root: INFO
+
+ai:
+  similarity:
+    base-url: http://similarity:8083    # compose 서비스명:포트
+    connect-timeout-ms: 3000
+    read-timeout-ms: 15000
