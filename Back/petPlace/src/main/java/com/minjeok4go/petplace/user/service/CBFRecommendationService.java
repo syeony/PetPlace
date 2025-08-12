@@ -38,6 +38,8 @@ import java.time.Period;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -51,6 +53,7 @@ public class CBFRecommendationService {
     private final CommentRepository commentRepository;
     private final RegionRepository regionRepository;
     private final LikeRepository likeRepository;
+    private final RecommendationCacheService recommendationCacheService;
 
     // 개인 프로필(태그/동물) 읽기용
     private final CBFUserProfileService userProfileService;
@@ -279,12 +282,8 @@ public class CBFRecommendationService {
 
         // 0) 그룹 키 산출
         List<Pet> pets = petRepository.findByUserId(userId);
-
-        // determineGroupKey(User, List<Pet>) 시그니처라면 엔티티 로딩
         User user = userRepository.getReferenceById(userId);
         String groupKey = userGroupService.determineGroupKey(user, pets);
-        // 만약 determineGroupKey(Long, List<Pet>) 오버로드가 있다면 위 두 줄을:
-        // String groupKey = userGroupService.determineGroupKey(userId, pets);
 
         String redisKey = "group:" + groupKey;
         long start = (long) page * size;
@@ -294,7 +293,7 @@ public class CBFRecommendationService {
         Set<ZSetOperations.TypedTuple<String>> tuples =
                 redisTemplate.opsForZSet().reverseRangeWithScores(redisKey, start, end);
 
-        // 1-1) 캐시 비었을 때 fallback → '조기 return' 대신 후보/점수 구성
+        // 1-1) 캐시 비었을 때 fallback → 후보/점수 구성
         List<Long> candidateIds;
         Map<Long, Double> scoreById = new HashMap<>();
         if (tuples == null || tuples.isEmpty()) {
@@ -312,7 +311,7 @@ public class CBFRecommendationService {
             }
         }
 
-        // 2) 개인 CBF 가산점 계산 (Long 사용)
+        // 2) 개인 CBF 가산점
         Map<Long, Double> cbfBoost = computePersonalCbfBoost(userId, candidateIds);
         double ALPHA = 0.5;
 
@@ -323,57 +322,72 @@ public class CBFRecommendationService {
             finalScoreById.put(id, base + ALPHA * cbf);
         }
 
-        // 3) 내 최신 글 고정
-        final int PIN_OWN_LIMIT = 3;
-        LocalDateTime threeHoursAgo = LocalDateTime.now().minusHours(3); // 필요시 조정
+        // 3) 내 최신 글 고정(최근 3시간 내 최대 3개)
+        LocalDateTime threeHoursAgo = LocalDateTime.now().minusHours(3);
         List<Long> myRecentFeedIds = feedRepository
                 .findTop3IdsByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(userId, threeHoursAgo);
 
-        // 4) 고정 + 점수 정렬
-        LinkedHashSet<Long> ordered = new LinkedHashSet<>(size * 2);
-        for (Long id : myRecentFeedIds) {
-            ordered.add(id);
-            if (ordered.size() >= size) break;
-        }
-        if (ordered.size() < size) {
-            candidateIds.stream()
-                    .filter(id -> !ordered.contains(id))
-                    .sorted((a, b) -> Double.compare(
-                            finalScoreById.getOrDefault(b, 0.0),
-                            finalScoreById.getOrDefault(a, 0.0)))
-                    .limit(size - ordered.size())
-                    .forEach(ordered::add);
+        // ==== 4) 최종 pool 만들기 (핀 고정 + 후보, 중복 제거, 여유분) ====
+        List<Long> pool = Stream.concat(
+                        myRecentFeedIds.stream(),
+                        candidateIds.stream()
+                ).distinct()
+                .limit(size * 3L)            // 삭제/필터로 빠질 걸 대비
+                .toList();
+
+        if (pool.isEmpty()) return List.of();
+
+        // ==== 5) 살아있는 글만 조회 (deletedAt 제외) ====
+        // ⚠ FeedRepository에 다음 메서드가 있어야 합니다:
+        // @Query("select f from Feed f where f.id in :ids and f.deletedAt is null")
+        // List<Feed> findAllActiveByIdIn(@Param("ids") List<Long> ids);
+        List<Feed> alive = feedRepository.findAllActiveByIdIn(pool);
+        Map<Long, Feed> aliveById = alive.stream()
+                .collect(Collectors.toMap(Feed::getId, Function.identity()));
+
+        // (선택) 이 그룹 ZSET에서 죽은 멤버를 즉시 제거 (lazy clean)
+        List<Object> deadMembers = pool.stream()
+                .filter(id -> !aliveById.containsKey(id))
+                .map(String::valueOf)
+                .map(Object.class::cast)
+                .toList();
+        if (!deadMembers.isEmpty()) {
+            redisTemplate.opsForZSet().remove(redisKey, deadMembers.toArray(new Object[0]));
         }
 
-        // 5) 상세 조회 & 응답 (HYDRATE)
-        List<Long> finalIds = ordered.stream().limit(size).toList();
+        // ==== 6) 최종 ID: pool 순서 유지하며 살아있는 것만 size개 ====
+        List<Long> finalIds = pool.stream()
+                .filter(aliveById::containsKey)
+                .limit(size)
+                .toList();
+
         if (finalIds.isEmpty()) return List.of();
 
-// (A) 본문 배치 로딩
-        List<Feed> feeds = feedRepository.findAllById(finalIds); // 순서는 보장 안 됨 → map
+        // ==== 7) HYDRATE (이미지/태그/좋아요) ====
+        // 본문
+        List<Feed> feeds = feedRepository.findAllById(finalIds);
         Map<Long, Feed> feedById = feeds.stream()
                 .collect(Collectors.toMap(Feed::getId, Function.identity()));
 
-// (B) 이미지 배치 로딩 (refType/refId 기준)
+        // 이미지 (refType/refId 구조)
         List<Image> images = imageRepository
                 .findAllByRefTypeAndRefIdInOrderBySortAsc(ImageType.FEED, finalIds);
-
         Map<Long, List<ImageResponse>> imagesByFeed = images.stream()
                 .collect(Collectors.groupingBy(
-                        Image::getRefId, // 🔴 targetId가 아니라 refId 기준으로 묶기
+                        Image::getRefId,
                         Collectors.mapping(ImageResponse::new, Collectors.toList())
                 ));
 
-// (C) 태그 배치 로딩
+        // 태그
         List<FeedTagJoin> tagRows = feedTagRepository.findAllByFeedIdIn(finalIds);
         Map<Long, List<TagResponse>> tagsByFeed = tagRows.stream()
                 .collect(Collectors.groupingBy(FeedTagJoin::getFeedId,
                         Collectors.mapping(r -> new TagResponse(r.getTagId(), r.getTagName()), Collectors.toList())));
 
-// (D) 좋아요 여부 배치 로딩
+        // 좋아요
         Set<Long> likedIds = likeRepository.findFeedIdsLikedByUser(userId, finalIds);
 
-// (E) 최종 DTO 조립 (finalIds 순서 유지)
+        // ==== 8) DTO 조립 (finalIds 순서 유지) ====
         List<FeedListResponse> out = new ArrayList<>(finalIds.size());
         for (Long id : finalIds) {
             Feed f = feedById.get(id);
@@ -384,18 +398,14 @@ public class CBFRecommendationService {
             List<TagResponse> tags  = tagsByFeed.getOrDefault(id, List.of());
             boolean liked           = likedIds.contains(id);
 
-            // 방법 1) 팩토리 확장
-//            out.add(FeedListResponse.of(f, tags, imgs, liked, finalScore));
-
-            // 방법 2) 기존 from(...)만 유지하고 나중에 세터로 채우고 싶다면:
-             FeedListResponse dto = FeedListResponse.from(f, finalScore);
-             dto.setTags(tags);
-             dto.setImages(imgs);
-             dto.setLiked(liked); // null 방지: Boolean 대신 boolean이면 더 좋음
-             out.add(dto);
+            // 팩토리 없으면 from + 세터 사용
+            FeedListResponse dto = FeedListResponse.from(f, finalScore);
+            dto.setTags(tags);
+            dto.setImages(imgs);
+            dto.setLiked(liked);
+            out.add(dto);
         }
         return out;
-
     }
 
     // CBFRecommendationService.java
@@ -521,6 +531,11 @@ public class CBFRecommendationService {
                 // member=feedId, score=추천점수 → 높은 점수일수록 상단 노출.
                 // 반환값은 ZADD한 총 건수 (itemsTotal에 누적)
                 itemsTotal += writeScoresToRedis(redisKey, scores);
+
+                // 추가: 이 그룹에 어떤 feedId들이 들어갔는지 기록
+                for (Long fid : scores.keySet()) {
+                    recommendationCacheService.rememberMembership(fid, groupKey);
+                }
 
                 final long t3 = System.nanoTime();
                 ioNsTotal += (t3 - t2); // I/O 구간 누적

@@ -18,6 +18,7 @@ import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
 import com.minjeok4go.petplace.like.repository.LikeRepository;
 import com.minjeok4go.petplace.user.entity.User;
+import com.minjeok4go.petplace.user.service.RecommendationCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -38,6 +39,8 @@ public class FeedService {
     private final TagRepository tagRepository;
     private final ImageRepository imageRepository;
     private final LikeRepository likeRepository;
+    private final RecommendationCacheService recommendationCacheService; // ⬅ 추가
+
 
     @Transactional(readOnly = true)
     public FeedDetailResponse getFeedDetail(Long feedId, User user) {
@@ -68,6 +71,8 @@ public class FeedService {
         syncTags(feed.getId(), req.getTagIds());
         syncImages(feed.getId(), req.getImages());
 
+        recommendationCacheService.evictByFeedId(saved.getId());  // ⬅ 추가
+
         return getFeedDetail(saved.getId(), user);
     }
 
@@ -91,6 +96,8 @@ public class FeedService {
         syncTags(feed.getId(), req.getTagIds());
         syncImages(feed.getId(), req.getImages());
 
+        recommendationCacheService.evictByFeedId(saved.getId());  // ⬅ 추가
+
         return getFeedDetail(saved.getId(), user);
     }
 
@@ -102,6 +109,9 @@ public class FeedService {
 
         feed.delete();
         feedRepository.save(feed);
+
+        recommendationCacheService.evictByFeedId(id);             // ⬅ 추가
+
         return new DeleteFeedResponse(id);
     }
 
@@ -130,6 +140,8 @@ public class FeedService {
                     .toList();
             feedTagRepository.saveAll(feedTags);
         }
+        recommendationCacheService.evictByFeedId(feedId);         // ⬅ 추가
+
     }
 
     private void syncImages(Long feedId, List<FeedImageRequest> requested) {
@@ -143,6 +155,8 @@ public class FeedService {
                     .toList();
             imageRepository.saveAll(toAdd);
         }
+        recommendationCacheService.evictByFeedId(feedId);         // ⬅ 추가
+
     }
 
     @Transactional(readOnly = true)
@@ -155,6 +169,8 @@ public class FeedService {
         feed.increaseLikes();
         feedRepository.save(feed);
 
+        recommendationCacheService.evictByFeedId(feed.getId());   // ⬅ 추가
+
         return new FeedLikeResponse(feed.getId(), feed.getLikes());
     }
 
@@ -162,6 +178,8 @@ public class FeedService {
     public FeedLikeResponse decreaseLike(Feed feed) {
         feed.decreaseLikes();
         feedRepository.save(feed);
+
+        recommendationCacheService.evictByFeedId(feed.getId());   // ⬅ 추가
 
         return new FeedLikeResponse(feed.getId(), feed.getLikes());
     }

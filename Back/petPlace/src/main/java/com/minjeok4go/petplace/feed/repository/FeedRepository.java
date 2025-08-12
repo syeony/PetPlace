@@ -43,6 +43,8 @@ public interface FeedRepository extends JpaRepository<Feed, Long> {
     @Query("select f.id from Feed f where f.userId = :uid and f.deletedAt is null")
     List<Long> findIdsByUserId(@Param("uid") Long userId);
 
+    @Query("select f from Feed f where f.id in :ids and f.deletedAt is null")
+    List<Feed> findAllActiveByIdIn(@Param("ids") List<Long> ids);
 
     List<Feed> findTop200ByCreatedAtAfterOrderByLikesDesc(LocalDateTime createdAtAfter, Sort sort);
     Optional<Feed> findByIdAndDeletedAtIsNull(Long id);
