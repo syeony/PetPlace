@@ -397,6 +397,10 @@ fun MyPageScreen(
                 PetSupplyDialog(
                     supplyType = uiState.currentSupplyType,
                     selectedImage = uiState.selectedSupplyImage,
+                    existingImageUrl = uiState.currentSupplyType?.let {
+                        viewModel.getExistingSupplyImageUrl(it)
+                    },
+                    isSaving = uiState.isSavingSupply,
                     onDismiss = { viewModel.hideSupplyDialog() },
                     onImageSelected = { uri -> viewModel.updateSupplyImage(uri) },
                     onConfirm = { viewModel.saveSupplyInfo() }
@@ -661,7 +665,9 @@ fun PetSupplyItem(
 @Composable
 fun PetSupplyDialog(
     supplyType: SupplyType?,
-    selectedImage: Uri? = null, // 추가: 선택된 이미지 URI
+    selectedImage: Uri? = null,
+    existingImageUrl: String? = null, // 기존 이미지 URL 추가
+    isSaving: Boolean = false, // 저장 상태 추가
     onDismiss: () -> Unit,
     onImageSelected: (Uri?) -> Unit,
     onConfirm: () -> Unit
@@ -674,17 +680,28 @@ fun PetSupplyDialog(
     }
 
     val supplyInfo = when (supplyType) {
-        SupplyType.BATH -> Triple("목욕 용품", "목욕 용품 사진을 올려주세요.", R.drawable.bath_item)
-        SupplyType.FOOD -> Triple("사료 용품", "사료 사진을 올려주세요.", R.drawable.bowl_item)
-        SupplyType.WASTE -> Triple("배변 용품", "배변 용품 사진을 올려주세요.", R.drawable.poo_item)
+        SupplyType.BATH -> Triple(
+            "목욕 용품",
+            if (existingImageUrl.isNullOrEmpty()) "목욕 용품 사진을 올려주세요." else "목욕 용품 사진을 변경하세요.",
+            R.drawable.bath_item
+        )
+        SupplyType.FOOD -> Triple(
+            "사료 용품",
+            if (existingImageUrl.isNullOrEmpty()) "사료 사진을 올려주세요." else "사료 사진을 변경하세요.",
+            R.drawable.bowl_item
+        )
+        SupplyType.WASTE -> Triple(
+            "배변 용품",
+            if (existingImageUrl.isNullOrEmpty()) "배변 용품 사진을 올려주세요." else "배변 용품 사진을 변경하세요.",
+            R.drawable.poo_item
+        )
         else -> Triple("용품", "용품 사진을 올려주세요.", R.drawable.bath_item)
     }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isSaving) onDismiss() }, // 저장 중일 때는 닫기 방지
         title = null,
         text = {
-            // AlertDialog의 text 파라미터에 커스텀 컴포저블 넣기
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -695,26 +712,58 @@ fun PetSupplyDialog(
                         .size(120.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color(0xFFF5F5F5))
-                        .clickable { launcher.launch("image/*") },
+                        .clickable(enabled = !isSaving) {
+                            launcher.launch("image/*")
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    // 선택된 이미지가 있으면 그것을 표시, 없으면 기본 이미지
-                    if (selectedImage != null) {
-                        AsyncImage(
-                            model = selectedImage,
-                            contentDescription = supplyInfo.first,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Image(
-                            painter = painterResource(id = supplyInfo.third),
-                            contentDescription = supplyInfo.first,
+                    when {
+                        // 새로 선택된 이미지가 있을 때
+                        selectedImage != null -> {
+                            AsyncImage(
+                                model = selectedImage,
+                                contentDescription = supplyInfo.first,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        // 기존 이미지가 있을 때
+                        !existingImageUrl.isNullOrEmpty() -> {
+                            AsyncImage(
+                                model = existingImageUrl,
+                                contentDescription = supplyInfo.first,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(id = supplyInfo.third),
+                                error = painterResource(id = supplyInfo.third)
+                            )
+                        }
+                        // 기본 이미지
+                        else -> {
+                            Image(
+                                painter = painterResource(id = supplyInfo.third),
+                                contentDescription = supplyInfo.first,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
+                    }
+
+                    // 저장 중 로딩 표시
+                    if (isSaving) {
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(16.dp),
-                            contentScale = ContentScale.Fit
-                        )
+                                .background(Color.Black.copy(alpha = 0.5f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
 
@@ -726,28 +775,75 @@ fun PetSupplyDialog(
                     textAlign = TextAlign.Center,
                     color = Color.Black
                 )
+
+                // 기존 이미지가 있을 때 상태 표시
+                if (!existingImageUrl.isNullOrEmpty() && selectedImage == null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "현재 등록된 ${supplyInfo.first}",
+                        style = AppTypography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        color = Color.Gray
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    onConfirm()
-                    onDismiss()
+                    if (!isSaving) {
+                        onConfirm()
+                    }
                 },
+                enabled = !isSaving && (selectedImage != null || !existingImageUrl.isNullOrEmpty()),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = PrimaryColor
                 ),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "확인",
-                    color = Color.White,
-                    style = AppTypography.labelLarge
-                )
+                if (isSaving) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "저장 중...",
+                            color = Color.White,
+                            style = AppTypography.labelLarge
+                        )
+                    }
+                } else {
+                    Text(
+                        text = if (existingImageUrl.isNullOrEmpty()) "등록" else "수정",
+                        color = Color.White,
+                        style = AppTypography.labelLarge
+                    )
+                }
             }
         },
-        dismissButton = null,
+        dismissButton = if (!isSaving) {
+            {
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Gray
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "취소",
+                        color = Color.White,
+                        style = AppTypography.labelLarge
+                    )
+                }
+            }
+        } else null,
         containerColor = Color.White,
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.padding(16.dp)

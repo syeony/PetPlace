@@ -31,15 +31,23 @@ data class PetInfo(
     val imgSrc: String? = ""  // 추가
 )
 
+data class PetSupplyState(
+    val bathImageUrl: String? = null,
+    val foodImageUrl: String? = null,
+    val wasteImageUrl: String? = null
+)
+
 data class MyPageUiState(
     val userProfile: UserProfileState = UserProfileState(),
     val pets: List<PetInfo> = emptyList(),
+    val petSupplies: PetSupplyState = PetSupplyState(),
     val isLoading: Boolean = false,
     val error: String? = null,
 
     val showSupplyDialog: Boolean = false,
     val currentSupplyType: SupplyType? = null,
-    val selectedSupplyImage: Uri? = null
+    val selectedSupplyImage: Uri? = null,
+    val isSavingSupply: Boolean = false
 )
 
 @HiltViewModel
@@ -68,7 +76,8 @@ class MyPageViewModel @Inject constructor(
                             location = response.regionName ?: "",
                             level = response.level,
                             experienceProgress = response.experience / 100f,
-                            introduction = response.introduction ?: "소개글이 없습니다."
+                            introduction = response.introduction ?: "소개글이 없습니다.",
+                            userImgSrc = response.userImgSrc ?: ""
                         )
 
                         val pets = response.petList?.map { pet ->
@@ -76,10 +85,12 @@ class MyPageViewModel @Inject constructor(
                                 name = pet.name,
                                 breed = pet.breed,
                                 gender = pet.sex,
-                                age = calculateAge(pet.birthday)
+                                age = calculateAge(pet.birthday),
+                                imgSrc = pet.imgSrc
                             )
                         } ?: emptyList()
 
+                        val petSupplies = parsePetSupplies(response.imgList)
 
                         _uiState.value = _uiState.value.copy(
                             userProfile = userProfile,
@@ -103,6 +114,27 @@ class MyPageViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun parsePetSupplies(imgList: List<com.example.petplace.data.model.mypage.MyPageInfoResponse.ImageInfo>): PetSupplyState {
+        var bathImageUrl: String? = null
+        var foodImageUrl: String? = null
+        var wasteImageUrl: String? = null
+
+        imgList.forEach { imageInfo ->
+            when (imageInfo.sort) {
+                1 -> bathImageUrl = imageInfo.src  // 목욕 용품
+                2 -> foodImageUrl = imageInfo.src  // 사료 용품
+                3 -> wasteImageUrl = imageInfo.src // 배변 용품
+                // 필요에 따라 다른 sort 값들도 추가
+            }
+        }
+
+        return PetSupplyState(
+            bathImageUrl = bathImageUrl,
+            foodImageUrl = foodImageUrl,
+            wasteImageUrl = wasteImageUrl
+        )
     }
 
     private fun calculateAge(birthday: String): Int {
@@ -156,17 +188,61 @@ class MyPageViewModel @Inject constructor(
     fun saveSupplyInfo() {
         viewModelScope.launch {
             try {
-                // 서버에 용품 정보 저장 로직
-                val supplyType = _uiState.value.currentSupplyType
-                val imageUri = _uiState.value.selectedSupplyImage
+                val currentState = _uiState.value
+                val supplyType = currentState.currentSupplyType ?: return@launch
+                val imageUri = currentState.selectedSupplyImage?.toString() ?: return@launch
 
-                // TODO: Repository를 통해 서버에 저장
-                // myPageRepository.saveSupplyInfo(supplyType, imageUri)
+                _uiState.value = _uiState.value.copy(isSavingSupply = true)
 
-                Log.d("MyPage", "Supply saved: $supplyType")
+                // 기존 이미지가 있는지 확인
+                val hasExistingImage = when (supplyType) {
+                    SupplyType.BATH -> !currentState.petSupplies.bathImageUrl.isNullOrEmpty()
+                    SupplyType.FOOD -> !currentState.petSupplies.foodImageUrl.isNullOrEmpty()
+                    SupplyType.WASTE -> !currentState.petSupplies.wasteImageUrl.isNullOrEmpty()
+                }
+
+                Log.d("MyPage", "Saving supply: $supplyType, hasExisting: $hasExistingImage")
+
+                myPageRepository.savePetSupplyInfo(supplyType, imageUri, hasExistingImage)
+                    .onSuccess { response ->
+                        Log.d("MyPage", "Supply saved successfully: $response")
+
+                        // UI 상태 업데이트
+                        val updatedSupplies = when (supplyType) {
+                            SupplyType.BATH -> currentState.petSupplies.copy(bathImageUrl = imageUri)
+                            SupplyType.FOOD -> currentState.petSupplies.copy(foodImageUrl = imageUri)
+                            SupplyType.WASTE -> currentState.petSupplies.copy(wasteImageUrl = imageUri)
+                        }
+
+                        _uiState.value = _uiState.value.copy(
+                            petSupplies = updatedSupplies,
+                            isSavingSupply = false
+                        )
+                    }
+                    .onFailure { exception ->
+                        Log.e("MyPage", "Failed to save supply", exception)
+                        _uiState.value = _uiState.value.copy(
+                            error = "용품 저장에 실패했습니다: ${exception.message}",
+                            isSavingSupply = false
+                        )
+                    }
+
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = e.message)
+                Log.e("MyPage", "Error saving supply", e)
+                _uiState.value = _uiState.value.copy(
+                    error = "용품 저장 중 오류가 발생했습니다: ${e.message}",
+                    isSavingSupply = false
+                )
             }
+        }
+    }
+
+    // 특정 용품 타입의 기존 이미지 URL 가져오기
+    fun getExistingSupplyImageUrl(supplyType: SupplyType): String? {
+        return when (supplyType) {
+            SupplyType.BATH -> _uiState.value.petSupplies.bathImageUrl
+            SupplyType.FOOD -> _uiState.value.petSupplies.foodImageUrl
+            SupplyType.WASTE -> _uiState.value.petSupplies.wasteImageUrl
         }
     }
 }
