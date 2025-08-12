@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,6 +20,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -327,37 +329,143 @@ class ProfileEditViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isSaving = true, error = null)
-
                 val currentState = _uiState.value
-                var finalImageUrl = currentState.profileImageUrl
 
-                // 새로운 이미지가 선택된 경우 업로드
+                var updateSuccessCount = 0
+                val updateResults = mutableListOf<String>()
+
+                // 1. 이미지 업데이트 처리
                 currentState.profileImageUri?.let { uri ->
-                    val uploadedUrls = imageRepository.uploadImages(listOf(uri))
-                    if (uploadedUrls.isNotEmpty()) {
-                        finalImageUrl = uploadedUrls.first()
+                    try {
+                        Log.d("ProfileEdit", "이미지 업로드 시작")
+                        val uploadedUrls = imageRepository.uploadImages(listOf(uri))
+
+                        if (uploadedUrls.isNotEmpty()) {
+                            val imageUrl = uploadedUrls.first()
+                            Log.d("ProfileEdit", "이미지 업로드 완료: $imageUrl")
+
+                            // 서버에 프로필 이미지 업데이트 요청
+                            myPageRepository.updateProfileImage(imageUrl)
+                                .onSuccess { response ->
+                                    Log.d("ProfileEdit", "프로필 이미지 서버 업데이트 성공")
+                                    _uiState.value = _uiState.value.copy(
+                                        profileImageUrl = response.userImgSrc,
+                                        profileImageUri = null // 업로드 완료 후 URI 초기화
+                                    )
+                                    updateSuccessCount++
+                                    updateResults.add("프로필 이미지")
+                                }
+                                .onFailure { exception ->
+                                    Log.e("ProfileEdit", "프로필 이미지 서버 업데이트 실패", exception)
+                                    throw Exception("이미지 업데이트 실패: ${exception.message}")
+                                }
+                        } else {
+                            throw Exception("이미지 업로드에 실패했습니다.")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("ProfileEdit", "이미지 처리 전체 실패", e)
+                        throw e
                     }
                 }
 
-                // TODO: 실제 프로필 업데이트 API 호출
-                // myPageRepository.updateProfile(
-                //     nickname = currentState.nickname,
-                //     introduction = currentState.introduction,
-                //     profileImageUrl = finalImageUrl
-                // )
+                // 2. 소개글 업데이트 처리
+                val introductionText = currentState.introduction.trim()
+                if (introductionText.isNotEmpty()) {
+                    try {
+                        Log.d("ProfileEdit", "소개글 업데이트 시작: '$introductionText'")
 
-                // 임시 처리 - 성공으로 간주
-                kotlinx.coroutines.delay(1000)
+                        // 먼저 최신 프로필 정보를 가져와서 기존 소개글 여부 확인
+                        myPageRepository.getMyPageInfo()
+                            .onSuccess { myPageInfo ->
+                                val hasExistingIntroduction = !myPageInfo.introduction.isNullOrBlank()
+                                Log.d("ProfileEdit", "기존 소개글 존재 여부: $hasExistingIntroduction")
+
+                                // 소개글 저장 (기존 여부에 따라 POST/PUT 결정)
+                                launch {
+                                    try {
+                                        myPageRepository.saveProfileIntroduction(
+                                            content = introductionText,
+                                            isUpdate = hasExistingIntroduction
+                                        )
+                                            .onSuccess { introResponse ->
+                                                Log.d("ProfileEdit", "소개글 저장 성공: ${introResponse.content}")
+                                                updateSuccessCount++
+                                                updateResults.add("소개글")
+                                            }
+                                            .onFailure { exception ->
+                                                Log.e("ProfileEdit", "소개글 저장 실패", exception)
+
+                                                // 만약 PUT이 실패했다면 POST로 재시도
+                                                if (hasExistingIntroduction) {
+                                                    Log.d("ProfileEdit", "PUT 실패로 POST 재시도")
+                                                    myPageRepository.saveProfileIntroduction(
+                                                        content = introductionText,
+                                                        isUpdate = false
+                                                    )
+                                                        .onSuccess { introResponse ->
+                                                            Log.d("ProfileEdit", "POST 재시도 성공: ${introResponse.content}")
+                                                            updateSuccessCount++
+                                                            updateResults.add("소개글")
+                                                        }
+                                                        .onFailure { retryException ->
+                                                            Log.e("ProfileEdit", "POST 재시도도 실패", retryException)
+                                                            throw Exception("소개글 저장 실패: ${retryException.message}")
+                                                        }
+                                                } else {
+                                                    throw Exception("소개글 저장 실패: ${exception.message}")
+                                                }
+                                            }
+                                    } catch (e: Exception) {
+                                        Log.e("ProfileEdit", "소개글 저장 과정에서 예외", e)
+                                        throw e
+                                    }
+                                }
+                            }
+                            .onFailure { exception ->
+                                Log.e("ProfileEdit", "프로필 정보 조회 실패", exception)
+                                // 프로필 정보 조회 실패 시 기본적으로 업데이트로 시도
+                                myPageRepository.saveProfileIntroduction(
+                                    content = introductionText,
+                                    isUpdate = true
+                                )
+                                    .onSuccess { introResponse ->
+                                        Log.d("ProfileEdit", "기본 업데이트로 소개글 저장 성공")
+                                        updateSuccessCount++
+                                        updateResults.add("소개글")
+                                    }
+                                    .onFailure { introException ->
+                                        Log.e("ProfileEdit", "기본 업데이트로도 실패", introException)
+                                        throw Exception("소개글 저장 실패: ${introException.message}")
+                                    }
+                            }
+
+                    } catch (e: Exception) {
+                        Log.e("ProfileEdit", "소개글 처리 중 오류", e)
+                        throw e
+                    }
+                }
+
+                // 작업 완료 대기 (비동기 작업들이 완료될 때까지)
+                delay(1000)
+
+                // 3. 결과 처리
+                val successMessage = when {
+                    updateSuccessCount == 0 -> "변경사항이 저장되지 않았습니다."
+                    updateResults.size == 1 -> "${updateResults[0]}가 업데이트되었습니다."
+                    else -> "${updateResults.joinToString(", ")}가 업데이트되었습니다."
+                }
+
+                Log.d("ProfileEdit", "전체 업데이트 완료: $successMessage")
 
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    successMessage = "프로필이 성공적으로 업데이트되었습니다.",
-                    profileImageUrl = finalImageUrl // 업데이트된 이미지 URL 저장
+                    successMessage = successMessage
                 )
 
                 onSuccess()
 
             } catch (e: Exception) {
+                Log.e("ProfileEdit", "프로필 저장 실패", e)
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
                     error = e.message ?: "프로필 업데이트 중 오류가 발생했습니다."

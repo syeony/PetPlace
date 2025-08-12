@@ -4,6 +4,9 @@ import com.example.petplace.data.model.chat.CreateChatRoomRequest
 import com.example.petplace.data.model.mypage.MyPageInfoResponse
 import com.example.petplace.data.model.mypage.PetProductRequest
 import com.example.petplace.data.model.mypage.PetProductResponse
+import com.example.petplace.data.model.mypage.ProfileImageRequest
+import com.example.petplace.data.model.mypage.ProfileIntroductionRequest
+import com.example.petplace.data.model.mypage.ProfileIntroductionResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -25,4 +28,19 @@ interface MyPageApiService {
     suspend fun addPetProductImage(
         @Body request: PetProductRequest
     ): Response<PetProductResponse>
+
+    @PUT("/api/profiles/me/profile_image")
+    suspend fun updateProfileImage(
+        @Body request: ProfileImageRequest
+    ): Response<MyPageInfoResponse>
+
+    @POST("/api/profiles")
+    suspend fun createProfileIntroduction(
+        @Body request: ProfileIntroductionRequest
+    ): Response<ProfileIntroductionResponse>
+
+    @PUT("/api/profiles/me")
+    suspend fun updateProfileIntroduction(
+        @Body request: ProfileIntroductionRequest
+    ): Response<ProfileIntroductionResponse>
 }
