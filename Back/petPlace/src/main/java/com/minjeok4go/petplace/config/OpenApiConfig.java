@@ -17,8 +17,6 @@ import org.springframework.context.annotation.Configuration;
         title = "Pet Place API",
         version = "1.0.0",
         description = """
-            # Pet Place API 문서
-           
             반려동물을 위한 종합 커뮤니티 플랫폼 **Pet Place**의 API 문서입니다.
 
             ## 🔐 인증 방식

@@ -53,7 +53,8 @@ public class AuthService {
                 user.getUserImgSrc(),
                 user.getLevel(),
                 user.getDefaultPetId(),
-                user.getRegionId()
+                user.getRegionId(),
+                user.getPhoneNumber()
         );
     }
 

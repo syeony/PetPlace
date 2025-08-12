@@ -2,6 +2,7 @@ package com.minjeok4go.petplace.pet.entity;
 
 import com.minjeok4go.petplace.common.constant.Animal;
 import com.minjeok4go.petplace.common.constant.Breed;
+import com.minjeok4go.petplace.pet.dto.CreatePetRequest;
 import com.minjeok4go.petplace.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -47,6 +48,17 @@ public class Pet {
     @Column(nullable = false)
     private boolean tnr; // 0/1 대신 boolean 타입 사용 (MySQL TINYINT→boolean 매핑)
 
+    public Pet(CreatePetRequest req, User user) {
+        this.userId = user.getId();
+        this.name = req.getName();
+        this.animal = req.getAnimal();
+        this.breed = req.getBreed();
+        this.sex = req.getSex();
+        this.birthday = req.getBirthday();
+        this.imgSrc = req.getImgSrc();
+        this.tnr = req.isTnr();
+    }
+
     public enum Sex {
         MALE,
         FEMALE
@@ -56,5 +68,14 @@ public class Pet {
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;
 
+    public void setPet(CreatePetRequest req) {
+        this.name = req.getName();
+        this.animal = req.getAnimal();
+        this.breed = req.getBreed();
+        this.sex = req.getSex();
+        this.birthday = req.getBirthday();
+        this.imgSrc = req.getImgSrc();
+        this.tnr = req.isTnr();
+    }
 }
 
