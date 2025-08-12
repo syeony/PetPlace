@@ -61,6 +61,9 @@ class ChatViewModel @Inject constructor(
     private val _chatPartnerName = MutableStateFlow<String?>(null)
     val chatPartnerName: StateFlow<String?> = _chatPartnerName.asStateFlow()
 
+    private val _chatPartnerProfileImage = MutableStateFlow<String?>(null)
+    val chatPartnerProfileImage: StateFlow<String?> = _chatPartnerProfileImage.asStateFlow()
+
     private val _imageUploadStatus = MutableStateFlow<ImageUploadStatus>(ImageUploadStatus.Idle)
     val imageUploadStatus: StateFlow<ImageUploadStatus> = _imageUploadStatus.asStateFlow()
 
@@ -144,6 +147,15 @@ class ChatViewModel @Inject constructor(
 
                 if (partner != null) {
                     _chatPartnerName.value = partner.nickname
+                    // 프로필 이미지 URL 처리
+                    val profileImageUrl = partner.profileImageUrl?.let { imageUrl ->
+                        if (imageUrl.startsWith("http")) {
+                            imageUrl
+                        } else {
+                            "http://43.201.108.195:8081$imageUrl" // 실제 서버 URL
+                        }
+                    }
+                    _chatPartnerProfileImage.value = profileImageUrl
                     Log.d(TAG, "✅ 채팅 상대방 정보 로드 완료: ${partner.nickname}")
                 } else {
                     Log.w(TAG, "⚠️ 채팅 상대방을 찾을 수 없음")

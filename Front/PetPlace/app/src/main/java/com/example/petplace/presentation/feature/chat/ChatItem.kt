@@ -17,9 +17,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import coil.compose.AsyncImage
 import com.example.petplace.R
 
 @Composable
@@ -31,12 +33,15 @@ fun ChatItem(chat: ChatRoom, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Image(
-            painter = painterResource(id = chat.profileImageUrl!!),
+        AsyncImage(
+            model = chat.profileImageUrl,
             contentDescription = "Profile Image",
             modifier = Modifier
                 .size(56.dp)
-                .clip(CircleShape)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop,
+            placeholder = painterResource(id = R.drawable.ic_mypage), // 로딩 중 플레이스홀더
+            error = painterResource(id = R.drawable.ic_mypage) // 에러 시 기본 이미지
         )
 
         Spacer(modifier = Modifier.width(12.dp))
@@ -111,7 +116,7 @@ fun ChatItemPreview() {
             "안녕하세요! 실종견 관련해서 연락드려요. 혹시 어제 저녁에 인의동 근처에서...",
             "오전 10:15",
             3,
-            profileImageUrl = R.drawable.ic_mypage
+            profileImageUrl = null
         ),
         onClick = {}
     )
