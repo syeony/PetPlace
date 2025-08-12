@@ -10,20 +10,28 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import com.example.petplace.presentation.common.navigation.MainScaffold
 import com.example.petplace.presentation.common.theme.PetPlaceTheme
+import com.google.firebase.FirebaseApp
+import com.google.firebase.messaging.FirebaseMessaging
 import com.iamport.sdk.domain.core.Iamport
 import com.kakao.sdk.common.util.Utility
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    // Android 13+ 알림 권한 런처 (프로퍼티로 선언)
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (!granted) {
@@ -35,15 +43,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // 1) 알림 채널 생성 (Oreo+ 1회)
+        // 알림 채널 생성
         createNotificationChannel()
+        FirebaseApp.initializeApp(this)
 
-        // 2) Android 13+ 알림 권한 요청
+        // Android 13+ 권한 요청
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
-        // 기존 코드
         val keyHash = Utility.getKeyHash(this)
         Log.e("KeyHash", "해쉬값 : $keyHash")
         Iamport.init(this)
@@ -51,20 +59,64 @@ class MainActivity : ComponentActivity() {
         setContent {
             PetPlaceTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MainScaffold()
+                    // 기존 메인 UI + 토큰 확인용 얇은 테스트 버튼
+                    Column {
+                        MainScaffold()
+
+                        // --- 테스트 영역: 토큰 표시/복사 ---
+                        Divider()
+                        TokenTestBar(onGetToken = { token ->
+                            // 필요시 추가 처리
+                        })
+                    }
                 }
+            }
+        }
+
+        // 앱 시작 시 1회 토큰 가져와 로그 출력 (콘솔에서 복사해도 됨)
+        lifecycleScope.launch {
+            try {
+                val token = FirebaseMessaging.getInstance().token.await()
+                Log.d("FCM", "Device FCM Token: $token")
+            } catch (e: Exception) {
+                Log.e("FCM", "Failed to get token", e)
             }
         }
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "default",          // 채널 ID (FCM 알림에서도 이 ID 사용)
-                "기본 알림",         // 설정 화면에 보일 이름
+            val ch = NotificationChannel(
+                "default",
+                "기본 알림",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
-            getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+            getSystemService(NotificationManager::class.java).createNotificationChannel(ch)
+        }
+    }
+}
+
+@Composable
+private fun TokenTestBar(onGetToken: (String) -> Unit) {
+    val scope = rememberCoroutineScope()
+    var token by remember { mutableStateOf<String?>(null) }
+    val clipboard = LocalClipboardManager.current
+
+    Surface(tonalElevation = 1.dp) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = {
+                scope.launch {
+                    try {
+                        val t = FirebaseMessaging.getInstance().token.await()
+                        token = t
+                        onGetToken(t)
+                    } catch (_: Exception) { }
+                }
+            }) { Text("FCM 토큰 가져오기") }
+
+            Button(onClick = {
+                token?.let { clipboard.setText(AnnotatedString(it)) }
+            }, enabled = token != null) { Text("토큰 복사") }
         }
     }
 }

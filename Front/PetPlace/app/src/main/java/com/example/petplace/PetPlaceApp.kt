@@ -24,7 +24,6 @@ class PetPlaceApp : Application() {
         getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
     }
     private val gson = Gson()
-
     override fun onCreate() {
         super.onCreate()
         instance = this

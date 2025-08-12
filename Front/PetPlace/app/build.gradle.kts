@@ -4,6 +4,8 @@ plugins {
     id("com.google.dagger.hilt.android") version "2.48"
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     kotlin("kapt")
+    id("com.google.gms.google-services")
+
 }
 
 android {
