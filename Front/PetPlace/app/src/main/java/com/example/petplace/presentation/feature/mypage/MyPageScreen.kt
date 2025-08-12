@@ -239,43 +239,43 @@ fun MyPageScreen(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
-                    // 반려동물 목록이 비어있을 때는 추가 버튼만 표시
-                    if (uiState.pets.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(130.dp)
-                                .border(
-                                    2.dp,
-                                    Color(0xFFE0E0E0),
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .clickable { navController.navigate("pet_profile") },
-                            contentAlignment = Alignment.Center
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .border(
+                                2.dp,
+                                Color(0xFFE0E0E0),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .clickable { navController.navigate("pet_profile") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "추가",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "반려동물 추가",
-                                    style = AppTypography.bodyMedium,
-                                    color = Color.Gray
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "추가",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "반려동물 추가",
+                                style = AppTypography.bodyMedium,
+                                color = Color.Gray
+                            )
                         }
-                    } else {
+                    }
+                    // 반려동물 목록이 비어있을 때는 추가 버튼만 표시
+                    if (uiState.pets.isNotEmpty()) {
                         // 반려동물이 있을 때는 각 반려동물마다 카드 표시
                         uiState.pets.forEachIndexed { index, pet ->
-                            if (index > 0) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+
 
                             PetInfoCard(
                                 pet = pet,
@@ -286,39 +286,6 @@ fun MyPageScreen(
                                     // 반려동물 상세 정보 로직
                                 }
                             )
-                        }
-
-                        // 반려동물 추가 버튼 (기존 반려동물들 아래에)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(60.dp)
-                                .border(
-                                    2.dp,
-                                    Color(0xFFE0E0E0),
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .clickable { navController.navigate("pet_profile") },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "추가",
-                                    tint = Color.Gray,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "반려동물 추가",
-                                    style = AppTypography.bodyMedium,
-                                    color = Color.Gray
-                                )
-                            }
                         }
                     }
                 }
@@ -530,7 +497,7 @@ fun PetInfoCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp)
+            .height(150.dp)
             .border(
                 2.dp,
                 Color(0xFFE0E0E0),
