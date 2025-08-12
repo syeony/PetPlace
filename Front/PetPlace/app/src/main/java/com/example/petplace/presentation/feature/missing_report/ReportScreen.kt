@@ -34,10 +34,12 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
 import com.example.petplace.presentation.common.navigation.BottomNavItem
+import com.example.petplace.presentation.common.theme.BackgroundColor
 import com.example.petplace.presentation.feature.missing_register.RegisterViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.location.LocationServices
+import okhttp3.internal.wait
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -108,7 +110,13 @@ fun ReportScreen(
                 },
                 actions = {
                     Spacer(modifier = Modifier.width(48.dp)) // To balance the title
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = BackgroundColor, // 원하는 배경색
+                    titleContentColor = Color.Black,    // 제목 색
+                    navigationIconContentColor = Color.Black, // 아이콘 색
+                    actionIconContentColor = Color.Black
+                )
             )
         },
         bottomBar = {
@@ -148,7 +156,7 @@ fun ReportScreen(
                     modifier = Modifier
                         .size(90.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFF3F4F6))
+                        .background(Color.White)
                         .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                         .clickable {
                             launcherGallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
@@ -174,7 +182,10 @@ fun ReportScreen(
                             modifier = Modifier
                                 .size(90.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .border(BorderStroke(1.dp, Color(0xFFD7D7D7)), RoundedCornerShape(8.dp)),
+                                .border(
+                                    BorderStroke(1.dp, Color(0xFFD7D7D7)),
+                                    RoundedCornerShape(8.dp)
+                                ),
                             contentScale = ContentScale.Crop
                         )
                     }
@@ -208,8 +219,8 @@ fun ReportScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color.LightGray,
                     unfocusedBorderColor = Color.LightGray,
-                    focusedContainerColor = Color(0xFFF3F4F6),
-                    unfocusedContainerColor = Color(0xFFF3F4F6)
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
                 ),
                 shape = RoundedCornerShape(8.dp)
             )
@@ -234,7 +245,7 @@ fun ReportScreen(
                         .weight(1f)
                         .height(48.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFF3F4F6))
+                        .background(Color.White)
                         .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                         .clickable { showDatePicker = true },
                     contentAlignment = Alignment.CenterStart
@@ -252,13 +263,18 @@ fun ReportScreen(
                         .weight(1f)
                         .height(48.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFF3F4F6))
+                        .background(Color.White)
                         .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                         .clickable { showTimePicker = true },
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = selectedTime.format(DateTimeFormatter.ofPattern("a HH:mm", Locale.KOREAN)),
+                        text = selectedTime.format(
+                            DateTimeFormatter.ofPattern(
+                                "a HH:mm",
+                                Locale.KOREAN
+                            )
+                        ),
                         modifier = Modifier.padding(start = 12.dp),
                         fontSize = 14.sp,
                         color = Color.Black
@@ -282,7 +298,7 @@ fun ReportScreen(
                     .fillMaxWidth()
                     .height(48.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFFF3F4F6))
+                    .background(Color.White)
                     .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                     .clickable { navController.navigate("missing_map") },
                 contentAlignment = Alignment.CenterStart
@@ -307,14 +323,16 @@ fun ReportScreen(
 
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneId.systemDefault())
+                .toInstant().toEpochMilli()
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        selectedDate = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                        selectedDate =
+                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
                     }
                     showDatePicker = false
                 }) {
@@ -359,7 +377,8 @@ fun ReportScreen(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         TextButton(onClick = {
-                            selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                            selectedTime =
+                                LocalTime.of(timePickerState.hour, timePickerState.minute)
                             showTimePicker = false
                         }) {
                             Text("확인")

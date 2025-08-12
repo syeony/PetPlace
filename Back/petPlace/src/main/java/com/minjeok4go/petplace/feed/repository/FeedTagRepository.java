@@ -17,6 +17,8 @@ public interface FeedTagRepository extends JpaRepository<FeedTag, Long> {
 
     List<FeedTag> findByFeedId(Long feedId);
     List<FeedTag> findByTagId(Long tagId);
+
+    @Query("select ft.tag.id from FeedTag ft where ft.feed.id = :feedId")
     List<Long> findTagIdByFeedId(Long feedId);
 
     // 후보 피드들에 대한 (feedId, tagId) 일괄 조회

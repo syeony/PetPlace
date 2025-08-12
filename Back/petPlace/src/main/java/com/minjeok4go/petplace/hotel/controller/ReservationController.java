@@ -19,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -44,18 +43,18 @@ public class ReservationController {
     @PostMapping
     public ResponseEntity<ApiResponse<ReservationResponse>> createReservation(
             @Valid @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "호텔 예약 생성 정보", required = true, content = @Content(schema = @Schema(implementation = ReservationCreateRequest.class))) @RequestBody ReservationCreateRequest request,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
-        Long userId = Long.valueOf(userDetails.getUsername());
-        ReservationResponse reservation = reservationService.createReservation(userId, request);
+            @Parameter(hidden = true) @AuthenticationPrincipal String userId) {
+        Long userIdLong = Long.valueOf(userId);
+        ReservationResponse reservation = reservationService.createReservation(userIdLong, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("예약이 성공적으로 생성되었습니다.", reservation));
     }
 
     @Operation(summary = "내 예약 목록 조회", description = "인증된 사용자의 모든 예약 목록을 조회합니다.")
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<ReservationResponse>>> getMyReservations(
-            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
-        Long userId = Long.valueOf(userDetails.getUsername());
-        List<ReservationResponse> reservations = reservationService.getUserReservations(userId);
+            @Parameter(hidden = true) @AuthenticationPrincipal String userId) {
+        Long userIdLong = Long.valueOf(userId);
+        List<ReservationResponse> reservations = reservationService.getUserReservations(userIdLong);
         return ResponseEntity.ok(ApiResponse.success("내 예약 목록 조회 성공", reservations));
     }
 
@@ -68,9 +67,9 @@ public class ReservationController {
     @GetMapping("/{reservationId}")
     public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(
             @Parameter(description = "조회할 예약의 ID", required = true, example = "101") @PathVariable Long reservationId,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
-        Long userId = Long.valueOf(userDetails.getUsername());
-        ReservationResponse reservation = reservationService.getReservation(userId, reservationId);
+            @Parameter(hidden = true) @AuthenticationPrincipal String userId) {
+        Long userIdLong = Long.valueOf(userId);
+        ReservationResponse reservation = reservationService.getReservation(userIdLong, reservationId);
         return ResponseEntity.ok(ApiResponse.success("예약 상세 조회 성공", reservation));
     }
 
@@ -83,9 +82,9 @@ public class ReservationController {
     @DeleteMapping("/{reservationId}")
     public ResponseEntity<ApiResponse<String>> cancelReservation(
             @Parameter(description = "취소할 예약의 ID", required = true, example = "101") @PathVariable Long reservationId,
-            @Parameter(hidden = true) @AuthenticationPrincipal UserDetails userDetails) {
-        Long userId = Long.valueOf(userDetails.getUsername());
-        reservationService.cancelReservation(userId, reservationId);
+            @Parameter(hidden = true) @AuthenticationPrincipal String userId) {
+        Long userIdLong = Long.valueOf(userId);
+        reservationService.cancelReservation(userIdLong, reservationId);
         return ResponseEntity.ok(ApiResponse.success("예약 취소 성공", "예약이 성공적으로 취소되었습니다."));
     }
 

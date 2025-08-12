@@ -29,6 +29,8 @@ public class SocialLoginResponse {
     @Schema(description = "연동 가능한 기존 계정의 사용자 ID (status가 LINKABLE_USER일 때만 존재)", example = "123")
     private Long linkableUserId;
 
+
+
     @Schema(description = "소셜 로그인 처리 상태 코드")
     public enum Status {
         @Schema(description = "기존 사용자 - 즉시 로그인 처리")
