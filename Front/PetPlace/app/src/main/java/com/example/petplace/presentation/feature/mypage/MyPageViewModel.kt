@@ -63,10 +63,8 @@ class MyPageViewModel @Inject constructor(
                             location = response.regionName ?: "",
                             level = response.level,
                             experienceProgress = response.experience / 100f,
-                            introduction = response.introduction ?: ""
+                            introduction = response.introduction ?: "소개글이 없습니다."
                         )
-                        Log.d("MyPage", "after uiState update")
-                        Log.d("MyPage", "nickname=${response.nickname}")
 
                         val pets = response.petList?.map { pet ->
                             PetInfo(
@@ -77,14 +75,14 @@ class MyPageViewModel @Inject constructor(
                             )
                         } ?: emptyList()
 
-                        Log.d("MyPage", "after uiState update")
-                        Log.d("MyPage", "nickname=${response.nickname}")
 
                         _uiState.value = _uiState.value.copy(
                             userProfile = userProfile,
                             pets = pets,
                             isLoading = false
                         )
+                        Log.d("MyPage", "after uiState update")
+                        Log.d("MyPage", "nickname=${response.nickname}")
                     }
                     .onFailure { exception ->
                         Log.e("MyPage", "getMyPageInfo failed", exception)

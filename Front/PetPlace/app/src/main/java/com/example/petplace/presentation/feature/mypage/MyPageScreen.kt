@@ -232,112 +232,84 @@ fun MyPageScreen(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
-                    // 반려동물 추가 버튼
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp)
-                            .border(
-                                2.dp,
-                                Color(0xFFE0E0E0),
-                                RoundedCornerShape(12.dp)
-                            )
-                            .clickable { navController.navigate("pet_profile") },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
+                    // 반려동물 목록이 비어있을 때는 추가 버튼만 표시
+                    if (uiState.pets.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(130.dp)
+                                .border(
+                                    2.dp,
+                                    Color(0xFFE0E0E0),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { navController.navigate("pet_profile") },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "추가",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "반려동물 추가",
-                                style = AppTypography.bodyMedium,
-                                color = Color.Gray
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "추가",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "반려동물 추가",
+                                    style = AppTypography.bodyMedium,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    } else {
+                        // 반려동물이 있을 때는 각 반려동물마다 카드 표시
+                        uiState.pets.forEachIndexed { index, pet ->
+                            if (index > 0) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+
+                            PetInfoCard(
+                                pet = pet,
+                                onEditClick = {
+                                    // 정보수정 로직 (pet의 ID나 index를 전달)
+                                },
+                                onCardClick = {
+                                    // 반려동물 상세 정보 로직
+                                }
                             )
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 두부 (반려동물)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp)
-                            .border(
-                                2.dp,
-                                Color(0xFFE0E0E0),
-                                RoundedCornerShape(12.dp)
-                            )
-                            .padding(16.dp)
-                            .clickable { /* 반려동물 정보 로직 */ }
-                    ) {
-                        Column {
+                        // 반려동물 추가 버튼 (기존 반려동물들 아래에)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp)
+                                .border(
+                                    2.dp,
+                                    Color(0xFFE0E0E0),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { navController.navigate("pet_profile") },
+                            contentAlignment = Alignment.Center
+                        ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(50.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFE0E0E0))
-                                ) {
-                                    AsyncImage(
-                                        model = uiState.pets.firstOrNull()?.imgSrc,
-                                        contentDescription = "반려동물 이미지",
-                                        placeholder = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24),
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column {
-                                    uiState.pets.firstOrNull()?.let { pet ->
-                                        Text(
-                                            text = pet.name,  // 변경된 부분
-                                            style = AppTypography.bodyMedium.copy(
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        )
-                                        Text(
-                                            text = pet.breed,  // 변경된 부분
-                                            style = AppTypography.bodySmall,
-                                            color = Color.Gray
-                                        )
-                                        Text(
-                                            text = "${pet.gender} ${pet.age}살",  // 변경된 부분
-                                            style = AppTypography.bodySmall,
-                                            color = Color.Gray
-                                        )
-                                    }
-                                }
-
-                            }
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            Button(
-                                onClick = {
-                                    // 정보수정
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFF5F5F5)
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "추가",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "정보수정",
-                                    color = Color.Black,
-                                    style = AppTypography.bodySmall,
+                                    text = "반려동물 추가",
+                                    style = AppTypography.bodyMedium,
+                                    color = Color.Gray
                                 )
                             }
                         }
@@ -537,6 +509,87 @@ fun MyPageScreen(
         // 하단 여백
         item {
             Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+fun PetInfoCard(
+    pet: PetInfo,
+    onEditClick: () -> Unit,
+    onCardClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(130.dp)
+            .border(
+                2.dp,
+                Color(0xFFE0E0E0),
+                RoundedCornerShape(12.dp)
+            )
+            .padding(16.dp)
+            .clickable { onCardClick() }
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE0E0E0))
+                ) {
+                    AsyncImage(
+                        model = pet.imgSrc,
+                        contentDescription = "반려동물 이미지",
+                        placeholder = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24),
+                        error = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text(
+                        text = pet.name,
+                        style = AppTypography.bodyMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    Text(
+                        text = pet.breed,
+                        style = AppTypography.bodySmall,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = "${pet.gender} ${pet.age}살",
+                        style = AppTypography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Button(
+                onClick = onEditClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFF5F5F5)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "정보수정",
+                    color = Color.Black,
+                    style = AppTypography.bodySmall,
+                )
+            }
         }
     }
 }
