@@ -44,14 +44,17 @@ public class TokenDto {
 
         @Schema(description = "활동 지역 ID", example = "11")
         private Long regionId;
+
+        @Schema(description = "전화번호", example = "010-1234-5678")
+        private String phoneNumber;
     }
 
     
     // 기존 생성자 호환을 위한 정적 팩토리 메서드
     public static TokenDto of(String accessToken, String refreshToken, Long userId,
                               String userName, String nickname, String userImgSrc, 
-                              Integer level, Integer defaultPetId, Long regionId) {
-        UserInfo userInfo = new UserInfo(userId, userName, nickname, userImgSrc, level, defaultPetId, regionId);
+                              Integer level, Integer defaultPetId, Long regionId, String phoneNumber) {
+        UserInfo userInfo = new UserInfo(userId, userName, nickname, userImgSrc, level, defaultPetId, regionId,phoneNumber);
         return new TokenDto(accessToken, refreshToken, "로그인 성공", userInfo);
     }
 }
