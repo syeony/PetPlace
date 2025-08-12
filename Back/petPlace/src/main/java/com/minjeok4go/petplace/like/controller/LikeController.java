@@ -37,7 +37,7 @@ public class LikeController {
     @GetMapping("/me")
     public List<FeedDetailResponse> getLikeFeed(@AuthenticationPrincipal String tokenUserId) {
         User me = authService.getUserFromToken(tokenUserId);
-        return feedService.findByIdWhereUserId(me.getId());
+        return feedService.findByIdWhereUserId(me);
     }
 
     @Operation(
