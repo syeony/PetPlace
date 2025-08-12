@@ -32,7 +32,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -55,6 +55,7 @@ portone:
   v2:
     base-url: https://api.portone.io
     api-token: ${PORTONE_V2_API_TOKEN}
+
 
 logging:
   level:
