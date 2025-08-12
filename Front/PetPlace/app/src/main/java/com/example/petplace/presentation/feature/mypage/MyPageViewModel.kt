@@ -1,6 +1,7 @@
 package com.example.petplace.presentation.feature.mypage
 
 import android.content.ContentValues.TAG
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -34,7 +35,11 @@ data class MyPageUiState(
     val userProfile: UserProfileState = UserProfileState(),
     val pets: List<PetInfo> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+
+    val showSupplyDialog: Boolean = false,
+    val currentSupplyType: SupplyType? = null,
+    val selectedSupplyImage: Uri? = null
 )
 
 @HiltViewModel
@@ -125,5 +130,43 @@ class MyPageViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
+    }
+
+    fun showSupplyDialog(supplyType: SupplyType) {
+        _uiState.value = _uiState.value.copy(
+            showSupplyDialog = true,
+            currentSupplyType = supplyType
+        )
+    }
+
+    fun hideSupplyDialog() {
+        _uiState.value = _uiState.value.copy(
+            showSupplyDialog = false,
+            currentSupplyType = null,
+            selectedSupplyImage = null
+        )
+    }
+
+    fun updateSupplyImage(uri: Uri?) {
+        _uiState.value = _uiState.value.copy(
+            selectedSupplyImage = uri
+        )
+    }
+
+    fun saveSupplyInfo() {
+        viewModelScope.launch {
+            try {
+                // 서버에 용품 정보 저장 로직
+                val supplyType = _uiState.value.currentSupplyType
+                val imageUri = _uiState.value.selectedSupplyImage
+
+                // TODO: Repository를 통해 서버에 저장
+                // myPageRepository.saveSupplyInfo(supplyType, imageUri)
+
+                Log.d("MyPage", "Supply saved: $supplyType")
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = e.message)
+            }
+        }
     }
 }

@@ -55,6 +55,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import coil.compose.AsyncImage
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.platform.LocalContext
+
 @Composable
 fun MyPageScreen(
     navController: NavController,
@@ -329,7 +335,9 @@ fun MyPageScreen(
                 Column(
                     modifier = Modifier.padding(20.dp)
                 ) {
-                    Row {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = "펫 용품",
                             style = AppTypography.titleMedium.copy(
@@ -354,54 +362,46 @@ fun MyPageScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        // 펫 용품 이미지들
-                        Box(
-                            modifier = Modifier
-                                .size(90.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFE3F2FD))
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.bath_item), // 실제 이미지로 교체
-                                contentDescription = "목욕 용품",
-                                modifier = Modifier.fillMaxSize()
-                                    .padding(8.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(90.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFE3F2FD))
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.bowl_item), // 실제 이미지로 교체
-                                contentDescription = "밥그릇",
-                                modifier = Modifier.fillMaxSize()
-                                    .padding(8.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(90.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFE3F2FD))
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.poo_item), // 실제 이미지로 교체
-                                contentDescription = "배변 용품",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(8.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+                        // 목욕 용품
+                        PetSupplyItem(
+                            imageRes = R.drawable.bath_item,
+                            title = "목욕 용품",
+                            onClick = {
+                                viewModel.showSupplyDialog(SupplyType.BATH)
+                            }
+                        )
+
+                        // 사료 용품
+                        PetSupplyItem(
+                            imageRes = R.drawable.bowl_item,
+                            title = "사료 용품",
+                            onClick = {
+                                viewModel.showSupplyDialog(SupplyType.FOOD)
+                            }
+                        )
+
+                        // 배변 용품
+                        PetSupplyItem(
+                            imageRes = R.drawable.poo_item,
+                            title = "배변 용품",
+                            onClick = {
+                                viewModel.showSupplyDialog(SupplyType.WASTE)
+                            }
+                        )
                     }
                 }
             }
             Divider(color = Color.LightGray, thickness = 1.dp)
+            // 용품 관리 다이얼로그
+            if (uiState.showSupplyDialog) {
+                PetSupplyDialog(
+                    supplyType = uiState.currentSupplyType,
+                    selectedImage = uiState.selectedSupplyImage,
+                    onDismiss = { viewModel.hideSupplyDialog() },
+                    onImageSelected = { uri -> viewModel.updateSupplyImage(uri) },
+                    onConfirm = { viewModel.saveSupplyInfo() }
+                )
+            }
         }
 
         // MY 섹션
@@ -632,3 +632,129 @@ fun MyMenuItem(
     }
 }
 
+// 용품 아이템 컴포저블
+@Composable
+fun PetSupplyItem(
+    imageRes: Int,
+    title: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(90.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFE3F2FD))
+            .clickable { onClick() }
+    ) {
+        Image(
+            painter = painterResource(id = imageRes),
+            contentDescription = title,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            contentScale = ContentScale.Crop
+        )
+    }
+}
+
+// 용품 관리 다이얼로그
+@Composable
+fun PetSupplyDialog(
+    supplyType: SupplyType?,
+    selectedImage: Uri? = null, // 추가: 선택된 이미지 URI
+    onDismiss: () -> Unit,
+    onImageSelected: (Uri?) -> Unit,
+    onConfirm: () -> Unit
+) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        onImageSelected(uri)
+    }
+
+    val supplyInfo = when (supplyType) {
+        SupplyType.BATH -> Triple("목욕 용품", "목욕 용품 사진을 올려주세요.", R.drawable.bath_item)
+        SupplyType.FOOD -> Triple("사료 용품", "사료 사진을 올려주세요.", R.drawable.bowl_item)
+        SupplyType.WASTE -> Triple("배변 용품", "배변 용품 사진을 올려주세요.", R.drawable.poo_item)
+        else -> Triple("용품", "용품 사진을 올려주세요.", R.drawable.bath_item)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = null,
+        text = {
+            // AlertDialog의 text 파라미터에 커스텀 컴포저블 넣기
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 용품 이미지
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF5F5F5))
+                        .clickable { launcher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    // 선택된 이미지가 있으면 그것을 표시, 없으면 기본 이미지
+                    if (selectedImage != null) {
+                        AsyncImage(
+                            model = selectedImage,
+                            contentDescription = supplyInfo.first,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = supplyInfo.third),
+                            contentDescription = supplyInfo.first,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = supplyInfo.second,
+                    style = AppTypography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = Color.Black
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onConfirm()
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryColor
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "확인",
+                    color = Color.White,
+                    style = AppTypography.labelLarge
+                )
+            }
+        },
+        dismissButton = null,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.padding(16.dp)
+    )
+}
+
+// 용품 타입 enum
+enum class SupplyType {
+    BATH, FOOD, WASTE
+}
