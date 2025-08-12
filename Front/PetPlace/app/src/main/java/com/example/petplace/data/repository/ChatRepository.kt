@@ -5,8 +5,11 @@ import com.example.petplace.data.model.chat.*
 import com.example.petplace.data.remote.ChatApiService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class ChatRepository(
+@Singleton
+class ChatRepository @Inject constructor(
     private val chatApiService: ChatApiService
 ) {
     companion object {

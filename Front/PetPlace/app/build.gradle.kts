@@ -135,7 +135,7 @@ dependencies {
 
     // Compose BOM (일부 의존성 통일)
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
-
+    implementation("androidx.compose.material:material-icons-extended")
 
     // WebSocket 및 STOMP 클라이언트
     implementation("org.java-websocket:Java-WebSocket:1.5.3")

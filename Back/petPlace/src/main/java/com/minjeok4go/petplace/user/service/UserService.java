@@ -173,4 +173,8 @@ public class UserService {
                 .birthday(verificationData.getBirthDate())
                 .build();
     }
+
+    public User updateImage(User user) {
+        return userRepository.save(user);
+    }
 }

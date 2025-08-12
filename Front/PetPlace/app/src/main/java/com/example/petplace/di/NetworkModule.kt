@@ -11,6 +11,7 @@ import com.example.petplace.data.remote.ImageApiService
 import com.example.petplace.data.remote.JoinApiService
 import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.LoginApiService
+import com.example.petplace.data.remote.MyPageApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -193,6 +194,12 @@ object NetworkModule {
     fun provideHotelApi(
         @Named("Server") retrofit: Retrofit
     ): HotelApiService = retrofit.create(HotelApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideMyPageApi(
+        @Named("Server") retrofit: Retrofit
+    ): MyPageApiService = retrofit.create(MyPageApiService::class.java)
 
 
 }

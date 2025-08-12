@@ -18,8 +18,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
-import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
-import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
@@ -33,6 +31,10 @@ import com.example.petplace.presentation.feature.hotel.HotelSharedViewModel
 import com.example.petplace.presentation.feature.join.CertificationScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.join.JoinViewModel
+import com.example.petplace.presentation.feature.join.KakaoCertificationScreen
+import com.example.petplace.presentation.feature.join.KakaoJoinCheckScreen
+import com.example.petplace.presentation.feature.join.KakaoJoinScreen
+import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
 import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.missing_list.MissingListScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
@@ -42,11 +44,15 @@ import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import com.example.petplace.presentation.feature.hotel.HotelDetailScreen
 import com.example.petplace.presentation.feature.hotel.ReservationCheckoutScreen
 import com.example.petplace.presentation.feature.hotel.ReservationSuccessScreen
-import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
-import com.example.petplace.presentation.feature.join.KakaoCertificationScreen
-import com.example.petplace.presentation.feature.join.KakaoJoinCheckScreen
-import com.example.petplace.presentation.feature.join.KakaoJoinScreen
+import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
+import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.splash.SplashScreen
+import com.example.petplace.presentation.feature.mypage.MyPostScreen
+import com.example.petplace.presentation.feature.mypage.PetProfileScreen
+import com.example.petplace.presentation.feature.mypage.ProfileCompleteScreen
+import com.example.petplace.presentation.feature.mypage.ProfileEditScreen
+import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareWriteScreen
+import com.example.petplace.presentation.feature.walk_and_care.WalkPostDetailScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnrememberedGetBackStackEntry")
@@ -105,9 +111,41 @@ fun MainScaffold() {
                     initialShowDialog = showDialog
                 )
             }
+            //api연동 전 임시
+            composable(
+                route = "walk_detail?" +
+                        "category={category}&title={title}&body={body}&date={date}&time={time}&imageUrl={imageUrl}" +
+                        "&name={name}&avatar={avatar}",
+                arguments = listOf(
+                    navArgument("category") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("title")    { type = NavType.StringType; defaultValue = "" },
+                    navArgument("body")     { type = NavType.StringType; defaultValue = "" },
+                    navArgument("date")     { type = NavType.StringType; defaultValue = "" },
+                    navArgument("time")     { type = NavType.StringType; defaultValue = "" },
+                    navArgument("imageUrl") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("name")     { type = NavType.StringType; defaultValue = "" },      // ⬅️ 프로필 이름
+                    navArgument("avatar")   { type = NavType.StringType; defaultValue = "" },      // ⬅️ 프로필 이미지
+                )
+            ) { backStackEntry ->
+                val avatar: String? =
+                    backStackEntry.arguments?.getString("avatar").takeUnless { it.isNullOrBlank() }
 
+                WalkPostDetailScreen(
+                    navController = navController,
+                    category = backStackEntry.arguments?.getString("category") ?: "",
+                    title    = backStackEntry.arguments?.getString("title")    ?: "",
+                    body     = backStackEntry.arguments?.getString("body")     ?: "",
+                    date     = backStackEntry.arguments?.getString("date")     ?: "",
+                    time     = backStackEntry.arguments?.getString("time")     ?: "",
+                    imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: "",
+                    reporterName      = backStackEntry.arguments?.getString("name") ?: "",
+                    reporterAvatarUrl = avatar
+                )
+            }
+            composable("walk_write") {
+                WalkAndCareWriteScreen(navController = navController)
+            }
 
-            composable("missing_report") { ReservationSuccessScreen(navController) }
 
             composable("missing_report") { ReportScreen(navController) }
             composable("missing_map") { MissingMapScreen(navController) }
@@ -130,6 +168,13 @@ fun MainScaffold() {
                     regionId = regionId
                 )
             }
+
+            composable("profile_edit") { ProfileEditScreen(navController) }
+            composable("pet_profile") { PetProfileScreen(navController) }
+            composable("pet_complete") { ProfileCompleteScreen(navController) }
+            composable("my_post") { MyPostScreen(navController) }
+
+
 //            composable("hotel"){AnimalSelectScreen(navController)}
 //            composable("DateSelectionScreen"){DateSelectionScreen(navController)}
 //            composable("HotelListScreen"){ HotelListScreen(navController) }
