@@ -177,4 +177,12 @@ public class UserService {
     public User updateImage(User user) {
         return userRepository.save(user);
     }
+
+    public User updateDefaultPet(User user) {
+        return userRepository.save(user);
+    }
+
+    public User updateUser(User user) {
+        return userRepository.save(user);
+    }
 }
