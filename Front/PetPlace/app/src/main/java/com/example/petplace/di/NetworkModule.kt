@@ -10,6 +10,7 @@ import com.example.petplace.data.remote.ImageApiService
 import com.example.petplace.data.remote.JoinApiService
 import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.LoginApiService
+import com.example.petplace.data.remote.MissingApiService
 import com.example.petplace.data.remote.MyPageApiService
 import dagger.Module
 import dagger.Provides
@@ -194,5 +195,9 @@ object NetworkModule {
         @Named("Server") retrofit: Retrofit
     ): MyPageApiService = retrofit.create(MyPageApiService::class.java)
 
-
+    @Provides
+    @Singleton
+    fun provideMissingApi(
+        @Named("Server") retrofit: Retrofit
+    ): MissingApiService = retrofit.create(MissingApiService::class.java)
 }

@@ -47,6 +47,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -165,6 +166,7 @@ dependencies {
 //    implementation("com.iamport:iamport-android-sdk:1.5.8")
 //      implementation("com.github.portone-io:android-sdk:2.2.0") // <-- 이 부분을 추가하세요
     implementation("androidx.compose.runtime:runtime-livedata:1.6.0")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
 }
 
