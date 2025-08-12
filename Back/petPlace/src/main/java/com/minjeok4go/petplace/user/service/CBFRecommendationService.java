@@ -5,13 +5,14 @@ import com.minjeok4go.petplace.common.constant.Animal;
 import com.minjeok4go.petplace.feed.dto.FeedListResponse;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.repository.FeedRepository;
+import com.minjeok4go.petplace.feed.repository.FeedTagRepository;
+import com.minjeok4go.petplace.feed.repository.TagRepository;
 import com.minjeok4go.petplace.pet.entity.Pet;
 import com.minjeok4go.petplace.pet.repository.PetRepository;
 import com.minjeok4go.petplace.region.entity.Region;
 import com.minjeok4go.petplace.region.repository.RegionRepository;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisCallback;
@@ -19,7 +20,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,6 +44,13 @@ public class CBFRecommendationService {
     private final CommentRepository commentRepository;
     private final RegionRepository regionRepository;
 
+    // 개인 프로필(태그/동물) 읽기용
+    private final CBFUserProfileService userProfileService;
+
+    // 피드 ↔ 태그 매핑 읽기용
+    private final FeedTagRepository feedTagRepository;
+    private final TagRepository tagRepository;
+
     // 가중치
     private static final double WEIGHT_LIKE = 2.0;
     private static final double WEIGHT_COMMENT = 1.0;
@@ -53,7 +64,80 @@ public class CBFRecommendationService {
      * - feeds: 상위 200 한 번만
      * - writer info/pets: IN 조회
      */
-    @Transactional(Transactional.TxType.SUPPORTS)
+
+    /**
+     * 후보 피드들에 대해 유저 개인의 태그/동물 선호 기반 가산점을 계산한다.
+     * - tagPref: Redis Hash("prof:u:{uid}:tag")에서 읽은 {tagName -> score}
+     * - myAnimals: Redis Set("prof:u:{uid}:animal")에서 읽은 동물명 집합
+     * - feedTags: 후보 feedId -> 태그명 목록
+     */
+    private Map<Long, Double> computePersonalCbfBoost(Long userId, List<Long> candidateIds) {
+        // 1) 유저 개인 프로필 로딩 (빈 경우 빠르게 반환)
+        Map<String, Double> tagPref = userProfileService.loadTagPref(userId);
+        Set<String> myAnimals = userProfileService.loadAnimals(userId);
+        boolean hasPrefs = (tagPref != null && !tagPref.isEmpty()) || (myAnimals != null && !myAnimals.isEmpty());
+        if (!hasPrefs || candidateIds == null || candidateIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        // 2) 후보 피드의 (feedId, tagId) 일괄 로딩 → tagId -> tagName 매핑
+        // --- 권장: FeedTagRepository에 프로젝션 메서드(findFeedTagPairsByFeedIdIn)가 있을 때 ---
+        Map<Long, List<String>> feedTags = new HashMap<>();
+        List<FeedTagRepository.FeedTagPair> pairs =
+                feedTagRepository.findFeedTagPairsByFeedIdIn(candidateIds);
+
+        if (pairs != null && !pairs.isEmpty()) {
+            Set<Long> tagIds = pairs.stream()
+                    .map(FeedTagRepository.FeedTagPair::getTagId)
+                    .collect(Collectors.toSet());
+
+            Map<Long, String> tagIdToName = tagRepository.findByIdIn(tagIds).stream()
+                    .collect(Collectors.toMap(com.minjeok4go.petplace.feed.entity.Tag::getId,
+                            com.minjeok4go.petplace.feed.entity.Tag::getName));
+
+            for (FeedTagRepository.FeedTagPair p : pairs) {
+                String name = tagIdToName.get(p.getTagId());
+                if (name != null) {
+                    feedTags.computeIfAbsent(p.getFeedId(), k -> new ArrayList<>()).add(name);
+                }
+            }
+        } else {
+            // --- 대안: 프로젝션이 없다면 (후보 수가 작을 때만) per-feed 조회로 대체 ---
+            for (Long fid : candidateIds) {
+                List<Long> tagIds = feedTagRepository.findTagIdByFeedId(fid);
+                if (tagIds == null || tagIds.isEmpty()) continue;
+                var tags = tagRepository.findByIdIn(tagIds).stream()
+                        .map(com.minjeok4go.petplace.feed.entity.Tag::getName)
+                        .toList();
+                if (!tags.isEmpty()) feedTags.put(fid, new ArrayList<>(tags));
+            }
+        }
+
+        // 3) 개인 가산점 계산
+        final double W_ANIMAL = 1.0; // 동물 매칭 시 가산치(튜닝 포인트)
+        Map<Long, Double> boost = new HashMap<>(candidateIds.size());
+
+        for (Long fid : candidateIds) {
+            double personal = 0.0;
+
+            // 3-1) 태그 선호 합
+            for (String tag : feedTags.getOrDefault(fid, List.of())) {
+                personal += tagPref.getOrDefault(tag, 0.0);
+            }
+
+            // 3-2) (옵션) 동물 매칭 가산
+            if (myAnimals != null && !myAnimals.isEmpty()) {
+                for (String t : feedTags.getOrDefault(fid, List.of())) {
+                    if (myAnimals.contains(t)) { personal += W_ANIMAL; break; }
+                }
+            }
+
+            if (personal != 0.0) boost.put(fid, personal);
+        }
+        return boost;
+    }
+
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     public void batchRecommendationToRedis() {
         LocalDate today = LocalDate.now();
 
@@ -96,7 +180,6 @@ public class CBFRecommendationService {
         List<Long> userIds = users.stream().map(User::getId).toList();
         Map<Long, List<Pet>> petsByUser = petRepository.findByUserIdIn(userIds).stream()
                 .collect(Collectors.groupingBy(p -> p.getUser().getId()));
-
         // 6) 사용자별 점수 계산 → Redis 파이프라인으로 저장
         for (User user : users) {
             List<Pet> pets = petsByUser.getOrDefault(user.getId(), Collections.emptyList());
@@ -180,82 +263,90 @@ public class CBFRecommendationService {
     }
 
     // 조회 API는 그대로 (필요시 유지)
-    // CBFRecommendationService.java (해당 메서드 교체)
-    public List<FeedListResponse> getRecommendedFeeds(User user, int page, int size) {
+    public List<FeedListResponse> getRecommendedFeeds(Long userId, int page, int size) {
+        if (userId == null) {
+            throw new AccessDeniedException("로그인이 필요합니다.");
+        }
+
         // 0) 그룹 키 산출
-        List<Pet> pets = petRepository.findByUserId(user.getId());
+        List<Pet> pets = petRepository.findByUserId(userId);
+
+        // determineGroupKey(User, List<Pet>) 시그니처라면 엔티티 로딩
+        User user = userRepository.getReferenceById(userId);
         String groupKey = userGroupService.determineGroupKey(user, pets);
+        // 만약 determineGroupKey(Long, List<Pet>) 오버로드가 있다면 위 두 줄을:
+        // String groupKey = userGroupService.determineGroupKey(userId, pets);
 
         String redisKey = "group:" + groupKey;
         long start = (long) page * size;
-        long end   = start + size - 1; // 정확히 size개 원하면 -1 권장
+        long end   = start + size - 1;
 
-        // 1) CBF(또는 하이브리드) 후보 조회
+        // 1) 후보 조회
         Set<ZSetOperations.TypedTuple<String>> tuples =
                 redisTemplate.opsForZSet().reverseRangeWithScores(redisKey, start, end);
 
-        // 1-1) 캐시 비었을 때 Fallback (안전필터)
+        // 1-1) 캐시 비었을 때 fallback → '조기 return' 대신 후보/점수 구성
+        List<Long> candidateIds;
+        Map<Long, Double> scoreById = new HashMap<>();
         if (tuples == null || tuples.isEmpty()) {
             log.warn("[Recommend] Redis 캐시 비어있음 → Fallback(DB 인기 상위)");
             List<Feed> fallback = feedRepository.findTop200ByOrderByLikesDesc();
-            return fallback.stream()
-                    .limit(size)
-                    .map(f -> FeedListResponse.from(f, 1.0))
+            candidateIds = fallback.stream().map(Feed::getId).toList();
+            candidateIds.forEach(id -> scoreById.put(id, 1.0));
+        } else {
+            candidateIds = tuples.stream()
+                    .map(t -> Long.parseLong(Objects.requireNonNull(t.getValue())))
                     .toList();
+            for (ZSetOperations.TypedTuple<String> t : tuples) {
+                scoreById.put(Long.parseLong(Objects.requireNonNull(t.getValue())),
+                        Optional.ofNullable(t.getScore()).orElse(1.0));
+            }
         }
 
-        // 2) 후보 id/score 맵
-        List<Long> candidateIds = tuples.stream()
-                .map(t -> Long.parseLong(Objects.requireNonNull(t.getValue())))
-                .toList();
+        // 2) 개인 CBF 가산점 계산 (Long 사용)
+        Map<Long, Double> cbfBoost = computePersonalCbfBoost(userId, candidateIds);
+        double ALPHA = 0.5;
 
-        Map<Long, Double> scoreById = tuples.stream()
-                .collect(Collectors.toMap(
-                        t -> Long.parseLong(Objects.requireNonNull(t.getValue())),
-                        t -> Optional.ofNullable(t.getScore()).orElse(1.0)
-                ));
+        Map<Long, Double> finalScoreById = new HashMap<>(candidateIds.size());
+        for (Long id : candidateIds) {
+            double base = scoreById.getOrDefault(id, 1.0);
+            double cbf  = cbfBoost.getOrDefault(id, 0.0);
+            finalScoreById.put(id, base + ALPHA * cbf);
+        }
 
-        // 3) "3시간 이내 내가 작성한 최신 글 최대 3개"를 먼저 고정
+        // 3) 내 최신 글 고정
         final int PIN_OWN_LIMIT = 3;
-        LocalDateTime fiveMinutesAgo= LocalDateTime.now().minusMinutes(5);
-
+        LocalDateTime threeHoursAgo = LocalDateTime.now().minusHours(3); // 필요시 조정
         List<Long> myRecentFeedIds = feedRepository
-                .findTop3IdsByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(
-                        user.getId(), fiveMinutesAgo
-                );
+                .findTop3IdsByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(userId, threeHoursAgo);
 
-        // (선택) 가시성 필터(삭제/비공개/차단 등) 필요 시 여기서 한 번 더 거르세요.
-        // myRecentFeedIds = filterVisibleIds(myRecentFeedIds);
-
-        // 4) 최종 ID 순서: (A) 내 고정 글들 → (B) 추천 후보들(중복 제거)
+        // 4) 고정 + 점수 정렬
         LinkedHashSet<Long> ordered = new LinkedHashSet<>(size * 2);
-
-        // (A) 내 글 우선 삽입 (후보에 없어도 상단 고정)
         for (Long id : myRecentFeedIds) {
             ordered.add(id);
             if (ordered.size() >= size) break;
         }
-
-        // (B) 추천 후보 이어붙이기
         if (ordered.size() < size) {
-            for (Long id : candidateIds) {
-                ordered.add(id);
-                if (ordered.size() >= size) break;
-            }
+            candidateIds.stream()
+                    .filter(id -> !ordered.contains(id))
+                    .sorted((a, b) -> Double.compare(
+                            finalScoreById.getOrDefault(b, 0.0),
+                            finalScoreById.getOrDefault(a, 0.0)))
+                    .limit(size - ordered.size())
+                    .forEach(ordered::add);
         }
 
-        // 5) 상세 엔티티 조회 → 순서를 유지하며 응답 구성
+        // 5) 상세 조회 & 응답
         List<Long> finalIds = ordered.stream().limit(size).toList();
-        List<Feed> feeds = feedRepository.findAllById(finalIds);
-        Map<Long, Feed> feedById = feeds.stream()
-                .collect(Collectors.toMap(Feed::getId, Function.identity()));
+        List<Feed> feeds = finalIds.isEmpty() ? List.of() : feedRepository.findAllById(finalIds);
+        Map<Long, Feed> feedById = feeds.stream().collect(Collectors.toMap(Feed::getId, Function.identity()));
 
         List<FeedListResponse> out = new ArrayList<>(finalIds.size());
         for (Long id : finalIds) {
             Feed f = feedById.get(id);
-            if (f == null) continue; // 삭제 등으로 사라진 경우 방지
-            double score = scoreById.getOrDefault(id, 1.0); // 내 고정 글은 점수와 무관하게 상단 고정
-            out.add(FeedListResponse.from(f, score));
+            if (f == null) continue;
+            double finalScore = finalScoreById.getOrDefault(id, 1.0);
+            out.add(FeedListResponse.from(f, finalScore));
         }
         return out;
     }

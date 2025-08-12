@@ -19,5 +19,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Query("SELECT c.feed.id, COUNT(c.id) FROM Comment c WHERE c.feed.id IN :feedIds AND c.deletedAt IS NULL GROUP BY c.feed.id")
     List<Object[]> countByFeedIdInAndDeletedAtIsNullGroupByFeedId(@Param("feedIds") List<Long> feedIds);
 
+    @Query("select distinct c.feed.id from Comment c where c.userId = :uid and c.deletedAt is null")
+    List<Long> findFeedIdsByUserId(@Param("uid") Long userId);
+
 
 }
