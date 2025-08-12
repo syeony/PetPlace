@@ -56,6 +56,7 @@ import androidx.compose.runtime.getValue
 import coil.compose.AsyncImage
 
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
@@ -345,17 +346,17 @@ fun MyPageScreen(
                             ),
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-                        Spacer(modifier = Modifier.weight(1f))
-                        IconButton(
-                            onClick = {
-                                // 클릭 이벤트 처리
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "추가",
-                            )
-                        }
+//                        Spacer(modifier = Modifier.weight(1f))
+//                        IconButton(
+//                            onClick = {
+//                                // 클릭 이벤트 처리
+//                            }
+//                        ) {
+//                            Icon(
+//                                imageVector = Icons.Default.Add,
+//                                contentDescription = "추가",
+//                            )
+//                        }
                     }
 
                     Row(
@@ -366,6 +367,7 @@ fun MyPageScreen(
                         PetSupplyItem(
                             imageRes = R.drawable.bath_item,
                             title = "목욕 용품",
+                            actualImageUrl = uiState.petSupplies.bathImageUrl,
                             onClick = {
                                 viewModel.showSupplyDialog(SupplyType.BATH)
                             }
@@ -375,6 +377,7 @@ fun MyPageScreen(
                         PetSupplyItem(
                             imageRes = R.drawable.bowl_item,
                             title = "사료 용품",
+                            actualImageUrl = uiState.petSupplies.foodImageUrl,
                             onClick = {
                                 viewModel.showSupplyDialog(SupplyType.FOOD)
                             }
@@ -384,6 +387,7 @@ fun MyPageScreen(
                         PetSupplyItem(
                             imageRes = R.drawable.poo_item,
                             title = "배변 용품",
+                            actualImageUrl = uiState.petSupplies.wasteImageUrl,
                             onClick = {
                                 viewModel.showSupplyDialog(SupplyType.WASTE)
                             }
@@ -641,23 +645,64 @@ fun MyMenuItem(
 fun PetSupplyItem(
     imageRes: Int,
     title: String,
+    actualImageUrl: String? = null,
     onClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .size(90.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFFE3F2FD))
             .clickable { onClick() }
     ) {
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = title,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            contentScale = ContentScale.Crop
-        )
+        // 실제 이미지가 있으면 그것을 사용, 없으면 기본 아이콘 사용
+        if (!actualImageUrl.isNullOrEmpty()) {
+            // 사용자가 업로드한 실제 이미지
+            AsyncImage(
+                model = if (actualImageUrl.startsWith("http"))
+                    actualImageUrl
+                else
+                    "http://43.201.108.195:8081$actualImageUrl",
+                contentDescription = title,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = imageRes),
+                error = painterResource(id = imageRes),
+                onError = { error ->
+                    Log.e("PetSupplyItem", "이미지 로드 실패: $actualImageUrl", error.result.throwable)
+                },
+                onSuccess = {
+                    Log.d("PetSupplyItem", "이미지 로드 성공: $actualImageUrl")
+                }
+            )
+
+        } else {
+            // 기본 아이콘
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center // 중앙 정렬
+            ) {
+                // 기본 이미지
+                Image(
+                    painter = painterResource(id = imageRes),
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+
+                // 중앙에 하얀색 플러스 아이콘
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "미등록",
+                    tint = Color.White, // 하얀색
+                    modifier = Modifier.size(32.dp) // 원하는 크기
+                )
+            }
+        }
     }
 }
 
@@ -685,16 +730,19 @@ fun PetSupplyDialog(
             if (existingImageUrl.isNullOrEmpty()) "목욕 용품 사진을 올려주세요." else "목욕 용품 사진을 변경하세요.",
             R.drawable.bath_item
         )
+
         SupplyType.FOOD -> Triple(
             "사료 용품",
             if (existingImageUrl.isNullOrEmpty()) "사료 사진을 올려주세요." else "사료 사진을 변경하세요.",
             R.drawable.bowl_item
         )
+
         SupplyType.WASTE -> Triple(
             "배변 용품",
             if (existingImageUrl.isNullOrEmpty()) "배변 용품 사진을 올려주세요." else "배변 용품 사진을 변경하세요.",
             R.drawable.poo_item
         )
+
         else -> Triple("용품", "용품 사진을 올려주세요.", R.drawable.bath_item)
     }
 
@@ -730,24 +778,49 @@ fun PetSupplyDialog(
                         // 기존 이미지가 있을 때
                         !existingImageUrl.isNullOrEmpty() -> {
                             AsyncImage(
-                                model = existingImageUrl,
+                                model = if (existingImageUrl.startsWith("http"))
+                                    existingImageUrl
+                                else
+                                    "http://43.201.108.195:8081$existingImageUrl", // 서버 베이스 URL 추가
                                 contentDescription = supplyInfo.first,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop,
                                 placeholder = painterResource(id = supplyInfo.third),
-                                error = painterResource(id = supplyInfo.third)
+                                error = painterResource(id = supplyInfo.third),
+                                onError = { error ->
+                                    Log.e(
+                                        "AsyncImage",
+                                        "기존 이미지 로드 실패: $existingImageUrl",
+                                        error.result.throwable
+                                    )
+                                },
+                                onSuccess = {
+                                    Log.d("AsyncImage", "기존 이미지 로드 성공: $existingImageUrl")
+                                }
                             )
                         }
                         // 기본 이미지
                         else -> {
-                            Image(
-                                painter = painterResource(id = supplyInfo.third),
-                                contentDescription = supplyInfo.first,
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                contentScale = ContentScale.Fit
-                            )
+                                    .fillMaxSize(),
+                                contentAlignment = Alignment.Center // 중앙 정렬
+                            ) {
+                                Image(
+                                    painter = painterResource(id = supplyInfo.third),
+                                    contentDescription = supplyInfo.first,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "미등록",
+                                    tint = Color.White, // 하얀색
+                                    modifier = Modifier.size(32.dp) // 원하는 크기
+                                )
+                            }
                         }
                     }
 
@@ -826,24 +899,6 @@ fun PetSupplyDialog(
                 }
             }
         },
-        dismissButton = if (!isSaving) {
-            {
-                Button(
-                    onClick = onDismiss,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Gray
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "취소",
-                        color = Color.White,
-                        style = AppTypography.labelLarge
-                    )
-                }
-            }
-        } else null,
         containerColor = Color.White,
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.padding(16.dp)

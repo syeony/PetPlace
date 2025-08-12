@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.repository.MyPageRepository
+import com.example.petplace.data.repository.ImageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,7 @@ data class UserProfileState(
     val level: Int = 1,
     val experienceProgress: Float = 0f,
     val introduction: String = "",
-    val userImgSrc: String = ""  // 추가
+    val userImgSrc: String = ""
 )
 
 data class PetInfo(
@@ -28,7 +29,7 @@ data class PetInfo(
     val breed: String = "",
     val gender: String = "",
     val age: Int = 0,
-    val imgSrc: String? = ""  // 추가
+    val imgSrc: String? = ""
 )
 
 data class PetSupplyState(
@@ -52,7 +53,8 @@ data class MyPageUiState(
 
 @HiltViewModel
 class MyPageViewModel @Inject constructor(
-    private val myPageRepository: MyPageRepository
+    private val myPageRepository: MyPageRepository,
+    private val imageRepository: ImageRepository // ImageRepository 추가
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MyPageUiState())
@@ -95,10 +97,12 @@ class MyPageViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(
                             userProfile = userProfile,
                             pets = pets,
+                            petSupplies = petSupplies, // petSupplies 업데이트 추가
                             isLoading = false
                         )
                         Log.d("MyPage", "after uiState update")
                         Log.d("MyPage", "nickname=${response.nickname}")
+                        Log.d("MyPage", "petSupplies loaded: $petSupplies")
                     }
                     .onFailure { exception ->
                         Log.e("MyPage", "getMyPageInfo failed", exception)
@@ -126,7 +130,6 @@ class MyPageViewModel @Inject constructor(
                 1 -> bathImageUrl = imageInfo.src  // 목욕 용품
                 2 -> foodImageUrl = imageInfo.src  // 사료 용품
                 3 -> wasteImageUrl = imageInfo.src // 배변 용품
-                // 필요에 따라 다른 sort 값들도 추가
             }
         }
 
@@ -138,8 +141,6 @@ class MyPageViewModel @Inject constructor(
     }
 
     private fun calculateAge(birthday: String): Int {
-        // birthday 형식에 따라 나이 계산 로직 구현
-        // 예: "2020-01-01" 형식이라면
         return try {
             val birthYear = birthday.substring(0, 4).toInt()
             val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
@@ -190,37 +191,52 @@ class MyPageViewModel @Inject constructor(
             try {
                 val currentState = _uiState.value
                 val supplyType = currentState.currentSupplyType ?: return@launch
-                val imageUri = currentState.selectedSupplyImage?.toString() ?: return@launch
+                val imageUri = currentState.selectedSupplyImage ?: return@launch
 
                 _uiState.value = _uiState.value.copy(isSavingSupply = true)
 
-                // 기존 이미지가 있는지 확인
+                // 1단계: 이미지 업로드 (채팅에서 사용하는 방식과 동일)
+                Log.d("MyPage", "이미지 업로드 시작: $imageUri")
+                val uploadedImageUrls = imageRepository.uploadImages(listOf(imageUri))
+
+                if (uploadedImageUrls.isEmpty()) {
+                    throw Exception("이미지 업로드에 실패했습니다.")
+                }
+
+                val serverImageUrl = uploadedImageUrls.first()
+                Log.d("MyPage", "이미지 업로드 완료: $serverImageUrl")
+
+                // 2단계: 서버에 용품 정보 저장
                 val hasExistingImage = when (supplyType) {
                     SupplyType.BATH -> !currentState.petSupplies.bathImageUrl.isNullOrEmpty()
                     SupplyType.FOOD -> !currentState.petSupplies.foodImageUrl.isNullOrEmpty()
                     SupplyType.WASTE -> !currentState.petSupplies.wasteImageUrl.isNullOrEmpty()
                 }
 
-                Log.d("MyPage", "Saving supply: $supplyType, hasExisting: $hasExistingImage")
+                Log.d("MyPage", "서버에 용품 정보 저장: $supplyType, hasExisting: $hasExistingImage")
 
-                myPageRepository.savePetSupplyInfo(supplyType, imageUri, hasExistingImage)
+                myPageRepository.savePetSupplyInfo(supplyType, serverImageUrl, hasExistingImage)
                     .onSuccess { response ->
-                        Log.d("MyPage", "Supply saved successfully: $response")
+                        Log.d("MyPage", "용품 저장 성공: $response")
 
-                        // UI 상태 업데이트
+                        // 3단계: UI 상태 업데이트 (서버 URL 사용)
                         val updatedSupplies = when (supplyType) {
-                            SupplyType.BATH -> currentState.petSupplies.copy(bathImageUrl = imageUri)
-                            SupplyType.FOOD -> currentState.petSupplies.copy(foodImageUrl = imageUri)
-                            SupplyType.WASTE -> currentState.petSupplies.copy(wasteImageUrl = imageUri)
+                            SupplyType.BATH -> currentState.petSupplies.copy(bathImageUrl = serverImageUrl)
+                            SupplyType.FOOD -> currentState.petSupplies.copy(foodImageUrl = serverImageUrl)
+                            SupplyType.WASTE -> currentState.petSupplies.copy(wasteImageUrl = serverImageUrl)
                         }
 
                         _uiState.value = _uiState.value.copy(
                             petSupplies = updatedSupplies,
-                            isSavingSupply = false
+                            isSavingSupply = false,
+                            showSupplyDialog = false, // 다이얼로그 닫기
+                            selectedSupplyImage = null // 선택된 이미지 초기화
                         )
+
+                        Log.d("MyPage", "UI 업데이트 완료: ${updatedSupplies}")
                     }
                     .onFailure { exception ->
-                        Log.e("MyPage", "Failed to save supply", exception)
+                        Log.e("MyPage", "용품 저장 실패", exception)
                         _uiState.value = _uiState.value.copy(
                             error = "용품 저장에 실패했습니다: ${exception.message}",
                             isSavingSupply = false
@@ -228,7 +244,7 @@ class MyPageViewModel @Inject constructor(
                     }
 
             } catch (e: Exception) {
-                Log.e("MyPage", "Error saving supply", e)
+                Log.e("MyPage", "용품 저장 중 오류", e)
                 _uiState.value = _uiState.value.copy(
                     error = "용품 저장 중 오류가 발생했습니다: ${e.message}",
                     isSavingSupply = false
