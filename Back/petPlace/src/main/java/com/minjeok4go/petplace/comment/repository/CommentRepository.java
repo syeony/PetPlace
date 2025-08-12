@@ -1,6 +1,7 @@
 package com.minjeok4go.petplace.comment.repository;
 
 import com.minjeok4go.petplace.comment.entity.Comment;
+import com.minjeok4go.petplace.feed.entity.Feed;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,4 +24,5 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Long> findFeedIdsByUserId(@Param("uid") Long userId);
 
 
+    List<Comment> findByFeedAndDeletedAtIsNullOrderByIdAsc(Feed feed);
 }

@@ -2,6 +2,8 @@ package com.minjeok4go.petplace.feed.entity;
 
 import com.minjeok4go.petplace.comment.entity.Comment;
 import com.minjeok4go.petplace.common.constant.FeedCategory;
+import com.minjeok4go.petplace.feed.dto.CreateFeedRequest;
+import com.minjeok4go.petplace.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -75,6 +77,15 @@ public class Feed {
 
     public Feed(Long feedId) {
         this.id = feedId;
+    }
+
+    public Feed(CreateFeedRequest req, User user){
+        this.content = req.getContent();
+        this.userId = user.getId();
+        this.userNick = user.getNickname();
+        this.userImg = user.getUserImgSrc();
+        this.regionId = req.getRegionId();
+        this.category = FeedCategory.valueOf(req.getCategory());
     }
 
     public void update() {
