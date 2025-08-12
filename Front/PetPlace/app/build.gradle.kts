@@ -106,7 +106,8 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
     // Firebase Cloud Messaging
-    implementation("com.google.firebase:firebase-messaging:23.4.0")
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-messaging")
 
     // 위치
     implementation("com.google.android.gms:play-services-location:21.0.1")
