@@ -71,6 +71,6 @@ data class FeedRecommendRes(
     val score: Double,
     val tags: List<TagRes>?,
     val images: List<ImageRes>,
-    val comments: List<CommentRes>,
+    val comments: List<CommentRes> ,
     val commentCount: Int
 )

@@ -15,4 +15,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByImpUid(String impUid);
 
     Optional<Payment> findByReservationId(Long reservationId);
+
+    // 개발용: 특정 상태와 merchantUid 패턴으로 최근 결제 찾기
+    Optional<Payment> findTopByStatusAndMerchantUidContainingOrderByCreatedAtDesc(
+            Payment.PaymentStatus status, String merchantUidPattern);
 }

@@ -1,3 +1,5 @@
+@file:Suppress("NewApi") // Desugaring 사용 시 Lint 경고 억제(선택)
+
 package com.example.petplace.presentation.feature.missing_report
 
 import android.Manifest
@@ -89,9 +91,9 @@ import java.util.Locale
 @Composable
 fun ReportScreen(
     navController: NavController,
-    // 기존 이미지 선택용 VM (그대로 사용)
+    // 이미지 선택용(기존) VM
     registerViewModel: RegisterViewModel = hiltViewModel(),
-    // 새로 만든 신고 VM
+    // 신고 전용 VM (ReportViewModel: ImageRepository + MissingSightingRepository 주입)
     reportViewModel: ReportViewModel = hiltViewModel()
 ) {
     val ui by reportViewModel.uiState.collectAsState()
@@ -103,7 +105,7 @@ fun ReportScreen(
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val scope = rememberCoroutineScope()
 
-    // 권한 & 현재 위치 자동 채움 (수동선택이 없을 때만, 내부에서 가드함)
+    // 현재 위치 권한 & 자동 채움 (수동 선택 있으면 VM 내부에서 무시)
     val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION) { granted ->
         if (granted) {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -125,8 +127,9 @@ fun ReportScreen(
         locationPermissionState.launchPermissionRequest()
     }
 
-    // 이미지들 (기존 RegisterViewModel 사용)
+    // 갤러리 이미지(URI) 리스트
     val imageList by registerViewModel.imageList.collectAsState()
+
     val launcherGallery =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
             if (!uris.isNullOrEmpty()) registerViewModel.addImages(uris)
@@ -162,16 +165,16 @@ fun ReportScreen(
             Button(
                 enabled = !ui.loading,
                 onClick = {
+                    // TODO: 실제 regionId로 교체
+                    val regionId = 0L
                     reportViewModel.submitSightingFromUris(
-                        imageUris = imageList, // ← Uri 리스트 그대로 전달
+                        imageUris = imageList,
                         onSuccess = {
                             navController.navigate("${BottomNavItem.Neighborhood.route}?showDialog=true") {
                                 popUpTo("missing_report") { inclusive = true }
                             }
                         },
-                        onFailure = { msg ->
-                            // TODO: 스낵바/토스트 노출
-                        }
+                        onFailure = { /* TODO: 스낵바/토스트 등 사용자 안내 */ }
                     )
                 },
                 modifier = Modifier
@@ -363,7 +366,9 @@ fun ReportScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        reportViewModel.setDate(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate())
+                        reportViewModel.setDate(
+                            Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                        )
                     }
                     showDatePicker = false
                 }) { Text("확인") }

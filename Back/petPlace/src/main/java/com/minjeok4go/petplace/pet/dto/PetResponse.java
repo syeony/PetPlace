@@ -17,9 +17,9 @@ public class PetResponse {
 
     private String name;
 
-    private Animal animal;
+    private String animal;
 
-    private Breed breed;
+    private String breed;
 
     private Pet.Sex sex;
 
@@ -32,8 +32,8 @@ public class PetResponse {
     public PetResponse(Pet pet) {
         this.id = pet.getId();
         this.name = pet.getName();
-        this.animal = pet.getAnimal();
-        this.breed = pet.getBreed();
+        this.animal = pet.getAnimal().getDisplayName();
+        this.breed = pet.getBreed().getDisplayName();
         this.sex = pet.getSex();
         this.birthday = pet.getBirthday();
         this.imgSrc = pet.getImgSrc();

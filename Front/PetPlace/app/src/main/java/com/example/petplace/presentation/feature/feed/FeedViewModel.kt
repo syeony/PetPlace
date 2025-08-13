@@ -74,6 +74,43 @@ class BoardViewModel @Inject constructor(
     private val _commentList = MutableStateFlow<List<CommentRes>>(emptyList())
     val commentList: StateFlow<List<CommentRes>> = _commentList
 
+    private inline fun updateFeed(feedId: Long, crossinline transform: (FeedRecommendRes) -> FeedRecommendRes) {
+        _remoteFeeds.update { list -> list.map { if (it.id == feedId) transform(it) else it } }
+        applyFilters()
+    }
+
+    // ✅ null 방지용 확장 함수(필요한 필드만 넣어도 됨)
+    private fun FeedRecommendRes.safeCopy(
+        likes: Int? = null,
+        liked: Boolean? = null,
+        commentCount: Int? = null
+    ): FeedRecommendRes {
+        return this.copy(
+            // 리스트/값이 null로 들어오면 안전한 기본값으로
+            comments = this.comments ?: emptyList(),
+            tags     = this.tags     ?: emptyList(),
+            images   = this.images   ?: emptyList(),
+            likes        = likes        ?: (this.likes ?: 0),
+            liked        = liked        ?: (this.liked ?: false),
+            commentCount = commentCount ?: (this.commentCount ?: 0),
+        )
+    }
+
+    private fun updateFeedLikeState(feedId: Long, newLiked: Boolean) {
+        _likedFeeds.update { if (newLiked) it + feedId else it - feedId }
+        updateFeed(feedId) { f ->
+            val newLikes = (f.likes ?: 0) + if (newLiked) 1 else -1
+            f.safeCopy(likes = newLikes, liked = newLiked)   // ✅ 안전한 copy
+        }
+    }
+
+    private fun updateFeedCommentDelta(feedId: Long, delta: Int) {
+        updateFeed(feedId) { f ->
+            val now = (f.commentCount ?: 0) + delta
+            f.safeCopy(commentCount = now)                   // ✅ 안전한 copy
+        }
+    }
+
     /** 피드별 댓글 새로고침 */
     fun refreshComments(feedId: Long) {
         viewModelScope.launch {
@@ -103,45 +140,45 @@ class BoardViewModel @Inject constructor(
 
     fun toggleLike(feed: FeedRecommendRes) {
         viewModelScope.launch {
+            val currentlyLiked = (feed.liked == true) || _likedFeeds.value.contains(feed.id)
+            val newLiked = !currentlyLiked
+
+            // 1) 낙관적 반영
+            updateFeedLikeState(feed.id, newLiked)
+
+            // 2) 서버 호출
             try {
-                val newLiked = !(feed.liked == true)
-                if (newLiked) repo.likeFeed(feed.id)
-                else        repo.unlikeFeed(feed.id)
-
-                // 1) remote list 반영
-                _remoteFeeds.update { list ->
-                    list.map {
-                        if (it.id == feed.id) it.copy(liked = newLiked,
-                            likes = it.likes + if (newLiked) +1 else -1)
-                        else it
-                    }
-                }
-                // 2) _likedFeeds 집합에도 반영
-                _likedFeeds.update {
-                    if (newLiked) it + feed.id else it - feed.id
-                }
-
-                applyFilters()
+                if (newLiked) repo.likeFeed(feed.id) else repo.unlikeFeed(feed.id)
             } catch (e: Exception) {
-                // 에러 처리
+                // 3) 실패 시 롤백
+                updateFeedLikeState(feed.id, currentlyLiked)
+                // 선택: _error.value = "좋아요 실패: ${e.message}"
             }
         }
     }
 
+
     // 댓글 작성
     suspend fun addComment(feedId: Long, parentCommentId: Long?, content: String): CommentRes {
-        val result = repo.createComment(
-            CommentReq(feedId = feedId, parentCommentId = parentCommentId, content = content)
-        )
-        refreshComments(feedId) // 댓글 작성 후 바로 새로고침
+        // 1) 서버 작성
+        val result = repo.createComment(CommentReq(feedId, parentCommentId, content))
+        // 2) 카운트 +1을 즉시 반영
+        updateFeedCommentDelta(feedId, +1)
+        // 3) 상세 댓글 리스트 새로고침 (목록 하단에 반영)
+        refreshComments(feedId)
         return result
     }
 
     // 댓글 삭제
     suspend fun removeComment(commentId: Long, feedId: Long) {
+        // 1) 서버 삭제
         repo.deleteComment(commentId)
-        refreshComments(feedId) // 삭제 후 바로 새로고침
+        // 2) 카운트 -1 즉시 반영
+        updateFeedCommentDelta(feedId, -1)
+        // 3) 상세 댓글 리스트 새로고침
+        refreshComments(feedId)
     }
+
 
     /** ------------ 카테고리 토글 ------------ */
     fun toggleCategory(cat: String) {

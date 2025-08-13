@@ -25,7 +25,7 @@ data class ApiResponse<T>(
 )
 
 // ---------- Response Data ----------
-data class SightingImageRes(
+data class ImageRes(
     val id: Long,
     val src: String,
     val sort: Int
@@ -45,5 +45,5 @@ data class SightingRes(
     val breed: String?,
     val sightedAt: String,
     val createdAt: String,
-    val images: List<SightingImageRes>
+    val images: List<ImageRes>
 )
