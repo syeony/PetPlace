@@ -128,16 +128,38 @@ public class CommentService {
                 .build();
     }
 
+//    private FeedComment mapCommentWithReplies(Comment comment) {
+//        List<FeedComment> replyDtos = comment.getReplies().stream()
+//                .map(this::mapCommentWithReplies)
+//                .toList();
+//
+//        return FeedComment.builder()
+//                .id(comment.getId())
+//                .parentCommentId(comment.getParentComment() != null
+//                        ? comment.getParentComment().getId()
+//                        : null)
+//                .feedId(comment.getFeed().getId())
+//                .content(comment.getContent())
+//                .userId(comment.getUserId())
+//                .userNick(comment.getUserNick())
+//                .userImg(comment.getUserImg())
+//                .createdAt(comment.getCreatedAt())
+//                .updatedAt(comment.getUpdatedAt())
+//                .deletedAt(comment.getDeletedAt())
+//                .replies(replyDtos)
+//                .build();
+//    }
     private FeedComment mapCommentWithReplies(Comment comment) {
-        List<FeedComment> replyDtos = comment.getReplies().stream()
+        List<Comment> activeReplies =
+                commentRepository.findByParentCommentIdAndDeletedAtIsNullOrderByIdAsc(comment.getId());
+
+        List<FeedComment> replyDtos = activeReplies.stream()
                 .map(this::mapCommentWithReplies)
                 .toList();
 
         return FeedComment.builder()
                 .id(comment.getId())
-                .parentCommentId(comment.getParentComment() != null
-                        ? comment.getParentComment().getId()
-                        : null)
+                .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
                 .feedId(comment.getFeed().getId())
                 .content(comment.getContent())
                 .userId(comment.getUserId())

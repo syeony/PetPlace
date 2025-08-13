@@ -18,6 +18,7 @@ import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
 import com.minjeok4go.petplace.like.repository.LikeRepository;
 import com.minjeok4go.petplace.user.entity.User;
+import com.minjeok4go.petplace.user.service.RecommendationCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -38,6 +39,8 @@ public class FeedService {
     private final TagRepository tagRepository;
     private final ImageRepository imageRepository;
     private final LikeRepository likeRepository;
+    private final RecommendationCacheService recommendationCacheService; // ⬅ 추가
+
 
     @Transactional(readOnly = true)
     public FeedDetailResponse getFeedDetail(Long feedId, User user) {
@@ -48,16 +51,26 @@ public class FeedService {
         return mapFeedToDetail(feed, user);
     }
 
+//    private FeedComment mapCommentWithRepliesFiltered(Comment comment) {
+//        List<FeedComment> replyDtos = comment.getReplies().stream()
+//                .filter(r -> r.getDeletedAt() == null) // 대댓글도 삭제 제외
+//                .sorted(Comparator.comparing(Comment::getId)) // 또는 createdAt
+//                .map(this::mapCommentWithRepliesFiltered)
+//                .toList();
+//
+//        return new FeedComment(comment, replyDtos);
+//    }
     private FeedComment mapCommentWithRepliesFiltered(Comment comment) {
-        List<FeedComment> replyDtos = comment.getReplies().stream()
-                .filter(r -> r.getDeletedAt() == null) // 대댓글도 삭제 제외
-                .sorted(Comparator.comparing(Comment::getId)) // 또는 createdAt
+        // 대댓글은 항상 쿼리로 재조회 → soft delete/동시성 즉시 반영
+        List<Comment> activeReplies =
+                commentRepository.findByParentCommentIdAndDeletedAtIsNullOrderByIdAsc(comment.getId());
+
+        List<FeedComment> replyDtos = activeReplies.stream()
                 .map(this::mapCommentWithRepliesFiltered)
                 .toList();
 
         return new FeedComment(comment, replyDtos);
     }
-
     @Transactional
     public FeedDetailResponse createFeed(CreateFeedRequest req, User user) {
         // 1) 피드 저장
@@ -67,6 +80,7 @@ public class FeedService {
 
         syncTags(feed.getId(), req.getTagIds());
         syncImages(feed.getId(), req.getImages());
+
 
         return getFeedDetail(saved.getId(), user);
     }
@@ -91,6 +105,7 @@ public class FeedService {
         syncTags(feed.getId(), req.getTagIds());
         syncImages(feed.getId(), req.getImages());
 
+
         return getFeedDetail(saved.getId(), user);
     }
 
@@ -102,6 +117,8 @@ public class FeedService {
 
         feed.delete();
         feedRepository.save(feed);
+
+
         return new DeleteFeedResponse(id);
     }
 
@@ -130,6 +147,7 @@ public class FeedService {
                     .toList();
             feedTagRepository.saveAll(feedTags);
         }
+
     }
 
     private void syncImages(Long feedId, List<FeedImageRequest> requested) {
@@ -143,6 +161,7 @@ public class FeedService {
                     .toList();
             imageRepository.saveAll(toAdd);
         }
+
     }
 
     @Transactional(readOnly = true)
@@ -155,7 +174,8 @@ public class FeedService {
         feed.increaseLikes();
         feedRepository.save(feed);
 
-        return new FeedLikeResponse(feed.getId(), feed.getLikes());
+
+        return new FeedLikeResponse(feed.getId(),true, feed.getLikes());
     }
 
     @Transactional
@@ -163,7 +183,8 @@ public class FeedService {
         feed.decreaseLikes();
         feedRepository.save(feed);
 
-        return new FeedLikeResponse(feed.getId(), feed.getLikes());
+
+        return new FeedLikeResponse(feed.getId(),false, feed.getLikes());
     }
 
     @Transactional(readOnly = true)
@@ -187,15 +208,22 @@ public class FeedService {
 
     private FeedDetailResponse mapFeedToDetail(Feed feed, User user) {
         // tags
-        List<TagResponse> tagDtos = feed.getFeedTags().stream()
-                .map(ft -> new TagResponse(ft.getTag().getId(), ft.getTag().getName()))
-                .toList();
+//        List<TagResponse> tagDtos = feed.getFeedTags().stream()
+//                .map(ft -> new TagResponse(ft.getTag().getId(), ft.getTag().getName()))
+//                .toList();
+        // 1) tags (NULL SAFE)
+        List<TagResponse> tagDtos =
+                Optional.ofNullable(feed.getFeedTags())            // ★ null → empty
+                        .orElse(Collections.emptySet())
+                        .stream()
+                        .map(ft -> new TagResponse(ft.getTag().getId(), ft.getTag().getName()))
+                        .toList();
 
-        // comments (삭제 제외 + 정렬 + 최상위만)
+        // 최상위 댓글 + 대댓글 트리
         List<Comment> comments = commentRepository.findByFeedAndDeletedAtIsNullOrderByIdAsc(feed);
         List<FeedComment> commentDtos = comments.stream()
                 .filter(c -> c.getParentComment() == null)
-                .map(this::mapCommentWithRepliesFiltered)
+                .map(this::mapCommentWithRepliesFiltered)  // 대댓글 재조회 버전
                 .toList();
 
         // images
@@ -207,6 +235,43 @@ public class FeedService {
 
         boolean liked = likeRepository.existsByFeedAndUser(feed, user);
 
-        return new FeedDetailResponse(feed, liked, tagDtos, imageDtos, comments, commentDtos);
+        // DTO 생성 (생성자 시그니처 그대로 유지)
+        FeedDetailResponse dto =
+                new FeedDetailResponse(feed, liked, tagDtos, imageDtos, comments, commentDtos);
+
+        // ✔ 실제 총 댓글 수(소프트 삭제 제외)로 덮어쓰기
+        long total = commentRepository.countByFeedIdAndDeletedAtIsNull(feed.getId());
+        dto.setCommentCount(Math.toIntExact(total));
+
+        return dto;
     }
+
+
+
 }
+
+//    private FeedDetailResponse mapFeedToDetail(Feed feed, User user) {
+//        // tags
+//        List<TagResponse> tagDtos = feed.getFeedTags().stream()
+//                .map(ft -> new TagResponse(ft.getTag().getId(), ft.getTag().getName()))
+//                .toList();
+//
+//        // comments (삭제 제외 + 정렬 + 최상위만)
+//        List<Comment> comments = commentRepository.findByFeedAndDeletedAtIsNullOrderByIdAsc(feed);
+//        List<FeedComment> commentDtos = comments.stream()
+//                .filter(c -> c.getParentComment() == null)
+//                .map(this::mapCommentWithRepliesFiltered)
+//                .toList();
+//
+//        // images
+//        List<ImageResponse> imageDtos = imageRepository
+//                .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feed.getId())
+//                .stream()
+//                .map(img -> new ImageResponse(img.getId(), img.getSrc(), img.getSort()))
+//                .toList();
+//
+//        boolean liked = likeRepository.existsByFeedAndUser(feed, user);
+//
+//        return new FeedDetailResponse(feed, liked, tagDtos, imageDtos, comments, commentDtos);
+//    }
+

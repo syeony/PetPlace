@@ -6,6 +6,7 @@ import com.minjeok4go.petplace.auth.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -61,9 +62,9 @@ public class SecurityConfig {
                                 "/api/auth/refresh",
 
                                 // 추천 API
-                                "/api/recommend/group",
+//                                "/api/recommend/group",
                                 "/api/recommend/batch",
-
+//                                "/api/recommend/**",
                                 // 기타 공개 API
                                 "/api/upload/images",
                                 "/images/**",
@@ -86,7 +87,7 @@ public class SecurityConfig {
 
 
                         ).permitAll()
-
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
