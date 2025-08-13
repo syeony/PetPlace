@@ -423,7 +423,7 @@ fun MyPageScreen(
                         MyMenuItem(
                             icon = R.drawable.my_comment,
                             title = "내 댓글",
-                            onClick = { /* 댓글 로직 */ }
+                            onClick = { navController.navigate("my_comment") }
                         )
                         MyMenuItem(
                             icon = R.drawable.heart,
