@@ -68,7 +68,8 @@ public class Payment {
         CARD,      // 신용카드
         KAKAOPAY,  // 카카오페이
         NAVERPAY,  // 네이버페이
-        BANK       // 계좌이체
+        BANK,      // 계좌이체
+        ETC        // 기타
     }
 
 

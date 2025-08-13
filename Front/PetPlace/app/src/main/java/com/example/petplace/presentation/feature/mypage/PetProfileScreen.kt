@@ -78,6 +78,7 @@ import androidx.compose.material3.CircularProgressIndicator
 @Composable
 fun PetProfileScreen(
     navController: NavController,
+    petId: Int? = null,
     viewModel: PetProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -107,6 +108,12 @@ fun PetProfileScreen(
             }
         }
 
+    LaunchedEffect(petId) {
+        petId?.let { id ->
+            viewModel.loadPetInfo(id)
+        }
+    }
+
     uiState.error?.let { error ->
         LaunchedEffect(error) {
             // 에러 표시 로직
@@ -131,7 +138,7 @@ fun PetProfileScreen(
                 Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
             }
             Text(
-                "펫 프로필 등록",
+                text = if (uiState.isEditMode) "펫 프로필 수정" else "펫 프로필 등록",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center
@@ -372,7 +379,8 @@ fun PetProfileScreen(
             shape = RoundedCornerShape(8.dp),
             placeholder = { Text("나이") },
             label = { Text("나이") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
@@ -386,8 +394,12 @@ fun PetProfileScreen(
         // 다음 버튼
         Button(
             onClick = {
-                viewModel.savePetProfile {
-                    navController.navigate("pet_complete")
+                viewModel.savePetProfile { savedPetId ->
+                    if (uiState.isEditMode) {
+                        navController.popBackStack() // 수정 완료 후 이전 화면으로
+                    } else {
+                        navController.navigate("pet_complete/${savedPetId}") // 새 등록 후 완료 화면으로
+                    }
                 }
             },
             enabled = !uiState.isSaving,
@@ -401,7 +413,10 @@ fun PetProfileScreen(
                     color = Color.White
                 )
             } else {
-                Text("다음", color = Color.White)
+                Text(
+                    text = if (uiState.isEditMode) "수정 완료" else "다음",
+                    color = Color.White
+                )
             }
         }
         uiState.validationErrors.forEach { (field, error) ->
@@ -442,7 +457,7 @@ fun BirthDatePicker(
 
     OutlinedTextField(
         value = uiState.birthDate,
-        onValueChange = { viewModel.updateBirthDate(it)},
+        onValueChange = { viewModel.updateBirthDate(it) },
         placeholder = { Text("mm/dd/yyyy") },
         shape = RoundedCornerShape(8.dp),
         label = { Text("생일") },
@@ -452,8 +467,8 @@ fun BirthDatePicker(
                 contentDescription = "날짜 선택",
                 modifier = Modifier
                     .clickable {
-                    datePickerDialog.show()
-                },
+                        datePickerDialog.show()
+                    },
                 tint = PrimaryColor
             )
         },

@@ -77,7 +77,12 @@ public class SecurityConfig {
                                 // 호텔 API
                                 "/api/hotels/**",
                                 "/api/reservations/**",
-                                "/api/payments/**"
+                                "/api/payments/**",
+
+                                //호텔 결제
+                                "/api/payments/webhook",
+                                "/api/auth/**"
+
 
 
                         ).permitAll()

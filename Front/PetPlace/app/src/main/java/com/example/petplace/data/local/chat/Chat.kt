@@ -9,7 +9,7 @@ data class ChatRoom(
     val lastMessage: String,         // 마지막 메시지 내용
     val time: String,                // 마지막 메시지 시간 (예: "3시간 전")
     val unreadCount: Int,            // 안읽은 메시지 수
-    val profileImageUrl: Int? = null // 프로필 이미지 URL (nullable)
+    val profileImageUrl: String? = null // 프로필 이미지 URL (nullable)
 )
 
 
