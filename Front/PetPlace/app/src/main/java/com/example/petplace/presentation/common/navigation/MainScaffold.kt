@@ -215,13 +215,30 @@ fun MainScaffold() {
                     val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
                     ReservationCheckoutScreen(navController, viewModel)
                 }
-                composable("hotel/success") { backStackEntry ->
-                    val parentEntry = remember(backStackEntry) {
-                        navController.getBackStackEntry("hotel_graph")
-                    }
-                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
-                    ReservationSuccessScreen(navController, viewModel)
-                }
+                 composable(
+                            route = "hotel/success/{merchantUid}?rid={reservationId}",
+                            arguments = listOf(
+                                navArgument("merchantUid") { type = NavType.StringType },
+                                navArgument("reservationId") { type = NavType.LongType; defaultValue = -1L } // 쿼리로 받음
+                            )
+                        ) { backStackEntry ->
+                            // 그래프 스코프의 ViewModel 유지
+                            val parentEntry = remember(backStackEntry) {
+                                navController.getBackStackEntry("hotel_graph")
+                            }
+                            val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+
+                            val merchantUid = backStackEntry.arguments!!.getString("merchantUid")!!
+                            val reservationId = backStackEntry.arguments!!.getLong("reservationId")
+
+                            ReservationSuccessScreen(
+                                navController = navController,
+                                viewModel = viewModel,
+                                merchantUid = merchantUid,
+                                reservationId = reservationId
+                            )
+                        }
+
 
 
 

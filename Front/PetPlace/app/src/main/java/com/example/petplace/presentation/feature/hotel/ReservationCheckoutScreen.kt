@@ -1,6 +1,7 @@
 package com.example.petplace.presentation.feature.hotel
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -86,6 +87,7 @@ fun ReservationCheckoutScreen(
         val nights = calcNights(reservation.checkInDate, reservation.checkOutDate)
         return pricePerNight * nights
     }
+
 
     // (권장: 서버발급) 데모용 merchantUid
     fun newMerchantUid(): String = "pp_${System.currentTimeMillis()}_${(1000..9999).random()}"
@@ -191,11 +193,16 @@ fun ReservationCheckoutScreen(
 //
 //                                }
                                 // 5) 예약 확정
-                                    viewModel.confirmReservation(reservationId)
+//                                    viewModel.confirmReservation(reservationId)
 
                                     // (선택) 성공 화면 이동
-                                     navController.navigate("hotel/success")
 
+//                                navController.navigate("payment/wait/${mUid}?rid=$reservationId")
+//                                route = "hotel/success/{merchantUid}?rid={reservationId}",
+
+                                navController.navigate(
+                                    "hotel/success/${Uri.encode(mUid)}?rid=${reservationId.toLong()}"
+                                )
                             }
                         }
                     }

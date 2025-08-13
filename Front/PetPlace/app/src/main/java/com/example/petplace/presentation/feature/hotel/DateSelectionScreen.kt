@@ -72,7 +72,7 @@ fun DateSelectionScreen(
     }
     val petList by viewModel.myPetList.collectAsState()
     var selectedPetId by remember { mutableStateOf<Int?>(null) }
-
+    var selectedPetType by remember { mutableStateOf<Int?>(null) }
     val calendarState = rememberCalendarState(
         startMonth = startMonth,
         endMonth = endMonth,
@@ -293,7 +293,7 @@ fun DateSelectionScreen(
                                 .size(100.dp)
                                 .clickable {
                                     selectedPetId = pet.id
-                                    viewModel.selecMyPet(pet.id) // ViewModel에 선택 반영
+                                    viewModel.selecMyPet(pet.id,pet.animal) // ViewModel에 선택 반영
                                 },
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(

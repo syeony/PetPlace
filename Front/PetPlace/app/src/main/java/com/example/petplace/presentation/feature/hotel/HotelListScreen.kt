@@ -41,8 +41,8 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.util.Locale
 import androidx.compose.ui.text.style.TextOverflow
-
-
+import com.example.petplace.PetPlaceApp
+import com.example.petplace.util.CommonUtils
 
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -50,7 +50,8 @@ import androidx.compose.ui.text.style.TextOverflow
 @Composable
 fun HotelListScreen(
     navController: NavController,
-    viewModel: HotelSharedViewModel = hiltViewModel()
+    viewModel: HotelSharedViewModel = hiltViewModel(),
+
 ) {
     var expanded by remember { mutableStateOf(false) }
     val reservationState by viewModel.reservationState.collectAsState()
@@ -59,14 +60,16 @@ fun HotelListScreen(
     var startDate by remember { mutableStateOf<LocalDate?>(null) }
     var endDate by remember { mutableStateOf<LocalDate?>(null) }
     val hotelList by viewModel.hotelList.collectAsState()
-
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
     // ViewModel 상태와 동기화
     LaunchedEffect(reservationState.checkInDate, reservationState.checkOutDate) {
         startDate = reservationState.checkInDate?.takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) }
         endDate = reservationState.checkOutDate?.takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) }
     }
     LaunchedEffect(Unit) {
-        viewModel.getHotelList("강남")
+        viewModel.getHotelList()
+//        Log.d("내 지역", "HotelListScreen:${userInfo.} ")
+
     }
     Log.d("check", "checkIn=${reservationState.checkInDate}, checkOut=${reservationState.checkOutDate}")
 

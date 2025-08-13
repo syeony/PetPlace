@@ -34,8 +34,8 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val KAKAO_BASE_URL = "https://dapi.kakao.com/"
-    private const val SERVER_BASE_URL = "http://43.201.108.195:8081/"
-
+//    private const val SERVER_BASE_URL = "http://43.201.108.195:8081/"
+private const val SERVER_BASE_URL = "http://i13d104.p.ssafy.io:8081/"
     private fun loggingInterceptor() =
         HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
 

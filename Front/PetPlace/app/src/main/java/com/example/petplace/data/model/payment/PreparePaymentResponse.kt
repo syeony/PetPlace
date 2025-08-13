@@ -1,5 +1,7 @@
 package com.example.petplace.data.model.payment
 
+import com.google.gson.annotations.SerializedName
+
 data class PreparePaymentRequest(val reservationId: Long)
 data class PreparePaymentResponse(
     val merchantUid: String,
@@ -30,4 +32,15 @@ data class VerifyPaymentRequest(
 data class VerifyPaymentResponse(
     val confirmed: Boolean,
     val message: String?
+)
+data class PaymentInfo(
+    @SerializedName("id") val id: Int,
+    @SerializedName("reservationId") val reservationId: Int,
+    @SerializedName("merchantUid") val merchantUid: String,
+    @SerializedName("impUid") val impUid: String,
+    @SerializedName("amount") val amount: Int,
+    @SerializedName("status") val status: String,          // ex) PAID / FAILED / PENDING ...
+    @SerializedName("paymentMethod") val paymentMethod: String, // ex) CARD / KAKAOPAY ...
+    @SerializedName("paidAt") val paidAt: String?,         // ISO-8601, 필요시 어댑터로 Date 변환
+    @SerializedName("failureReason") val failureReason: String?
 )

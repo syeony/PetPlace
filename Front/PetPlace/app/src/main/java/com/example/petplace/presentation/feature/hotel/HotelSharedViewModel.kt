@@ -1,16 +1,13 @@
 package com.example.petplace.presentation.feature.hotel
 
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.camera.video.AudioSpec.ChannelCount
 import androidx.lifecycle.ViewModel
 import com.example.petplace.data.model.hotel.CheckReservationAvailabilityRequest
 import com.example.petplace.data.model.hotel.HotelDetail
-import com.example.petplace.data.model.hotel.HotelSearchResponse
 import com.example.petplace.data.remote.HotelApiService
-import com.example.petplace.data.remote.LoginApiService
-import com.example.petplace.data.repository.HotelRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,15 +16,18 @@ import javax.inject.Inject
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.data.model.hotel.HotelReservationRequest
 import com.example.petplace.data.model.mypage.MyPageInfoResponse
+import com.example.petplace.data.model.payment.PaymentInfo
 import com.example.petplace.data.model.payment.PreparePaymentRequest
 import com.example.petplace.data.model.payment.PreparePaymentResponse
-import com.example.petplace.data.model.payment.VerifyPaymentRequest
 import com.example.petplace.data.remote.PaymentsApiService
+import com.example.petplace.util.CommonUtils
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.delay
 
 data class HotelReservationState(
     val selectedAnimal: String? = null,
@@ -36,20 +36,38 @@ data class HotelReservationState(
     val selectedHotelId: Int? = null,
     val animalCount: Int? = 1,
     val selectedPetId: Int? = null,
-    val specialRequest: String = ""
+    val specialRequest: String = "",
+    val selectedPetType: String ="DOG"
+)
+data class PaymentCheckUiState(
+    val loading: Boolean = false,
+    val info: PaymentInfo? = null,
+    val error: String? = null
 )
 
 
 @HiltViewModel
 class HotelSharedViewModel @Inject constructor(
     private val hotelApi : HotelApiService,
-    private val paymentsApi : PaymentsApiService
+    private val paymentsApi : PaymentsApiService,
+    @ApplicationContext private val context: Context
+
 ) : ViewModel() {
 
     // 상태를 StateFlow로 관리
     private val _reservationState = MutableStateFlow(HotelReservationState())
     val reservationState: StateFlow<HotelReservationState> = _reservationState
     val current = _reservationState.value.animalCount
+
+
+
+    fun fetchXY(context: Context) {
+        viewModelScope.launch {
+            val xy = CommonUtils.getXY(context)
+            val location = CommonUtils.getCurrentLocation(context)
+            Log.d("내 위치", "fetchXY: $location")
+        }
+    }
 
 
     private val _hotelList = MutableStateFlow<List<HotelDetail>>(emptyList())
@@ -74,6 +92,8 @@ class HotelSharedViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
+    private val _paymentUi = MutableStateFlow(PaymentCheckUiState())
+    val paymentUi: StateFlow<PaymentCheckUiState> = _paymentUi.asStateFlow()
 
     fun updateSpecialRequest(text: String) {
         _reservationState.update { it.copy(specialRequest = text) }
@@ -81,8 +101,8 @@ class HotelSharedViewModel @Inject constructor(
 
     private val _event = Channel<String>(Channel.BUFFERED)
     val event = _event.receiveAsFlow()
-    fun selecMyPet(petId:Int){
-        _reservationState.value =_reservationState.value.copy(selectedPetId = petId)
+    fun selecMyPet(petId:Int ,petType: String){
+        _reservationState.value =_reservationState.value.copy(selectedPetId = petId, selectedPetType =petType )
     }
     fun selectAnimal(animal: String) {
         _reservationState.value = _reservationState.value.copy(selectedAnimal = animal)
@@ -104,6 +124,60 @@ class HotelSharedViewModel @Inject constructor(
             _reservationState.value = _reservationState.value.copy(
                 animalCount = current - 1
             )
+        }
+    }
+
+    fun pollPaymentUntilSettled(
+        merchantUid: String,
+        timeoutMs: Long = 120_000,
+        intervalMs: Long = 2_000,
+        onPaid: (PaymentInfo) -> Unit = {},
+        onFinish: (PaymentInfo?, String?) -> Unit = { _, _ -> }
+    ) {
+        viewModelScope.launch {
+            val start = System.currentTimeMillis()
+            _paymentUi.value = PaymentCheckUiState(loading = true)
+
+            while (System.currentTimeMillis() - start < timeoutMs) {
+                val result = runCatching { paymentsApi.getPaymentInfo(merchantUid) }.getOrElse { err ->
+                    _paymentUi.value = PaymentCheckUiState(loading = false, error = err.message)
+                    onFinish(null, err.message)
+                    return@launch
+                }
+
+                val info = result.body()?.data
+                val ok = result.body()?.success
+                val msg = result.body()?.message
+
+                if (!ok!! || info == null) {
+                    _paymentUi.value = PaymentCheckUiState(loading = false, error = msg ?: "조회 실패")
+                    onFinish(null, msg ?: "조회 실패")
+                    return@launch
+                }
+
+                _paymentUi.value = PaymentCheckUiState(loading = true, info = info)
+
+                when (info.status.uppercase()) {
+                    "PAID" -> {
+                        _paymentUi.value = PaymentCheckUiState(loading = false, info = info)
+                        onPaid(info)
+                        onFinish(info, null)
+                        return@launch
+                    }
+                    "FAILED", "CANCELED" -> {
+                        _paymentUi.value = PaymentCheckUiState(loading = false, info = info, error = info.failureReason)
+                        onFinish(info, info.failureReason ?: "결제 실패/취소")
+                        return@launch
+                    }
+                }
+
+                delay(intervalMs)
+            }
+
+            // 타임아웃
+            val last = _paymentUi.value.info
+            _paymentUi.value = _paymentUi.value.copy(loading = false)
+            onFinish(last, "결제 확인이 지연됩니다. 잠시 후 다시 시도해 주세요.")
         }
     }
 
@@ -178,9 +252,9 @@ class HotelSharedViewModel @Inject constructor(
         _reservationState.value = _reservationState.value.copy(selectedHotelId = hotelId)
     }
 
-    fun reset() {
-        _reservationState.value = HotelReservationState()
-    }
+//    fun reset() {
+//        _reservationState.value = HotelReservationState()
+//    }
 
     suspend fun getHotelDetail() {
         try {
@@ -197,8 +271,10 @@ class HotelSharedViewModel @Inject constructor(
         }
     }
 
-    suspend fun getHotelList(address: String = "강남") {
+    suspend fun getHotelList(address: String = "구미") {
         try {
+            fetchXY(context)
+
             val resp = hotelApi.searchHotelWithAddress(address) // Response<ApiResponse<List<HotelSearchResponse>>>
             if (!resp.isSuccessful) {
                 _error.value = "HTTP ${resp.code()}: ${resp.errorBody()?.string()}"
