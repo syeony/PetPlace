@@ -210,7 +210,7 @@ fun MainScaffold() {
 //            composable("hotel"){AnimalSelectScreen(navController)}
 //            composable("DateSelectionScreen"){DateSelectionScreen(navController)}
 //            composable("HotelListScreen"){ HotelListScreen(navController) }
-            navigation(startDestination = "hotel/animal", route = "hotel_graph") {
+            navigation(startDestination = "hotel/date", route = "hotel_graph") {
                 composable("hotel/animal") { backStackEntry ->
                     val parentEntry = remember(backStackEntry) {
                         navController.getBackStackEntry("hotel_graph")
