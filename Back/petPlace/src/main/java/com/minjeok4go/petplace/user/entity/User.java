@@ -3,6 +3,7 @@ package com.minjeok4go.petplace.user.entity;
 import com.minjeok4go.petplace.profile.dto.UpdateUserRequest;
 import com.minjeok4go.petplace.profile.entity.Introduction;
 import com.minjeok4go.petplace.pet.entity.Pet;
+import com.minjeok4go.petplace.user.service.UserPetSmell;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -208,5 +209,10 @@ public class User {
         this.password = password != null ? password : this.password;
         this.userImgSrc = req.getImgSrc() != null ? req.getImgSrc() : this.userImgSrc;
         this.regionId = req.getRegionId() != null ? req.getRegionId() : this.regionId;
+    }
+
+    public void applyExpDelta(long delta, UserPetSmell petSmell) {
+        this.experience = Math.toIntExact(Math.max(0, this.experience + delta));
+        this.level = Math.max(1, petSmell.levelForExp(this.experience));
     }
 }
