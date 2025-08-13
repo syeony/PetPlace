@@ -56,12 +56,24 @@ class MyPageRepository @Inject constructor(
         curPassword: String? = null,
         newPassword: String? = null,
         imgSrc: String? = null,
-        regionId: Int? = null
+        regionId: Long? = null
     ): Result<MyPageInfoResponse> {
         return withContext(Dispatchers.IO) {
             try {
                 Log.d(TAG, "프로필 업데이트 요청")
+                Log.d(TAG, "파라미터 - nickname: $nickname, imgSrc: $imgSrc, regionId: $regionId")
+                Log.d(TAG, "비밀번호 변경 여부: ${curPassword != null && newPassword != null}")
 
+                // null이 아닌 필드만 포함하는 request 생성
+                val requestMap = mutableMapOf<String, Any>()
+
+                nickname?.let { requestMap["nickname"] = it }
+                curPassword?.let { requestMap["curPassword"] = it }
+                newPassword?.let { requestMap["newPassword"] = it }
+                imgSrc?.let { requestMap["imgSrc"] = it }
+                regionId?.let { requestMap["regionId"] = it }
+
+                // ProfileUpdateRequest 대신 Map으로 전송 (또는 null 체크 추가)
                 val request = ProfileUpdateRequest(
                     nickname = nickname,
                     curPassword = curPassword,
@@ -69,6 +81,9 @@ class MyPageRepository @Inject constructor(
                     imgSrc = imgSrc,
                     regionId = regionId
                 )
+
+                Log.d(TAG, "전송할 요청 데이터: $request")
+
                 val response = api.updateProfile(request)
 
                 if (response.isSuccessful) {
@@ -86,12 +101,25 @@ class MyPageRepository @Inject constructor(
                     Log.e(TAG, "에러 응답 본문: $errorBody")
 
                     val errorMessage = when (response.code()) {
-                        400 -> "잘못된 요청입니다. 입력 내용을 확인해주세요."
+                        400 -> {
+                            // 400 에러 시 더 구체적인 로그 출력
+                            Log.e(TAG, "400 Bad Request - 요청 데이터: $request")
+                            "잘못된 요청입니다. 입력 내용을 확인해주세요."
+                        }
                         401 -> "현재 비밀번호가 올바르지 않습니다."
                         403 -> "권한이 없습니다."
                         404 -> "사용자를 찾을 수 없습니다."
                         409 -> "이미 사용중인 닉네임입니다."
-                        500 -> "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+                        500 -> {
+                            // 500 에러 시 서버 로그를 위한 상세 정보 출력
+                            Log.e(TAG, "500 Internal Server Error")
+                            Log.e(TAG, "요청 파라미터 상세:")
+                            Log.e(TAG, "  - nickname: $nickname")
+                            Log.e(TAG, "  - regionId: $regionId")
+                            Log.e(TAG, "  - imgSrc: $imgSrc")
+                            Log.e(TAG, "  - 비밀번호 변경: ${curPassword != null}")
+                            "서버에서 요청을 처리하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+                        }
                         else -> "프로필 업데이트 중 오류가 발생했습니다 (${response.code()})"
                     }
 

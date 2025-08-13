@@ -5,5 +5,5 @@ data class ProfileUpdateRequest(
     val curPassword: String?,
     val newPassword: String?,
     val imgSrc: String?,
-    val regionId: Int?
+    val regionId: Long?
 )
