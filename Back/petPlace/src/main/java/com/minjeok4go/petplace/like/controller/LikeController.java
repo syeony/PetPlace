@@ -71,7 +71,7 @@ public class LikeController {
             summary= "토글",
             description = "토글로 좋아요, 취소 수행 "
     )
-    @PatchMapping("/api/feeds/{feedId}/like")
+    @PatchMapping("/toggle/{feedId}/")
     public FeedLikeResponse toggleLike(@PathVariable Long feedId,
                                        @AuthenticationPrincipal String tokenUserId) {
         User me = authService.getUserFromToken(tokenUserId);

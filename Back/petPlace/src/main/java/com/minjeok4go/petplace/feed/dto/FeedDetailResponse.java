@@ -14,7 +14,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 public class FeedDetailResponse {
     private Long id;
     private String content;
@@ -34,7 +34,8 @@ public class FeedDetailResponse {
     private List<ImageResponse> images;
 
     // ✔ 여기만 카운트 필드로 유지
-    private Integer commentCount;
+    @Builder.Default
+    private int commentCount = 0;
 
     private List<FeedComment> comments;
 

@@ -3,6 +3,7 @@ package com.minjeok4go.petplace.user.service;
 import com.minjeok4go.petplace.comment.repository.CommentRepository;
 import com.minjeok4go.petplace.common.constant.Animal;
 import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.feed.dto.FeedDetailResponse;
 import com.minjeok4go.petplace.feed.dto.FeedListResponse;
 import com.minjeok4go.petplace.feed.dto.FeedTagJoin;
 import com.minjeok4go.petplace.feed.dto.TagResponse;
@@ -20,6 +21,7 @@ import com.minjeok4go.petplace.region.entity.Region;
 import com.minjeok4go.petplace.region.repository.RegionRepository;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.repository.UserRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisCallback;
@@ -76,13 +78,18 @@ public class CBFRecommendationService {
      * - feeds: 상위 200 한 번만
      * - writer info/pets: IN 조회
      */
-
+    @PostConstruct
+    public void proveCommentCountType() throws Exception {
+        var f = FeedDetailResponse.class.getDeclaredField("commentCount");
+        log.warn("[PROVE] commentCount type = {}", f.getType().getName()); // int or java.lang.Integer
+    }
     /**
      * 후보 피드들에 대해 유저 개인의 태그/동물 선호 기반 가산점을 계산한다.
      * - tagPref: Redis Hash("prof:u:{uid}:tag")에서 읽은 {tagName -> score}
      * - myAnimals: Redis Set("prof:u:{uid}:animal")에서 읽은 동물명 집합
      * - feedTags: 후보 feedId -> 태그명 목록
      */
+
     private Map<Long, Double> computePersonalCbfBoost(Long userId, List<Long> candidateIds) {
         // 1) 유저 개인 프로필 로딩 (빈 경우 빠르게 반환)
         Map<String, Double> tagPref = userProfileService.loadTagPref(userId);
@@ -344,13 +351,22 @@ public class CBFRecommendationService {
         // D-2) 현재 DB 상태로 "배치 점수"를 미니 재계산(좋아요/댓글/최신성/작성자 특성 반영)
         //      - 윈도우 내에서만 계산하므로 비용 작음
         // 댓글 수(삭제 제외) 벌크 조회
-        List<Object[]> commentCountsRows =
+//        List<Object[]> commentCountsRows =
+//                commentRepository.countByFeedIdInAndDeletedAtIsNullGroupByFeedId(liveIds);
+//        Map<Long, Integer> commentCount = new HashMap<>(liveIds.size());
+//        for (Object[] row : commentCountsRows) {
+//            commentCount.put((Long) row[0], ((Long) row[1]).intValue());
+//        }
+//
+        List<Object[]> rows =
                 commentRepository.countByFeedIdInAndDeletedAtIsNullGroupByFeedId(liveIds);
-        Map<Long, Integer> commentCount = new HashMap<>(liveIds.size());
-        for (Object[] row : commentCountsRows) {
-            commentCount.put((Long) row[0], ((Long) row[1]).intValue());
-        }
 
+        Map<Long, Integer> commentCount = new HashMap<>(liveIds.size());
+        for (Object[] row : rows) {
+            Long fid = ((Number) row[0]).longValue();
+            int cnt  = ((Number) row[1]).intValue();
+            commentCount.put(fid, cnt);
+        }
         // 작성자/작성자 동물
         Set<Long> writerIds = alive.stream()
                 .map(Feed::getUserId)
@@ -467,8 +483,30 @@ public class CBFRecommendationService {
             List<ImageResponse> imgs = imagesByFeed.getOrDefault(id, List.of());
             List<TagResponse> tags  = tagsByFeed.getOrDefault(id, List.of());
             boolean liked           = likedIds.contains(id);
+            int cmtCnt              = commentCount.getOrDefault(id, 0); // ✅ 이미 위에서 벌크로 뽑아놨던 그 값
 
-            FeedListResponse dto = FeedListResponse.from(f, finalScore);
+
+//            FeedListResponse dto = FeedListResponse.from(f, finalScore, cmtCnt);
+//            dto.setCommentCount(cmtCnt);
+//            dto.setTags(tags);
+//            dto.setImages(imgs);
+//            dto.setLiked(liked);
+//            out.add(dto);
+            FeedListResponse dto = new FeedListResponse();
+            dto.setId(f.getId());
+            dto.setContent(f.getContent());
+            dto.setUserId(f.getUserId());
+            dto.setUserNick(f.getUserNick());
+            dto.setUserImg(f.getUserImg());
+            dto.setRegionId(f.getRegionId());
+            dto.setCategory(f.getCategory().getDisplayName());
+            dto.setCreatedAt(f.getCreatedAt());
+            dto.setUpdatedAt(f.getUpdatedAt());
+            dto.setDeletedAt(f.getDeletedAt());
+            dto.setLikes(f.getLikes());
+            dto.setViews(f.getViews());
+            dto.setScore(finalScore);
+            dto.setCommentCount(cmtCnt);
             dto.setTags(tags);
             dto.setImages(imgs);
             dto.setLiked(liked);
