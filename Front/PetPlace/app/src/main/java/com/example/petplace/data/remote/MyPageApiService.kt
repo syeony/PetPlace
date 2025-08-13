@@ -60,4 +60,8 @@ interface MyPageApiService {
     suspend fun getMyComments(
     ): Response<List<CommentRes>>
 
+    @GET("/api/likes/me")
+    suspend fun getMyLikePosts(
+    ): Response<List<FeedRecommendRes>>
+
 }

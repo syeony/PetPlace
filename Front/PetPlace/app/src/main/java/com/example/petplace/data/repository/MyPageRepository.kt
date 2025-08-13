@@ -339,4 +339,42 @@ class MyPageRepository @Inject constructor(
             }
         }
     }
+
+    suspend fun getMyLikedPosts(): Result<List<FeedRecommendRes>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "찜한 게시글 목록 조회 요청")
+
+                val response = api.getMyLikePosts()
+
+                if (response.isSuccessful) {
+                    val myLikedPosts = response.body()
+                    if (myLikedPosts != null) {
+                        Log.d(TAG, "찜한 게시글 목록 조회 성공 - 게시글 수: ${myLikedPosts.size}")
+                        Result.success(myLikedPosts)
+                    } else {
+                        Log.e(TAG, "응답은 성공했지만 body가 null")
+                        Result.failure(Exception("서버 응답이 비어있습니다"))
+                    }
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "찜한 게시글 목록 조회 실패: ${response.code()} ${response.message()}")
+                    Log.e(TAG, "에러 응답 본문: $errorBody")
+
+                    val errorMessage = when (response.code()) {
+                        401 -> "인증이 필요합니다. 다시 로그인해주세요."
+                        403 -> "권한이 없습니다."
+                        404 -> "찜한 게시글을 찾을 수 없습니다."
+                        500 -> "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+                        else -> "찜한 게시글 목록 조회 중 오류가 발생했습니다 (${response.code()})"
+                    }
+
+                    Result.failure(Exception(errorMessage))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "찜한 게시글 목록 조회 중 네트워크 오류", e)
+                Result.failure(Exception("네트워크 오류: ${e.message}"))
+            }
+        }
+    }
 }

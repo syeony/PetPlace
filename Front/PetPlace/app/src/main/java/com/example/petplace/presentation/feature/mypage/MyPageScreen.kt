@@ -428,7 +428,7 @@ fun MyPageScreen(
                         MyMenuItem(
                             icon = R.drawable.heart,
                             title = "찜한글",
-                            onClick = { /* 찜한글 로직 */ }
+                            onClick = { navController.navigate("my_likePost") }
                         )
                     }
                 }
