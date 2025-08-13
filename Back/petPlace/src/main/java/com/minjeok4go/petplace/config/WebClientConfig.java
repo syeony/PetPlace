@@ -1,12 +1,22 @@
 package com.minjeok4go.petplace.config;
 
+import io.netty.channel.ChannelOption;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
 
+import java.time.Duration;
+
+@RequiredArgsConstructor
+@EnableConfigurationProperties(AiProps.class) // ← AiProps 활성화
 @Configuration
 public class WebClientConfig {
 
@@ -40,6 +50,19 @@ public class WebClientConfig {
                 .baseUrl(portOneBaseUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    @Bean
+    @Qualifier("aiWebClient")                 // ← 이름 구분용 Qualifier
+    public WebClient aiWebClient(AiProps props) {
+        HttpClient http = HttpClient.create()
+                .responseTimeout(Duration.ofMillis(props.getReadTimeoutMs()))
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, props.getConnectTimeoutMs());
+
+        return WebClient.builder()
+                .baseUrl(props.getBaseUrl()) // http://similarity:8083
+                .clientConnector(new ReactorClientHttpConnector(http))
                 .build();
     }
 }

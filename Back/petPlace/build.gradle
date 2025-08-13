@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.minjeok4go'
-version = '0.0.1-SNAPSHOT_ver_0_8_7'
+version = '0.0.1-SNAPSHOT_ver_0_9_0'
 
 java {
     toolchain {
@@ -39,6 +39,7 @@ dependencies {
 
     // --- 개발 편의 ---
     compileOnly 'org.projectlombok:lombok'                                      // 롬북(코드 자동화: getter/setter 등)
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
     annotationProcessor 'org.projectlombok:lombok'                              // 롬북(Annotation 처리)
     developmentOnly 'org.springframework.boot:spring-boot-devtools'             // 개발용 자동 재시작, 핫스왑 등
 
