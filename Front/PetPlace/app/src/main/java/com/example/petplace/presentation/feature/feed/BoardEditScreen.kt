@@ -48,7 +48,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
-import com.example.petplace.data.model.feed.CreateImage
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -90,10 +89,7 @@ fun BoardEditScreen(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         if (uris.isNotEmpty()) {
-            val newImgs = uris.mapIndexed { idx, uri ->
-                CreateImage(src = uri.toString(), sort = images.size + idx)
-            }
-            viewModel.setImages(images + newImgs)
+            viewModel.appendUploadImages(uris)   // 로컬 Uri → 업로드 → 절대 URL로 images 상태 갱신
         }
     }
 
@@ -257,13 +253,14 @@ fun BoardEditScreen(
             Button(
                 onClick = {
                     scope.launch {
-                        viewModel.editFeed(
+                        viewModel.saveEdits(
                             feedId = feedId,
-                            regionId = regionId
-                        ) {
-                            navController.previousBackStackEntry?.savedStateHandle?.set("feedEdited", true)
-                            navController.popBackStack()
-                        }
+                            regionId = regionId,
+                            onSuccess = {
+                                navController.previousBackStackEntry?.savedStateHandle?.set("feedEdited", true)
+                                navController.popBackStack()
+                            }
+                        )
                     }
                 },
                 modifier = Modifier

@@ -17,81 +17,246 @@ CREATE TABLE `regions` (
 
 -- ✅ User
 CREATE TABLE `users` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `user_name` VARCHAR(20) NOT NULL,
-    `password` VARCHAR(200) NOT NULL,
-    `name` VARCHAR(20) NOT NULL,
-    `nickname` VARCHAR(20) NOT NULL,
-    `created_at` DATETIME NOT NULL DEFAULT NOW(),
-    `deleted_at` DATETIME NULL,
-    `region_id` BIGINT NOT NULL,
-    `default_pet_id` BIGINT NULL,
-    -- [수정] 소셜 로그인 관련 컬럼들
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '사용자 고유 ID',
+    `user_name` VARCHAR(20) NOT NULL COMMENT '로그인용 사용자명',
+    `password` VARCHAR(200) NULL COMMENT '비밀번호 (소셜 로그인 시 NULL)',
+    `name` VARCHAR(20) NOT NULL COMMENT '실명',
+    `nickname` VARCHAR(20) NOT NULL COMMENT '닉네임',
+    `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '가입일시',
+    `deleted_at` DATETIME NULL COMMENT '탈퇴일시',
+    `region_id` BIGINT NOT NULL COMMENT '지역 ID',
+    `default_pet_id` BIGINT NULL COMMENT '대표 반려동물 ID',
     `login_type` ENUM('EMAIL', 'KAKAO', 'NAVER', 'GOOGLE') NOT NULL DEFAULT 'EMAIL' COMMENT '로그인 타입',
     `social_id` VARCHAR(200) NULL COMMENT '소셜 플랫폼 고유 ID',
     `social_email` VARCHAR(100) NULL COMMENT '소셜 계정 이메일',
-    
-    `user_img_src` VARCHAR(500) NULL,
-    `pet_smell` DECIMAL(4,1) NOT NULL DEFAULT 36.5,
-    `default_badge_id` BIGINT NULL,
-    `ci` VARCHAR(88) NOT NULL UNIQUE,
-    `phone_number` VARCHAR(20) NOT NULL,
-    `gender` ENUM('male', 'female') NOT NULL,
-    `birthday` DATE NOT NULL,
-    `is_foreigner` TINYINT NULL DEFAULT 0,
-    `level` INT NOT NULL DEFAULT 1,
-    `experience` INT NOT NULL DEFAULT 0,
+    `user_img_src` VARCHAR(500) NULL COMMENT '프로필 이미지',
+    `pet_smell` DECIMAL(4,1) NOT NULL DEFAULT 36.5 COMMENT '펫 온도',
+    `default_badge_id` BIGINT NULL COMMENT '대표 뱃지 ID',
+    `ci` VARCHAR(88) NOT NULL COMMENT '본인인증 고유키 (CI)',
+    `phone_number` VARCHAR(20) NOT NULL COMMENT '휴대폰 번호',
+    `gender` ENUM('male', 'female') NOT NULL COMMENT '성별',
+    `birthday` DATE NOT NULL COMMENT '생년월일',
+    `is_foreigner` TINYINT NULL DEFAULT 0 COMMENT '외국인 여부',
+    `level` INT NOT NULL DEFAULT 1 COMMENT '사용자 레벨',
+    `experience` INT NOT NULL DEFAULT 0 COMMENT '경험치',
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_user_user_name (`user_name`),
-    UNIQUE KEY uq_user_nickname (`nickname`),
-    UNIQUE KEY uq_user_phone (`phone_number`),
-    UNIQUE KEY uq_user_ci (`ci`),
-    UNIQUE KEY uq_user_social_id (`social_id`), -- 소셜 ID 고유 제약
-    CHECK (`phone_number` REGEXP '^[0-9]+$'),
-    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
-);
+    UNIQUE KEY `uq_user_user_name` (`user_name`),
+    UNIQUE KEY `uq_user_nickname` (`nickname`),
+    UNIQUE KEY `uq_user_phone` (`phone_number`),
+    UNIQUE KEY `uq_user_ci` (`ci`),
+    UNIQUE KEY `uq_user_social_id` (`social_id`),
+    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`),
+    CONSTRAINT `chk_social_login` CHECK ((`login_type` = 'EMAIL' AND `social_id` IS NULL) OR (`login_type` IN ('KAKAO', 'NAVER', 'GOOGLE') AND `social_id` IS NOT NULL)),
+    CONSTRAINT `chk_password_requirement` CHECK ((`login_type` = 'EMAIL' AND `password` IS NOT NULL) OR (`login_type` IN ('KAKAO', 'NAVER', 'GOOGLE')))
+) COMMENT '사용자 테이블 (소셜 로그인 지원)';
 
 -- ✅ RefreshToken
 CREATE TABLE `refresh_tokens` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `user_id` BIGINT NOT NULL,
-    `refresh_token` VARCHAR(500) NOT NULL UNIQUE,
-    `expires_at` DATETIME NOT NULL,
-    `created_at` DATETIME NOT NULL DEFAULT NOW(),
+    `user_id` BIGINT NOT NULL COMMENT '사용자 ID',
+    `refresh_token` VARCHAR(500) NOT NULL UNIQUE COMMENT 'Refresh Token',
+    `expires_at` DATETIME NOT NULL COMMENT '만료 시간',
+    `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '생성 시간',
     PRIMARY KEY (`id`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-    INDEX idx_user_id (`user_id`),
-    INDEX idx_refresh_token (`refresh_token`)
-);
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_refresh_token` (`refresh_token`)
+) COMMENT 'Refresh Token 저장 테이블';
 
 -- ✅ Pet
 CREATE TABLE `pets` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `user_id` BIGINT NOT NULL,
+    `user_id` BIGINT NOT NULL COMMENT '사용자 ID',
     `name` VARCHAR(20) NOT NULL,
-	`animal` ENUM(
-		'DOG','CAT','RABBIT','HAMSTER','GUINEA_PIG','HEDGEHOG','FERRET',
-		'BIRD','TURTLE','FISH','REPTILE','AMPHIBIAN','OTHER'
-	) NOT NULL,
-	`breed` ENUM(
-		'POMERANIAN','MALTESE','POODLE','CHIHUAHUA','BICHON_FRISE',
-		'SHIBA_INU','GOLDEN_RETRIEVER','LABRADOR_RETRIEVER','SIBERIAN_HUSKY',
-		'DACHSHUND','BULLDOG','COCKER_SPANIEL','YORKSHIRE_TERRIER',
-		'KOREAN_SHORTHAIR','RUSSIAN_BLUE','SIAMESE','PERSIAN',
-		'SCOTTISH_FOLD','MAINE_COON','BENGAL','NORWEGIAN_FOREST',
-		'NETHERLAND_DWARF','MINI_REX','LIONHEAD',
-		'GOLDEN_HAMSTER','DWARF_HAMSTER','ROBOROVSKI',
-		'LOVEBIRD','COCKATIEL','BUDGERIGAR',
-		'RUSSIAN_TORTOISE','RED_EARED_SLIDER',
-		'LEOPARD_GECKO','BEARDED_DRAGON',
-		'UNKNOWN'
-	) NOT NULL,
-	`sex` ENUM('MALE','FEMALE') NOT NULL,
+    `animal` ENUM('DOG','CAT','RABBIT','HAMSTER','GUINEA_PIG','HEDGEHOG','FERRET','BIRD','TURTLE','FISH','REPTILE','AMPHIBIAN','OTHER') NOT NULL,
+    `breed` ENUM(
+    -- DOG
+    'AFFENPINSCHER',
+    'AFGHAN_HOUND',
+    'AIREDALE',
+    'AKITA',
+    'APPENZELLER',
+    'AUSTRALIAN_TERRIER',
+    'BASENJI',
+    'BASSET',
+    'BEAGLE',
+    'BEDLINGTON_TERRIER',
+    'BERNESE_MOUNTAIN_DOG',
+    'BLACK_AND_TAN_COONHOUND',
+    'BLENHEIM_SPANIEL',
+    'BLOODHOUND',
+    'BORDER_COLLIE',
+    'BORDER_TERRIER',
+    'BORZOI',
+    'BOSTON_BULL',
+    'BOUVIER_DES_FLANDRES',
+    'BOXER',
+    'BRABANCON_GRIFFON',
+    'BRIARD',
+    'BRITTANY_SPANIEL',
+    'BULL_MASTIFF',
+    'CAIRN',
+    'CARDIGAN',
+    'CHESAPEAKE_BAY_RETRIEVER',
+    'CHIHUAHUA',
+    'CHOW',
+    'CLUMBER',
+    'COCKER_SPANIEL',
+    'COLLIE',
+    'CURLY_COATED_RETRIEVER',
+    'DANDIE_DINMONT',
+    'DHOLE',
+    'DINGO',
+    'DOBERMAN',
+    'ENGLISH_FOXHOUND',
+    'ENGLISH_SETTER',
+    'ENGLISH_SPRINGER',
+    'ENTLEBUCHER',
+    'ESKIMO_DOG',
+    'FLAT_COATED_RETRIEVER',
+    'FRENCH_BULLDOG',
+    'GERMAN_SHEPHERD',
+    'GERMAN_SHORT_HAIRED_POINTER',
+    'GIANT_SCHNAUZER',
+    'GOLDEN_RETRIEVER',
+    'GORDON_SETTER',
+    'GREAT_DANE',
+    'GREAT_PYRENEES',
+    'GREATER_SWISS_MOUNTAIN_DOG',
+    'GROENENDAEL',
+    'IBIZAN_HOUND',
+    'IRISH_SETTER',
+    'IRISH_TERRIER',
+    'IRISH_WATER_SPANIEL',
+    'IRISH_WOLFHOUND',
+    'ITALIAN_GREYHOUND',
+    'JAPANESE_SPANIEL',
+    'KEESHOND',
+    'KELPIE',
+    'KERRY_BLUE_TERRIER',
+    'KOMONDOR',
+    'KUVASZ',
+    'LABRADOR_RETRIEVER',
+    'LAKELAND_TERRIER',
+    'LEONBERG',
+    'LHASA',
+    'MALAMUTE',
+    'MALINOIS',
+    'MALTESE_DOG',
+    'MEXICAN_HAIRLESS',
+    'MINIATURE_PINSCHER',
+    'MINIATURE_POODLE',
+    'MINIATURE_SCHNAUZER',
+    'NEWFOUNDLAND',
+    'NORFOLK_TERRIER',
+    'NORWEGIAN_ELKHOUND',
+    'NORWICH_TERRIER',
+    'OLD_ENGLISH_SHEEPDOG',
+    'OTTERHOUND',
+    'PAPILLON',
+    'PEKINESE',
+    'PEMBROKE',
+    'POMERANIAN',
+    'PUG',
+    'REDBONE',
+    'RHODESIAN_RIDGEBACK',
+    'ROTTWEILER',
+    'SAINT_BERNARD',
+    'SALUKI',
+    'SAMOYED',
+    'SCHIPPERKE',
+    'SCOTCH_TERRIER',
+    'SCOTTISH_DEERHOUND',
+    'SEALYHAM_TERRIER',
+    'SHETLAND_SHEEPDOG',
+    'SHIH_TZU',
+    'SIBERIAN_HUSKY',
+    'SILKY_TERRIER',
+    'SOFT_COATED_WHEATEN_TERRIER',
+    'STAFFORDSHIRE_BULLTERRIER',
+    'STANDARD_POODLE',
+    'STANDARD_SCHNAUZER',
+    'SUSSEX_SPANIEL',
+    'TIBETAN_MASTIFF',
+    'TIBETAN_TERRIER',
+    'TOY_POODLE',
+    'TOY_TERRIER',
+    'VIZSLA',
+    'WALKER_HOUND',
+    'WEIMARANER',
+    'WELSH_SPRINGER_SPANIEL',
+    'WEST_HIGHLAND_WHITE_TERRIER',
+    'WHIPPET',
+    'WIRE_HAIRED_FOX_TERRIER',
+    'YORKSHIRE_TERRIER',
+
+    -- CAT
+    'KOREAN_SHORTHAIR',
+    'RUSSIAN_BLUE',
+    'PERSIAN',
+    'SIAMESE',
+    'MUNCHKIN',
+    'SCOTTISH_FOLD',
+    'RAGDOLL',
+    'KOREAN_MEDIUMHAIR',
+    'AMERICAN_SHORTHAIR',
+    'DOMESTIC_LONG_HAIR',
+    'TORTOISESHELL',
+    'CALICO',
+    'TORBIE',
+    'DILUTE_CALICO',
+    'TUXEDO',
+    'DILUTE_TORTOISESHELL',
+    'TABBY',
+    'MAINE_COON',
+    'BENGAL',
+    'NORWEGIAN_FOREST',
+
+    -- RABBIT
+    'NETHERLAND_DWARF',
+    'MINI_REX',
+    'LIONHEAD',
+
+    -- HAMSTER
+    'GOLDEN_HAMSTER',
+    'TEDDY_BEAR_HAMSTER',
+    'CAMPBELL_DWARF',
+    'WINTER_WHITE_DWARF',
+    'PEARL_WINTER_WHITE_DWARF',
+    'ROBOROVSKI_DWARF',
+    'CHINESE_HAMSTER',
+
+    -- BIRD
+    'BUDGERIGAR',
+    'COCKATIEL',
+    'LOVE_BIRD',
+    'AFRICAN_GREY_PARROT',
+    'MACAW',
+    'COCKATOO',
+    'CONURE',
+    'PARROTLET',
+    'AMAZON_PARROT',
+    'RINGNECK_PARAKEET',
+    'CANARY',
+    'ZEBRA_FINCH',
+    'JAVA_FINCH',
+    'SOCIETY_FINCH',
+    'GOULDIAN_FINCH',
+
+    -- REPTILE
+    'LEOPARD_GECKO',
+    'CRESTED_GECKO',
+    'BEARDED_DRAGON',
+
+    -- 기타
+    'UNKNOWN'
+),
+    `sex` ENUM('MALE','FEMALE') NOT NULL,
     `birthday` DATE NOT NULL,
     `img_src` VARCHAR(500) NULL,
     `tnr` TINYINT NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_pet_uid_name (`user_id`, `name`),
+    UNIQUE KEY `uq_pet_uid_name` (`user_id`, `name`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
 
@@ -103,7 +268,7 @@ CREATE TABLE `chat_rooms` (
     `last_message` VARCHAR(1000) NOT NULL DEFAULT '',
     `last_message_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_chatroom_users (`user_id_1`, `user_id_2`),
+    UNIQUE KEY `uq_chatroom_users` (`user_id_1`, `user_id_2`),
     FOREIGN KEY (`user_id_1`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id_2`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
@@ -157,50 +322,47 @@ CREATE TABLE `comments` (
     FOREIGN KEY (`parent_comment_id`) REFERENCES `comments`(`id`) ON DELETE CASCADE
 );
 
-
 -- ✅ Care
-CREATE TABLE `cares` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `title` VARCHAR(200) NOT NULL,
-    `content` TEXT NOT NULL,
-    `user_id` BIGINT NOT NULL,
-    `user_nick` VARCHAR(200) NOT NULL,
-    `user_img` VARCHAR(500) NULL,
-    `region_id` BIGINT NOT NULL,
-    `category` ENUM('WALK_WANT', 'WALK_REQ', 'CARE_WANT', 'CARE_REQ') NOT NULL,
-    `created_at` DATETIME NOT NULL DEFAULT NOW(),
-    `updated_at` DATETIME NULL,
-    `deleted_at` DATETIME NULL,
-    `views` INT NOT NULL DEFAULT 0,
-    `date` DATETIME NOT NULL,
-    `start_time` DATETIME NULL,
-    `end_time` DATETIME NULL,
-    PRIMARY KEY (`id`),
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
-);
-
--- ✅ Hotel
-CREATE TABLE `hotels` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `description` VARCHAR(1000) NOT NULL,
-    `price_per_night` INT NOT NULL,
-    `field` ENUM('CAT','DOG') NOT NULL,
-    PRIMARY KEY (`id`)
-);
-
--- ✅ Hotel Reservation
-CREATE TABLE `hotel_reservations` (
-    `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `user_id` BIGINT NOT NULL,
-    `hotel_id` BIGINT NOT NULL,
-    `pet_id` BIGINT NOT NULL,
-    PRIMARY KEY (`id`),
-    UNIQUE KEY uq_hotel_reservation (`user_id`, `hotel_id`, `pet_id`),
-    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`) ON DELETE CASCADE,
-    FOREIGN KEY (`pet_id`) REFERENCES `pets`(`id`) ON DELETE CASCADE
-);
+CREATE TABLE cares (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '돌봄/산책 요청 ID',
+    title VARCHAR(100) NOT NULL COMMENT '제목',
+    content TEXT NOT NULL COMMENT '내용',
+    user_id BIGINT NOT NULL COMMENT '작성자 ID',
+    pet_id BIGINT NOT NULL COMMENT '돌봄/산책 대상 반려동물 ID',
+    region_id BIGINT NOT NULL COMMENT '지역 ID',
+    category ENUM('WALK_WANT', 'WALK_REQ', 'CARE_WANT', 'CARE_REQ') NOT NULL COMMENT '카테고리',
+    start_datetime DATETIME NOT NULL COMMENT '시작 일시 (산책: 날짜+시작시간, 돌봄: 시작 날짜)',
+    end_datetime DATETIME NOT NULL COMMENT '종료 일시 (산책: 날짜+종료시간, 돌봄: 종료 날짜)',
+    views INT NOT NULL DEFAULT 0 COMMENT '조회수',
+    status ENUM('ACTIVE', 'MATCHED', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'ACTIVE' COMMENT '상태',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
+    deleted_at DATETIME NULL COMMENT '삭제일시',
+    
+    PRIMARY KEY (id),
+    
+    -- 외래키 제약조건
+    CONSTRAINT fk_cares_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cares_pet_id FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cares_region_id FOREIGN KEY (region_id) REFERENCES regions(id) ON DELETE CASCADE,
+    
+    -- 인덱스 (성능 최적화)
+    INDEX idx_cares_region_id (region_id),
+    INDEX idx_cares_user_id (user_id),
+    INDEX idx_cares_pet_id (pet_id),
+    INDEX idx_cares_category (category),
+    INDEX idx_cares_status (status),
+    INDEX idx_cares_start_datetime (start_datetime),
+    INDEX idx_cares_created_at (created_at),
+    INDEX idx_cares_deleted_at (deleted_at),
+    
+    -- 복합 인덱스 (자주 사용되는 조건 조합)
+    INDEX idx_cares_region_category (region_id, category),
+    INDEX idx_cares_region_status (region_id, status),
+    INDEX idx_cares_user_status (user_id, status),
+    INDEX idx_cares_region_deleted (region_id, deleted_at),
+    INDEX idx_cares_category_status (category, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='돌봄/산책 요청 테이블';
 
 -- ✅ Badge
 CREATE TABLE `badges` (
@@ -218,7 +380,7 @@ CREATE TABLE `badge_lists` (
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_uid_bid (`user_id`, `bedge_id`),
+    UNIQUE KEY `uq_uid_bid` (`user_id`, `bedge_id`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`bedge_id`) REFERENCES `badges`(`id`) ON DELETE CASCADE
 );
@@ -227,26 +389,28 @@ CREATE TABLE `badge_lists` (
 CREATE TABLE `images` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `ref_id` BIGINT NOT NULL,
-    `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT') NOT NULL,
+    `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT',
+    'MISSING_REPORT', 'SIGHTING'  -- 실종 신고 관련 추가 
+    ) NOT NULL,
     `src` VARCHAR(500) NOT NULL,
     `sort` INT NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`)
 );
 
+
 -- ✅ UserChatRoom
 CREATE TABLE `user_chat_rooms` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
-    `chat_room_id` BIGINT NOT NULL,  -- 채팅방 인덱스
-    `user_id` BIGINT NOT NULL,   -- 유저 인덱스
-    `last_read_cid` BIGINT NULL,   -- 마지막으로 읽은 메시지의 id
-    `leave_at` DATETIME NULL,   -- 방 나간 시간 (참여중이면 NULL)
+    `chat_room_id` BIGINT NOT NULL,
+    `user_id` BIGINT NOT NULL,
+    `last_read_cid` BIGINT NULL,
+    `leave_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_crid_uid (`chat_room_id`, `user_id`),
+    UNIQUE KEY `uq_crid_uid` (`chat_room_id`, `user_id`),
     FOREIGN KEY (`chat_room_id`) REFERENCES `chat_rooms`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
-
 
 -- ✅ Like
 CREATE TABLE `likes` (
@@ -255,7 +419,7 @@ CREATE TABLE `likes` (
     `user_id` BIGINT NOT NULL,
     `liked_at` DATETIME NOT NULL DEFAULT NOW(),
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_uid_fid (`user_id`, `feed_id`),
+    UNIQUE KEY `uq_uid_fid` (`user_id`, `feed_id`),
     FOREIGN KEY (`feed_id`) REFERENCES `feeds`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
@@ -275,7 +439,7 @@ CREATE TABLE `places` (
     `updated_at` DATETIME NULL,
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_place_name (`name`, `address`),
+    UNIQUE KEY `uq_place_name` (`name`, `address`),
     FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
 );
 
@@ -291,7 +455,7 @@ CREATE TABLE `reviews` (
     `updated_at` DATETIME NULL,
     `deleted_at` DATETIME NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_review_unique (`place_id`, `user_id`, `title`),
+    UNIQUE KEY `uq_review_unique` (`place_id`, `user_id`, `title`),
     FOREIGN KEY (`place_id`) REFERENCES `places`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`region_id`) REFERENCES `regions`(`id`)
@@ -302,7 +466,7 @@ CREATE TABLE `tags` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(50) NOT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_tag_name (`name`)
+    UNIQUE KEY `uq_tag_name` (`name`)
 );
 
 -- ✅ FeedTag
@@ -320,10 +484,9 @@ CREATE TABLE `introduction` (
     `user_id` BIGINT NOT NULL,
     `content` VARCHAR(2000) NOT NULL DEFAULT '',
     PRIMARY KEY (`id`),
-    UNIQUE KEY uq_intro_uid (`user_id`),
+    UNIQUE KEY `uq_intro_uid` (`user_id`),
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
-
 
 -- =================================================================
 -- NEW: 호텔 예약 시스템을 위한 신규 테이블
@@ -568,7 +731,9 @@ INSERT IGNORE INTO hotels (name, description, address, phone_number, latitude, l
 -- 부산 지역 호텔
 ('해운대 펫 빌라', '바다가 보이는 최고의 위치! 반려동물과 함께 바다 구경도 하고 힐링도 하세요.', '부산시 해운대구 해운대해변로 500', '051-1111-9999', 35.1595454, 129.1603193, 75000.00, 18, 'https://example.com/hotel7.jpg', NOW(), NOW()),
 -- 제주도 호텔
-('제주 펫 파라다이스', '제주도의 아름다운 자연 속에서 반려동물과 함께 힐링할 수 있는 최고의 펜션입니다.', '제주시 애월읍 고내리 333', '064-2222-7777', 33.4506921, 126.4017004, 95000.00, 30, 'https://example.com/hotel8.jpg', NOW(), NOW());
+('제주 펫 파라다이스', '제주도의 아름다운 자연 속에서 반려동물과 함께 힐링할 수 있는 최고의 펜션입니다.', '제주시 애월읍 고내리 333', '064-2222-7777', 33.4506921, 126.4017004, 95000.00, 30, 'https://example.com/hotel8.jpg', NOW(), NOW()),
+
+('마이구미 펫 호텔', '구미에서 만나는 펫 호텔 ! 강아지와 고양을 환영합니다. ', '구미시 진평2길 22 ', '064-2222-7777', 36.1190, 128.3445 , 40000.00, 30, 'https://example.com/hotel8.jpg', NOW(), NOW());
 
 -- 호텔별 지원 펫 타입 데이터 삽입
 INSERT IGNORE INTO hotel_supported_pet_types (hotel_id, pet_type) VALUES
@@ -707,10 +872,6 @@ CREATE TABLE `sighting_matches` (
 ) COMMENT '목격-실종 자동 매칭 결과';
 
 
--- sightings 테이블에 breed 컬럼 추가
-ALTER TABLE `sightings`
-ADD COLUMN `breed` ENUM('POMERANIAN','MALTESE','POODLE','CHIHUAHUA','BICHON_FRISE','SHIBA_INU','GOLDEN_RETRIEVER','LABRADOR_RETRIEVER','SIBERIAN_HUSKY','DACHSHUND','BULLDOG','COCKER_SPANIEL','YORKSHIRE_TERRIER','KOREAN_SHORTHAIR','RUSSIAN_BLUE','SIAMESE','PERSIAN','SCOTTISH_FOLD','MAINE_COON','BENGAL','NORWEGIAN_FOREST','NETHERLAND_DWARF','MINI_REX','LIONHEAD','GOLDEN_HAMSTER','DWARF_HAMSTER','ROBOROVSKI','LOVEBIRD','COCKATIEL','BUDGERIGAR','RUSSIAN_TORTOISE','RED_EARED_SLIDER','LEOPARD_GECKO','BEARDED_DRAGON','UNKNOWN') NULL COMMENT 'AI 모델이 예측한 품종' AFTER `content`;
 
 
 COMMIT;
-

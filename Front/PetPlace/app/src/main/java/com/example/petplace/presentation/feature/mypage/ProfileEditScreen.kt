@@ -17,9 +17,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,8 +69,6 @@ fun ProfileEditScreen(
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
 
-    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
-
     // 갤러리에서 이미지 선택 런처
     val launcherGallery =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -89,11 +90,11 @@ fun ProfileEditScreen(
         }
     }
 
-    uiState.passwordValidationError?.let { error ->
-        LaunchedEffect(error) {
-            // 패스워드 검증 에러 표시 로직
-        }
-    }
+//    uiState.passwordValidationError?.let { error ->
+//        LaunchedEffect(error) {
+//            // 패스워드 검증 에러 표시 로직
+//        }
+//    }
 
     Column(
         modifier = Modifier
@@ -150,17 +151,39 @@ fun ProfileEditScreen(
                         modifier = Modifier.size(112.dp),
                         contentAlignment = Alignment.BottomEnd
                     ) {
-                        Image(
-                            painter = if (uiState.profileImageUri != null)
-                                rememberAsyncImagePainter(
-                                    uiState.profileImageUri
-                                ) else painterResource(R.drawable.ic_mypage),
-                            contentDescription = "프로필 이미지",
-                            modifier = Modifier
-                                .size(112.dp)
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
+                        val imageToShow = when {
+                            // 새로 선택한 이미지가 있으면 우선 표시
+                            uiState.profileImageUri != null -> uiState.profileImageUri
+                            // 서버 URL이 있으면 표시 (full URL 처리)
+                            !uiState.profileImageUrl.isNullOrEmpty() -> {
+                                if (uiState.profileImageUrl!!.startsWith("http")) {
+                                    uiState.profileImageUrl
+                                } else {
+                                    "http://43.201.108.195:8081${uiState.profileImageUrl}" // 서버 베이스 URL 추가
+                                }
+                            }
+                            else -> null
+                        }
+
+                        if (imageToShow != null) {
+                            Image(
+                                painter = rememberAsyncImagePainter(imageToShow),
+                                contentDescription = "프로필 이미지",
+                                modifier = Modifier
+                                    .size(112.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(R.drawable.ic_mypage),
+                                contentDescription = "기본 프로필 이미지",
+                                modifier = Modifier
+                                    .size(112.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
 
                         Surface(
                             color = PrimaryColor,
@@ -235,102 +258,212 @@ fun ProfileEditScreen(
                 Spacer(Modifier.height(16.dp))
 
                 // 새로운 비밀번호
-                FieldLabel("새로운 비밀번호")
+//                FieldLabel("새로운 비밀번호")
+//                OutlinedTextField(
+//                    value = uiState.newPassword,
+//                    onValueChange = { viewModel.updateNewPassword(it) },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
+//                    singleLine = true,
+//                    shape = RoundedCornerShape(8.dp),
+//                    placeholder = { Text("새로운 비밀번호를 입력하세요") },
+//                    visualTransformation = if (uiState.newPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
+//                    trailingIcon = {
+//                        IconButton(onClick = { viewModel.toggleNewPasswordVisibility() }) {
+//                            Icon(
+//                                imageVector = if (uiState.newPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+//                                contentDescription = if (uiState.newPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
+//                            )
+//                        }
+//                    },
+//                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+//                    keyboardActions = KeyboardActions(
+//                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+//                    ),
+//                    colors = OutlinedTextFieldDefaults.colors(
+//                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+//                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+//                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
+//                    )
+//                )
+//
+//                Spacer(Modifier.height(16.dp))
+//
+//                // 새로운 비밀번호 확인
+//                FieldLabel("새로운 비밀번호 확인")
+//                OutlinedTextField(
+//                    value = uiState.confirmPassword,
+//                    onValueChange = { viewModel.updateConfirmPassword(it) },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
+//                    singleLine = true,
+//                    shape = RoundedCornerShape(8.dp),
+//                    placeholder = { Text("새로운 비밀번호를 다시 입력하세요") },
+//                    visualTransformation = if (uiState.confirmPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
+//                    trailingIcon = {
+//                        IconButton(onClick = { viewModel.toggleConfirmPasswordVisibility() }) {
+//                            Icon(
+//                                imageVector = if (uiState.confirmPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+//                                contentDescription = if (uiState.confirmPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
+//                            )
+//                        }
+//                    },
+//                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+//                    keyboardActions = KeyboardActions(
+//                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+//                    ),
+//                    colors = OutlinedTextFieldDefaults.colors(
+//                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+//                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+//                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
+//                    )
+//                )
+//
+//                Spacer(Modifier.height(16.dp))
+//
+//                // 현재 비밀번호 확인
+//                FieldLabel("현재 비밀번호 확인")
+//                OutlinedTextField(
+//                    value = uiState.currentPassword,
+//                    onValueChange = { viewModel.updateCurrentPassword(it) },
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
+//                    singleLine = true,
+//                    shape = RoundedCornerShape(8.dp),
+//                    placeholder = { Text("현재 비밀번호를 입력하세요") },
+//                    visualTransformation = if (uiState.currentPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
+//                    trailingIcon = {
+//                        IconButton(onClick = { viewModel.toggleCurrentPasswordVisibility() }) {
+//                            Icon(
+//                                imageVector = if (uiState.currentPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+//                                contentDescription = if (uiState.currentPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
+//                            )
+//                        }
+//                    },
+//                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+//                    keyboardActions = KeyboardActions(
+//                        onDone = { focusManager.clearFocus() } // 키보드 숨김
+//                    ),
+//                    colors = OutlinedTextFieldDefaults.colors(
+//                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
+//                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
+//                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
+//                    )
+//                )
+
+                // 소개글
+                FieldLabel("소개글")
                 OutlinedTextField(
-                    value = uiState.newPassword,
-                    onValueChange = { viewModel.updateNewPassword(it) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    placeholder = { Text("새로운 비밀번호를 입력하세요") },
-                    visualTransformation = if (uiState.newPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { viewModel.toggleNewPasswordVisibility() }) {
-                            Icon(
-                                imageVector = if (uiState.newPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = if (uiState.newPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
-                            )
+                    value = uiState.introduction,
+                    onValueChange = {
+                        if (it.length <= 100) { // 100자 제한
+                            viewModel.updateIntroduction(it)
                         }
                     },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(
-                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
-                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
-                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
-                    )
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                // 새로운 비밀번호 확인
-                FieldLabel("새로운 비밀번호 확인")
-                OutlinedTextField(
-                    value = uiState.confirmPassword,
-                    onValueChange = { viewModel.updateConfirmPassword(it) },
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(120.dp)
                         .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
-                    singleLine = true,
                     shape = RoundedCornerShape(8.dp),
-                    placeholder = { Text("새로운 비밀번호를 다시 입력하세요") },
-                    visualTransformation = if (uiState.confirmPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { viewModel.toggleConfirmPasswordVisibility() }) {
-                            Icon(
-                                imageVector = if (uiState.confirmPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = if (uiState.confirmPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    keyboardActions = KeyboardActions(
-                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
-                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
-                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
-                    )
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                // 현재 비밀번호 확인
-                FieldLabel("현재 비밀번호 확인")
-                OutlinedTextField(
-                    value = uiState.currentPassword,
-                    onValueChange = { viewModel.updateCurrentPassword(it) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    placeholder = { Text("현재 비밀번호를 입력하세요") },
-                    visualTransformation = if (uiState.currentPwVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { viewModel.toggleCurrentPasswordVisibility() }) {
-                            Icon(
-                                imageVector = if (uiState.currentPwVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = if (uiState.currentPwVisible) "비밀번호 숨기기" else "비밀번호 보기"
-                            )
-                        }
+                    placeholder = { Text(color = Color.LightGray, text = "자신을 소개하는 글을 작성해보세요") },
+                    maxLines = 4,
+                    supportingText = {
+                        Text(
+                            text = "${uiState.introduction.length}/100",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (uiState.introduction.length > 90) Color.Red else Color.Gray,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
-                        onDone = { focusManager.clearFocus() } // 키보드 숨김
+                        onDone = { focusManager.clearFocus() }
                     ),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
-                        unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
-                        cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = amber,
+                        cursorColor = MaterialTheme.colorScheme.primary
                     )
                 )
 
+                Spacer(Modifier.height(24.dp))
+
+                // 동네 인증
+                FieldLabel("동네 인증")
+                OutlinedTextField(
+                    value = if (uiState.isLocationVerified)
+                        uiState.currentLocation ?: "위치 정보 없음"
+                    else "위치 인증을 진행해주세요",
+                    onValueChange = {}, // 읽기 전용
+                    enabled = false,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = bg,
+                            shape = RoundedCornerShape(8.dp)
+                        ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
+                    trailingIcon = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (uiState.isVerifyingLocation) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 1.5.dp,
+                                    color = PrimaryColor
+                                )
+                            } else {
+                                IconButton(
+                                    onClick = { viewModel.requestLocationVerification() },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (uiState.isLocationVerified)
+                                            Icons.Outlined.LocationOn // 재인증용 아이콘
+                                        else Icons.Filled.LocationOn, // 초기 인증용 아이콘
+                                        contentDescription = if (uiState.isLocationVerified)
+                                            "위치 재인증" else "위치 인증",
+                                        tint = PrimaryColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledBorderColor = if (uiState.isLocationVerified)
+                            amber
+                        else Color(0xFFE5E7EB),
+                        disabledTextColor = if (uiState.isLocationVerified)
+                            Color.Black
+                        else Color(0xFF6B7280),
+                        disabledTrailingIconColor = PrimaryColor
+                    )
+                )
+
+
+                // 동네 인증 안내 텍스트
+                if (!uiState.isLocationVerified) {
+                    Text(
+                        text = "• GPS를 통해 현재 위치를 확인합니다\n• 동네 인증 시 근처 이웃들과 더 쉽게 소통할 수 있어요",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF666666),
+                        modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+                    )
+                } else {
+                    Text(
+                        text = "• 우측 위치 아이콘을 눌러 재인증할 수 있습니다\n• 이사하신 경우 새로운 동네로 재인증해주세요",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = amber,
+                        modifier = Modifier.padding(start = 4.dp, top = 8.dp)
+                    )
+                }
                 Spacer(Modifier.height(100.dp)) // 하단 버튼 공간 확보
             }
         }

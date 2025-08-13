@@ -55,6 +55,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import coil.compose.AsyncImage
 
+import android.net.Uri
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.platform.LocalContext
+
 @Composable
 fun MyPageScreen(
     navController: NavController,
@@ -71,6 +78,10 @@ fun MyPageScreen(
             // 에러 표시 로직 (SnackBar 등)
             viewModel.clearError()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.refreshData()
     }
 
     // Loading 처리
@@ -128,8 +139,16 @@ fun MyPageScreen(
                                     .size(60.dp)
                                     .clip(CircleShape)
                             ) {
+                                val profileImageUrl = if (!uiState.userProfile.userImgSrc.isNullOrEmpty()) {
+                                    if (uiState.userProfile.userImgSrc.startsWith("http")) {
+                                        uiState.userProfile.userImgSrc
+                                    } else {
+                                        "http://43.201.108.195:8081${uiState.userProfile.userImgSrc}"
+                                    }
+                                } else null
+
                                 AsyncImage(
-                                    model = uiState.userProfile.userImgSrc,
+                                    model = profileImageUrl,
                                     contentDescription = "프로필 이미지",
                                     placeholder = painterResource(id = R.drawable.ic_mypage),
                                     error = painterResource(id = R.drawable.ic_mypage),
@@ -232,11 +251,12 @@ fun MyPageScreen(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
-                    // 반려동물 추가 버튼
+                    Spacer(modifier = Modifier.height(12.dp))
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(130.dp)
+                            .height(120.dp)
                             .border(
                                 2.dp,
                                 Color(0xFFE0E0E0),
@@ -262,84 +282,22 @@ fun MyPageScreen(
                             )
                         }
                     }
+                    // 반려동물 목록이 비어있을 때는 추가 버튼만 표시
+                    if (uiState.pets.isNotEmpty()) {
+                        // 반려동물이 있을 때는 각 반려동물마다 카드 표시
+                        uiState.pets.forEachIndexed { index, pet ->
+                            Spacer(modifier = Modifier.height(12.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // 두부 (반려동물)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp)
-                            .border(
-                                2.dp,
-                                Color(0xFFE0E0E0),
-                                RoundedCornerShape(12.dp)
-                            )
-                            .padding(16.dp)
-                            .clickable { /* 반려동물 정보 로직 */ }
-                    ) {
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(50.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFE0E0E0))
-                                ) {
-                                    AsyncImage(
-                                        model = uiState.pets.firstOrNull()?.imgSrc,
-                                        contentDescription = "반려동물 이미지",
-                                        placeholder = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24),
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column {
-                                    uiState.pets.firstOrNull()?.let { pet ->
-                                        Text(
-                                            text = pet.name,  // 변경된 부분
-                                            style = AppTypography.bodyMedium.copy(
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        )
-                                        Text(
-                                            text = pet.breed,  // 변경된 부분
-                                            style = AppTypography.bodySmall,
-                                            color = Color.Gray
-                                        )
-                                        Text(
-                                            text = "${pet.gender} ${pet.age}살",  // 변경된 부분
-                                            style = AppTypography.bodySmall,
-                                            color = Color.Gray
-                                        )
-                                    }
-                                }
-
-                            }
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            Button(
-                                onClick = {
-                                    // 정보수정
+                            PetInfoCard(
+                                pet = pet,
+                                onEditClick = { petId ->
+                                    navController.navigate("pet_profile?petId=$petId")
                                 },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFF5F5F5)
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = "정보수정",
-                                    color = Color.Black,
-                                    style = AppTypography.bodySmall,
-                                )
-                            }
+                                onCardClick = {
+                                    // 반려동물 상세 정보 로직
+                                }
+                            )
                         }
                     }
                 }
@@ -357,7 +315,9 @@ fun MyPageScreen(
                 Column(
                     modifier = Modifier.padding(20.dp)
                 ) {
-                    Row {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = "펫 용품",
                             style = AppTypography.titleMedium.copy(
@@ -365,71 +325,70 @@ fun MyPageScreen(
                             ),
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
-                        Spacer(modifier = Modifier.weight(1f))
-                        IconButton(
-                            onClick = {
-                                // 클릭 이벤트 처리
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "추가",
-                            )
-                        }
+//                        Spacer(modifier = Modifier.weight(1f))
+//                        IconButton(
+//                            onClick = {
+//                                // 클릭 이벤트 처리
+//                            }
+//                        ) {
+//                            Icon(
+//                                imageVector = Icons.Default.Add,
+//                                contentDescription = "추가",
+//                            )
+//                        }
                     }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        // 펫 용품 이미지들
-                        Box(
-                            modifier = Modifier
-                                .size(90.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFE3F2FD))
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.bath_item), // 실제 이미지로 교체
-                                contentDescription = "목욕 용품",
-                                modifier = Modifier.fillMaxSize()
-                                    .padding(8.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(90.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFE3F2FD))
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.bowl_item), // 실제 이미지로 교체
-                                contentDescription = "밥그릇",
-                                modifier = Modifier.fillMaxSize()
-                                    .padding(8.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(90.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFE3F2FD))
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.poo_item), // 실제 이미지로 교체
-                                contentDescription = "배변 용품",
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(8.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+                        // 목욕 용품
+                        PetSupplyItem(
+                            imageRes = R.drawable.bath_item,
+                            title = "목욕 용품",
+                            actualImageUrl = uiState.petSupplies.bathImageUrl,
+                            onClick = {
+                                viewModel.showSupplyDialog(SupplyType.BATH)
+                            }
+                        )
+
+                        // 사료 용품
+                        PetSupplyItem(
+                            imageRes = R.drawable.bowl_item,
+                            title = "사료 용품",
+                            actualImageUrl = uiState.petSupplies.foodImageUrl,
+                            onClick = {
+                                viewModel.showSupplyDialog(SupplyType.FOOD)
+                            }
+                        )
+
+                        // 배변 용품
+                        PetSupplyItem(
+                            imageRes = R.drawable.poo_item,
+                            title = "배변 용품",
+                            actualImageUrl = uiState.petSupplies.wasteImageUrl,
+                            onClick = {
+                                viewModel.showSupplyDialog(SupplyType.WASTE)
+                            }
+                        )
                     }
                 }
             }
             Divider(color = Color.LightGray, thickness = 1.dp)
+            // 용품 관리 다이얼로그
+            if (uiState.showSupplyDialog) {
+                PetSupplyDialog(
+                    supplyType = uiState.currentSupplyType,
+                    selectedImage = uiState.selectedSupplyImage,
+                    existingImageUrl = uiState.currentSupplyType?.let {
+                        viewModel.getExistingSupplyImageUrl(it)
+                    },
+                    isSaving = uiState.isSavingSupply,
+                    onDismiss = { viewModel.hideSupplyDialog() },
+                    onImageSelected = { uri -> viewModel.updateSupplyImage(uri) },
+                    onConfirm = { viewModel.saveSupplyInfo() }
+                )
+            }
         }
 
         // MY 섹션
@@ -542,6 +501,95 @@ fun MyPageScreen(
 }
 
 @Composable
+fun PetInfoCard(
+    pet: PetInfo,
+    onEditClick: (Int) -> Unit,
+    onCardClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(150.dp)
+            .border(
+                2.dp,
+                Color(0xFFE0E0E0),
+                RoundedCornerShape(12.dp)
+            )
+            .padding(16.dp)
+            .clickable { onCardClick() }
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE0E0E0))
+                ) {
+                    val petImageUrl = if (!pet.imgSrc.isNullOrEmpty()) {
+                        if (pet.imgSrc.startsWith("http")) {
+                            pet.imgSrc
+                        } else {
+                            "http://43.201.108.195:8081${pet.imgSrc}"
+                        }
+                    } else null
+
+                    AsyncImage(
+                        model = petImageUrl,
+                        contentDescription = "반려동물 이미지",
+                        placeholder = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24),
+                        error = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text(
+                        text = pet.name,
+                        style = AppTypography.bodyMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    Text(
+                        text = pet.breed,
+                        style = AppTypography.bodySmall,
+                        color = Color.Gray
+                    )
+                    Text(
+                        text = "${pet.gender} ${pet.age}살",
+                        style = AppTypography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Button(
+                onClick = { onEditClick(pet.id) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFF5F5F5)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "정보수정",
+                    color = Color.Black,
+                    style = AppTypography.bodySmall,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun MyMenuItem(
     icon: Int,
     title: String,
@@ -579,3 +627,272 @@ fun MyMenuItem(
     }
 }
 
+// 용품 아이템 컴포저블
+@Composable
+fun PetSupplyItem(
+    imageRes: Int,
+    title: String,
+    actualImageUrl: String? = null,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(90.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+    ) {
+        // 실제 이미지가 있으면 그것을 사용, 없으면 기본 아이콘 사용
+        if (!actualImageUrl.isNullOrEmpty()) {
+            // 사용자가 업로드한 실제 이미지
+            AsyncImage(
+                model = if (actualImageUrl.startsWith("http"))
+                    actualImageUrl
+                else
+                    "http://43.201.108.195:8081$actualImageUrl",
+                contentDescription = title,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = imageRes),
+                error = painterResource(id = imageRes),
+                onError = { error ->
+                    Log.e("PetSupplyItem", "이미지 로드 실패: $actualImageUrl", error.result.throwable)
+                },
+                onSuccess = {
+                    Log.d("PetSupplyItem", "이미지 로드 성공: $actualImageUrl")
+                }
+            )
+
+        } else {
+            // 기본 아이콘
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center // 중앙 정렬
+            ) {
+                // 기본 이미지
+                Image(
+                    painter = painterResource(id = imageRes),
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+
+                // 중앙에 하얀색 플러스 아이콘
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "미등록",
+                    tint = Color.White, // 하얀색
+                    modifier = Modifier.size(32.dp) // 원하는 크기
+                )
+            }
+        }
+    }
+}
+
+// 용품 관리 다이얼로그
+@Composable
+fun PetSupplyDialog(
+    supplyType: SupplyType?,
+    selectedImage: Uri? = null,
+    existingImageUrl: String? = null, // 기존 이미지 URL 추가
+    isSaving: Boolean = false, // 저장 상태 추가
+    onDismiss: () -> Unit,
+    onImageSelected: (Uri?) -> Unit,
+    onConfirm: () -> Unit
+) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        onImageSelected(uri)
+    }
+
+    val supplyInfo = when (supplyType) {
+        SupplyType.BATH -> Triple(
+            "목욕 용품",
+            if (existingImageUrl.isNullOrEmpty()) "목욕 용품 사진을 올려주세요." else "목욕 용품 사진을 변경하세요.",
+            R.drawable.bath_item
+        )
+
+        SupplyType.FOOD -> Triple(
+            "사료 용품",
+            if (existingImageUrl.isNullOrEmpty()) "사료 사진을 올려주세요." else "사료 사진을 변경하세요.",
+            R.drawable.bowl_item
+        )
+
+        SupplyType.WASTE -> Triple(
+            "배변 용품",
+            if (existingImageUrl.isNullOrEmpty()) "배변 용품 사진을 올려주세요." else "배변 용품 사진을 변경하세요.",
+            R.drawable.poo_item
+        )
+
+        else -> Triple("용품", "용품 사진을 올려주세요.", R.drawable.bath_item)
+    }
+
+    AlertDialog(
+        onDismissRequest = { if (!isSaving) onDismiss() }, // 저장 중일 때는 닫기 방지
+        title = null,
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // 용품 이미지
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF5F5F5))
+                        .clickable(enabled = !isSaving) {
+                            launcher.launch("image/*")
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        // 새로 선택된 이미지가 있을 때
+                        selectedImage != null -> {
+                            AsyncImage(
+                                model = selectedImage,
+                                contentDescription = supplyInfo.first,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        // 기존 이미지가 있을 때
+                        !existingImageUrl.isNullOrEmpty() -> {
+                            AsyncImage(
+                                model = if (existingImageUrl.startsWith("http"))
+                                    existingImageUrl
+                                else
+                                    "http://43.201.108.195:8081$existingImageUrl", // 서버 베이스 URL 추가
+                                contentDescription = supplyInfo.first,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                placeholder = painterResource(id = supplyInfo.third),
+                                error = painterResource(id = supplyInfo.third),
+                                onError = { error ->
+                                    Log.e(
+                                        "AsyncImage",
+                                        "기존 이미지 로드 실패: $existingImageUrl",
+                                        error.result.throwable
+                                    )
+                                },
+                                onSuccess = {
+                                    Log.d("AsyncImage", "기존 이미지 로드 성공: $existingImageUrl")
+                                }
+                            )
+                        }
+                        // 기본 이미지
+                        else -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                contentAlignment = Alignment.Center // 중앙 정렬
+                            ) {
+                                Image(
+                                    painter = painterResource(id = supplyInfo.third),
+                                    contentDescription = supplyInfo.first,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
+                                    contentScale = ContentScale.Fit
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "미등록",
+                                    tint = Color.White, // 하얀색
+                                    modifier = Modifier.size(32.dp) // 원하는 크기
+                                )
+                            }
+                        }
+                    }
+
+                    // 저장 중 로딩 표시
+                    if (isSaving) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.5f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = supplyInfo.second,
+                    style = AppTypography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = Color.Black
+                )
+
+                // 기존 이미지가 있을 때 상태 표시
+                if (!existingImageUrl.isNullOrEmpty() && selectedImage == null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "현재 등록된 ${supplyInfo.first}",
+                        style = AppTypography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        color = Color.Gray
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (!isSaving) {
+                        onConfirm()
+                    }
+                },
+                enabled = !isSaving && (selectedImage != null || !existingImageUrl.isNullOrEmpty()),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryColor
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isSaving) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "저장 중...",
+                            color = Color.White,
+                            style = AppTypography.labelLarge
+                        )
+                    }
+                } else {
+                    Text(
+                        text = if (existingImageUrl.isNullOrEmpty()) "등록" else "수정",
+                        color = Color.White,
+                        style = AppTypography.labelLarge
+                    )
+                }
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier.padding(16.dp)
+    )
+}
+
+// 용품 타입 enum
+enum class SupplyType {
+    BATH, FOOD, WASTE
+}

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.minjeok4go'
-version = '0.0.1-SNAPSHOT_ver_0_6_5'
+version = '0.0.1-SNAPSHOT_ver_0_8_6'
 
 java {
     toolchain {
@@ -33,7 +33,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-mail'          // 이메일 전송(JavaMailSender)
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client' // 소셜 로그인(OAuth2 Client)
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'     // 테스트용 템플릿 엔진
-
+    implementation platform("org.springframework.boot:spring-boot-dependencies:3.5.4")
     // --- 데이터베이스 ---
     runtimeOnly 'com.mysql:mysql-connector-j'                                   // MySQL JDBC 드라이버
 
@@ -69,6 +69,15 @@ dependencies {
 
     // FCM (Firebase Cloud Messaging) - 푸시 알림
     implementation 'com.google.firebase:firebase-admin:9.2.0'
+
+    //포트원 카카오페이 연동을 위한
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+
+    implementation 'org.springframework.boot:spring-boot-starter-web-services'
+    implementation 'org.apache.httpcomponents.client5:httpclient5'
+
+
 
 
 }

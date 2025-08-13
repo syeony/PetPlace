@@ -11,6 +11,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.example.petplace.data.model.cares.CareItem // ← 아래 3) DTO 정의 참조
+import com.example.petplace.data.model.cares.PageResponse
+import com.example.petplace.presentation.feature.hotel.ApiResponse
+
 
 @HiltViewModel
 class WalkAndCareViewModel @Inject constructor(
@@ -34,12 +38,17 @@ class WalkAndCareViewModel @Inject constructor(
         fetchPosts()
     }
 
-    /** 서버에서 데이터 불러오기 */
+
+// ⚠ 잘못된 임포트 제거: com.google.ai.client.generativeai.type.content (절대 X)
+
     fun fetchPosts(page: Int = 0, size: Int = 20) {
         viewModelScope.launch {
             caresRepository.list(page, size)
                 .onSuccess { resp ->
-                    val cares = resp.body()?.data ?: emptyList() // List<CareSummary>
+                    // resp: Response<ApiResponse<PageResponse<CareItem>>>
+                    val body: ApiResponse<PageResponse<CareItem>>? = resp.body()
+                    val pageData: PageResponse<CareItem>? = body?.data
+                    val cares: List<CareItem> = pageData?.content ?: emptyList()
 
                     val posts = cares.map { care ->
                         val dateText = formatDateRange(care.startDatetime, care.endDatetime)
@@ -47,24 +56,28 @@ class WalkAndCareViewModel @Inject constructor(
 
                         Post(
                             category = care.categoryDescription
-                                ?: mapCategoryToKorean(care.category?.name),
-                            title = care.title,
-                            body = care.content,
+                                ?: mapCategoryToKorean(care.category),
+                            title = care.title.orEmpty(),
+                            // 목록 응답엔 content가 없음 → 대체 텍스트(또는 "")
+                            body = buildString {
+                                // 필요하면 간단 요약을 조합
+                                if (!care.regionName.isNullOrBlank()) append("[${care.regionName}] ")
+                                append(timeText.takeIf { it != "-" } ?: dateText)
+                            },
                             date = dateText,
                             time = timeText,
-                            imageUrl = care.petImg ?: "", // 없으면 첫 이미지 리스트 필드 쓰세요
-                            reporterName = care.userNickname ?: "",
-                            reporterAvatarUrl = care.userImg ?: ""
+                            imageUrl = care.petImg.orEmpty(),
+                            reporterName = care.userNickname.orEmpty(),
+                            reporterAvatarUrl = care.userImg.orEmpty()
                         )
                     }
 
                     setPosts(posts)
                 }
-                .onFailure { e ->
-                    e.printStackTrace()
-                }
+                .onFailure { it.printStackTrace() }
         }
     }
+
 
     fun toggleCategory(cat: String) {
         _selectedCategory.update { if (it == cat) null else cat }
@@ -107,11 +120,11 @@ class WalkAndCareViewModel @Inject constructor(
             "WALK_WANT"  -> "산책구인"
             "CARE_WANT"  -> "돌봄구인"
             "WALK_OFFER" -> "산책의뢰"
-            "CARE_OFFER" -> "돌봄의뢰"
-            else -> "산책구인" // 기본값(원하면 빈 문자열로 변경)
+            "CARE_REQ", "CARE_OFFER" -> "돌봄의뢰" // 서버 명칭 중 하나일 수 있어 대비
+            else -> "산책구인"
         }
 
-    /** "YYYY-MM-DDTHH:mm[:ss]" 형태를 "MM.dd ~ MM.dd" 또는 "MM.dd"로 */
+    /** "YYYY-MM-DDTHH:mm[:ss]" → "MM.dd ~ MM.dd" / "MM.dd" */
     private fun formatDateRange(start: String?, end: String?): String {
         val s = start?.takeIf { it.length >= 10 }?.substring(5, 10)?.replace("-", ".")
         val e = end?.takeIf { it.length >= 10 }?.substring(5, 10)?.replace("-", ".")
@@ -123,10 +136,10 @@ class WalkAndCareViewModel @Inject constructor(
         }
     }
 
-    /** "YYYY-MM-DDTHH:mm[:ss]" 형태를 "HH:mm ~ HH:mm" (둘 다 있으면) */
+    /** "YYYY-MM-DDTHH:mm[:ss]" → "HH:mm ~ HH:mm" */
     private fun formatTimeRange(start: String?, end: String?): String {
-        val st = start?.let { extractTime(it) }
-        val et = end?.let { extractTime(it) }
+        val st = extractTime(start)
+        val et = extractTime(end)
         return when {
             !st.isNullOrBlank() && !et.isNullOrBlank() -> "$st ~ $et"
             !st.isNullOrBlank() -> st
@@ -135,9 +148,9 @@ class WalkAndCareViewModel @Inject constructor(
         }
     }
 
-    private fun extractTime(dt: String): String? {
+    private fun extractTime(dt: String?): String? {
         return try {
-            // "YYYY-MM-DDTHH:mm:ss" 또는 "YYYY-MM-DD HH:mm" 등에서 HH:mm 추출
+            if (dt == null) return null
             val tPart = dt.split('T', ' ').getOrNull(1) ?: return null
             tPart.substring(0, 5) // HH:mm
         } catch (_: Exception) { null }

@@ -1,3 +1,5 @@
+@file:Suppress("NewApi") // Desugaring 사용 시 Lint 경고 억제(선택)
+
 package com.example.petplace.presentation.feature.missing_report
 
 import android.Manifest
@@ -10,14 +12,51 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,42 +78,46 @@ import com.example.petplace.presentation.feature.missing_register.RegisterViewMo
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.location.LocationServices
-import okhttp3.internal.wait
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
-@SuppressLint("NewApi", "MissingPermission")
+@SuppressLint("MissingPermission")
 @Composable
 fun ReportScreen(
     navController: NavController,
-    viewModel: RegisterViewModel = hiltViewModel()
+    // 이미지 선택용(기존) VM
+    registerViewModel: RegisterViewModel = hiltViewModel(),
+    // 신고 전용 VM (ReportViewModel: ImageRepository + MissingSightingRepository 주입)
+    reportViewModel: ReportViewModel = hiltViewModel()
 ) {
-    var description by remember { mutableStateOf("") }
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-    var selectedTime by remember { mutableStateOf(LocalTime.now()) }
-    var selectedLocation by remember { mutableStateOf("위치 정보를 가져오는 중...") }
-    val imageList by viewModel.imageList.collectAsState()
+    val ui by reportViewModel.uiState.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    val scope = rememberCoroutineScope()
 
-    val locationPermissionState = rememberPermissionState(
-        Manifest.permission.ACCESS_FINE_LOCATION
-    ) {
-        if (it) {
+    // 현재 위치 권한 & 자동 채움 (수동 선택 있으면 VM 내부에서 무시)
+    val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION) { granted ->
+        if (granted) {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                location?.let {
-                    // 여기서 위도, 경도를 주소로 변환해야 합니다.
-                    // 이 예제에서는 위도, 경도를 직접 표시합니다.
-                    selectedLocation = "${it.latitude}, ${it.longitude}"
+                location?.let { loc ->
+                    scope.launch {
+                        val addr = geocodeAddress(context, loc.latitude, loc.longitude)
+                        reportViewModel.setAutoAddress(
+                            address = addr ?: "${loc.latitude}, ${loc.longitude}",
+                            lat = loc.latitude,
+                            lng = loc.longitude
+                        )
+                    }
                 }
             }
         }
@@ -84,9 +127,12 @@ fun ReportScreen(
         locationPermissionState.launchPermissionRequest()
     }
 
+    // 갤러리 이미지(URI) 리스트
+    val imageList by registerViewModel.imageList.collectAsState()
+
     val launcherGallery =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
-            if (!uris.isNullOrEmpty()) viewModel.addImages(uris)
+            if (!uris.isNullOrEmpty()) registerViewModel.addImages(uris)
         }
 
     Scaffold(
@@ -102,29 +148,34 @@ fun ReportScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        navController.popBackStack()
-                    }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {
-                    Spacer(modifier = Modifier.width(48.dp)) // To balance the title
-                },
+                actions = { Spacer(modifier = Modifier.width(48.dp)) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundColor, // 원하는 배경색
-                    titleContentColor = Color.Black,    // 제목 색
-                    navigationIconContentColor = Color.Black, // 아이콘 색
+                    containerColor = BackgroundColor,
+                    titleContentColor = Color.Black,
+                    navigationIconContentColor = Color.Black,
                     actionIconContentColor = Color.Black
                 )
             )
         },
         bottomBar = {
             Button(
+                enabled = !ui.loading,
                 onClick = {
-                    navController.navigate("${BottomNavItem.Neighborhood.route}?showDialog=true") {
-                        popUpTo("missing_report") { inclusive = true }   // 뒤로가기로 신고화면 안 보이게
-                    }
+                    // TODO: 실제 regionId로 교체
+                    val regionId = 0L
+                    reportViewModel.submitSightingFromUris(
+                        imageUris = imageList,
+                        onSuccess = {
+                            navController.navigate("${BottomNavItem.Neighborhood.route}?showDialog=true") {
+                                popUpTo("missing_report") { inclusive = true }
+                            }
+                        },
+                        onFailure = { /* TODO: 스낵바/토스트 등 사용자 안내 */ }
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -133,7 +184,7 @@ fun ReportScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text(text = "작성 완료", color = Color.White, fontSize = 16.sp)
+                Text(text = if (ui.loading) "전송 중..." else "작성 완료", color = Color.White, fontSize = 16.sp)
             }
         }
     ) { paddingValues ->
@@ -144,9 +195,9 @@ fun ReportScreen(
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // Image selection section
+            // 이미지 선택
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -159,7 +210,9 @@ fun ReportScreen(
                         .background(Color.White)
                         .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                         .clickable {
-                            launcherGallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                            launcherGallery.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -170,8 +223,8 @@ fun ReportScreen(
                             modifier = Modifier.size(36.dp),
                             tint = Color.Gray
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "${imageList.size} / 5", fontSize = 12.sp, color = Color.Gray)
+                        Spacer(Modifier.height(4.dp))
+                        Text("${imageList.size} / 5", fontSize = 12.sp, color = Color.Gray)
                     }
                 }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -182,17 +235,14 @@ fun ReportScreen(
                             modifier = Modifier
                                 .size(90.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .border(
-                                    BorderStroke(1.dp, Color(0xFFD7D7D7)),
-                                    RoundedCornerShape(8.dp)
-                                ),
+                                .border(BorderStroke(1.dp, Color(0xFFD7D7D7)), RoundedCornerShape(8.dp)),
                             contentScale = ContentScale.Crop
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = "한마리의 동물만 나오게 해주세요.\n얼굴이 잘 나온 사진을 등록해주세요.",
                 fontSize = 12.sp,
@@ -200,12 +250,12 @@ fun ReportScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // Description TextField
+            // 설명
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
+                value = ui.description,
+                onValueChange = reportViewModel::updateDescription,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(140.dp),
@@ -225,21 +275,16 @@ fun ReportScreen(
                 shape = RoundedCornerShape(8.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // Witness Date and Time
-            Text(
-                text = "목격 일시",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            // 목격 일시
+            Text("목격 일시", fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Date picker Box
+                // 날짜
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -251,13 +296,13 @@ fun ReportScreen(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = selectedDate.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일")),
+                        text = ui.selectedDate.format(DateTimeFormatter.ofPattern("yyyy년 MM월 dd일")),
                         modifier = Modifier.padding(start = 12.dp),
                         fontSize = 14.sp,
                         color = Color.Black
                     )
                 }
-                // Time picker Box
+                // 시간
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -269,12 +314,7 @@ fun ReportScreen(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = selectedTime.format(
-                            DateTimeFormatter.ofPattern(
-                                "a HH:mm",
-                                Locale.KOREAN
-                            )
-                        ),
+                        text = ui.selectedTime.format(DateTimeFormatter.ofPattern("a HH:mm", Locale.KOREAN)),
                         modifier = Modifier.padding(start = 12.dp),
                         fontSize = 14.sp,
                         color = Color.Black
@@ -282,17 +322,11 @@ fun ReportScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-            // Witness Location
-            Text(
-                text = "목격 장소",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
+            // 목격 장소
+            Text("목격 장소", fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(8.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -304,14 +338,14 @@ fun ReportScreen(
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
-                    text = selectedLocation,
+                    text = ui.selectedAddress,
                     modifier = Modifier.padding(start = 12.dp),
                     fontSize = 14.sp,
                     color = Color.Black
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = "작성 완료 후에는 장소를 변경할 수 없어요",
                 fontSize = 11.sp,
@@ -321,9 +355,10 @@ fun ReportScreen(
         }
     }
 
+    // 날짜 선택
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneId.systemDefault())
+            initialSelectedDateMillis = ui.selectedDate.atStartOfDay(ZoneId.systemDefault())
                 .toInstant().toEpochMilli()
         )
         DatePickerDialog(
@@ -331,28 +366,22 @@ fun ReportScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let {
-                        selectedDate =
+                        reportViewModel.setDate(
                             Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
+                        )
                     }
                     showDatePicker = false
-                }) {
-                    Text("확인")
-                }
+                }) { Text("확인") }
             },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("취소")
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("취소") } }
+        ) { DatePicker(state = datePickerState) }
     }
 
+    // 시간 선택
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState(
-            initialHour = selectedTime.hour,
-            initialMinute = selectedTime.minute,
+            initialHour = ui.selectedTime.hour,
+            initialMinute = ui.selectedTime.minute,
             is24Hour = false
         )
         AlertDialog(
@@ -365,33 +394,54 @@ fun ReportScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(text = "시간 선택", style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(Modifier.height(16.dp))
                     TimeInput(state = timePickerState)
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(Modifier.height(16.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = { showTimePicker = false }) {
-                            Text("취소")
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(onClick = { showTimePicker = false }) { Text("취소") }
+                        Spacer(Modifier.width(8.dp))
                         TextButton(onClick = {
-                            selectedTime =
-                                LocalTime.of(timePickerState.hour, timePickerState.minute)
+                            reportViewModel.setTime(LocalTime.of(timePickerState.hour, timePickerState.minute))
                             showTimePicker = false
-                        }) {
-                            Text("확인")
-                        }
+                        }) { Text("확인") }
                     }
                 }
             }
         }
     }
 
-    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-    savedStateHandle?.get<String>("selected_location")?.let {
-        selectedLocation = it
-        savedStateHandle.remove<String>("selected_location")
+    // ==== 지도에서 돌아온 값 수신 (StateFlow로 안전하게) ====
+    val handle = navController.currentBackStackEntry?.savedStateHandle
+
+    // 주소
+    val addressFlow = remember(handle) {
+        handle?.getStateFlow("selected_address", null as String?) ?: MutableStateFlow(null)
+    }
+    // 좌표
+    val latFlow = remember(handle) {
+        handle?.getStateFlow("selected_lat", null as Double?) ?: MutableStateFlow(null)
+    }
+    val lngFlow = remember(handle) {
+        handle?.getStateFlow("selected_lng", null as Double?) ?: MutableStateFlow(null)
+    }
+
+    val selectedAddress by addressFlow.collectAsState()
+    val selLat by latFlow.collectAsState()
+    val selLng by lngFlow.collectAsState()
+
+    LaunchedEffect(selectedAddress, selLat, selLng) {
+        if (selectedAddress != null) {
+            reportViewModel.setManualAddress(
+                address = selectedAddress!!,
+                lat = selLat,
+                lng = selLng
+            )
+            handle?.remove<String>("selected_address")
+            handle?.remove<Double>("selected_lat")
+            handle?.remove<Double>("selected_lng")
+        }
     }
 }

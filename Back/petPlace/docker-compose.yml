@@ -38,6 +38,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ssafy
       SPRING_DATASOURCE_PASSWORD: admin
       LOGGING_LEVEL_ROOT: INFO
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: OFF
+      LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL: OFF
 
 
       # --- Redis (compose 네트워크 이름 'redis' 사용) ---
@@ -51,8 +53,9 @@ services:
       PORTONE_API_KEY: "7058178427733754"
       PORTONE_SECRET_KEY: "EFYssJy7k7R6idJMXlzk0a8gBVli5IlF3YDA4OPRAYc2uvijEVUkutHag3eoxJnuVwSk4rY40oqNLOJP"
       PORTONE_STORE_ID: "MiliasTest"
-
-      # (옵션) 카카오 소셜 값도 여기서 주입 가능
+      PORTONE_IMP_CODE: "imp87506456"
+      PORTONE_WEBHOOK_SECRET: "whsec_N4qlVumCRFHLd0Z3k5udwJkTceDful//o0r0iCARUtg="
+      PORTONE_V2_API_TOKEN: "1RKZ2Er5gjsTda1TrV2e5iQ0wFYSKlNDoRLp8Pj3j4JMYPkKYjkYhhCEPFLVX7gXYUfqnIOG2X54i6MM"      # (옵션) 카카오 소셜 값도 여기서 주입 가능
       # KAKAO_CLIENT_ID: ""
       # KAKAO_CLIENT_SECRET: ""
       # KAKAO_REDIRECT_URI: ""

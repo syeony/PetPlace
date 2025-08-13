@@ -170,8 +170,40 @@ fun MainScaffold() {
             }
 
             composable("profile_edit") { ProfileEditScreen(navController) }
-            composable("pet_profile") { PetProfileScreen(navController) }
-            composable("pet_complete") { ProfileCompleteScreen(navController) }
+            composable(
+                route = "pet_profile?petId={petId}",
+                arguments = listOf(
+                    navArgument("petId") {
+                        type = NavType.IntType
+                        defaultValue = -1 // -1이면 새 등록, 양수면 수정
+                    }
+                )
+            ) { backStackEntry ->
+                val petId = backStackEntry.arguments?.getInt("petId")
+                val actualPetId = if (petId == -1) null else petId
+
+                PetProfileScreen(
+                    navController = navController,
+                    petId = actualPetId
+                )
+            }
+            composable(
+                route = "pet_complete/{petId}",
+                arguments = listOf(
+                    navArgument("petId") {
+                        type = NavType.IntType
+                        defaultValue = -1
+                    }
+                )
+            ) { backStackEntry ->
+                val petId = backStackEntry.arguments?.getInt("petId")
+                val actualPetId = if (petId == -1) null else petId
+
+                ProfileCompleteScreen(
+                    navController = navController,
+                    petId = actualPetId
+                )
+            }
             composable("my_post") { MyPostScreen(navController) }
 
 

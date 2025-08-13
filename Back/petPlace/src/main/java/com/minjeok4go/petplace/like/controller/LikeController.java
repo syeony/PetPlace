@@ -37,7 +37,7 @@ public class LikeController {
     @GetMapping("/me")
     public List<FeedDetailResponse> getLikeFeed(@AuthenticationPrincipal String tokenUserId) {
         User me = authService.getUserFromToken(tokenUserId);
-        return feedService.findByIdWhereUserId(me.getId());
+        return feedService.findByIdWhereUserId(me);
     }
 
     @Operation(
@@ -67,4 +67,15 @@ public class LikeController {
         User me = authService.getUserFromToken(tokenUserId);
         return likeService.deleteLike(id, me);
     }
+    @Operation(
+            summary= "토글",
+            description = "토글로 좋아요, 취소 수행 "
+    )
+    @PatchMapping("/toggle/{feedId}/")
+    public FeedLikeResponse toggleLike(@PathVariable Long feedId,
+                                       @AuthenticationPrincipal String tokenUserId) {
+        User me = authService.getUserFromToken(tokenUserId);
+        return likeService.toggle(feedId, me);
+    }
+
 }

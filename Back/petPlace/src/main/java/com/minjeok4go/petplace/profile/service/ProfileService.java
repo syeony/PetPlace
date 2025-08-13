@@ -5,6 +5,8 @@ import com.minjeok4go.petplace.image.dto.FeedImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
+import com.minjeok4go.petplace.pet.dto.PetResponse;
+import com.minjeok4go.petplace.pet.repository.PetRepository;
 import com.minjeok4go.petplace.profile.dto.CreateIntroductionRequest;
 import com.minjeok4go.petplace.profile.dto.CreateIntroductionResponse;
 import com.minjeok4go.petplace.profile.dto.DeleteIntroductionResponse;
@@ -29,6 +31,7 @@ public class ProfileService {
     private final UserService userService;
     private final RegionRepository regionRepository;
     private final ImageRepository imageRepository;
+    private final PetRepository petRepository;
     private final IntroductionRepository introductionRepository;
 
     @Transactional(readOnly = true)
@@ -39,13 +42,17 @@ public class ProfileService {
         Region region = regionRepository.findById(user.getRegionId())
                 .orElseThrow(() -> new EntityNotFoundException("Region not found with id " + user.getRegionId()));
 
+        List<PetResponse> petList = petRepository
+                .findByUserId(id).stream()
+                .map(PetResponse::new).toList();
+
         List<ImageResponse> imgList = imageRepository
                 .findByRefTypeAndRefIdOrderBySortAsc(ImageType.USER, user.getId())
                 .stream()
                 .map(img -> new ImageResponse(img.getId(), img.getSrc(), img.getSort()))
                 .toList();
 
-        return new MyProfileResponse(user, region.getName(), null, imgList);
+        return new MyProfileResponse(user, region.getName(), petList, imgList);
     }
 
     @Transactional

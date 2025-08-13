@@ -34,6 +34,8 @@ public class UserController {
     private final UserService userService;
     private final PortOneApiService portOneApiService;
 
+
+
     @Operation(
             summary = "🆕 회원가입",
             description = """
@@ -160,6 +162,42 @@ public class UserController {
             return ResponseEntity.ok(ApiResponse.success("포트원 토큰 발급 성공! Token: " + accessToken.substring(0, Math.min(30, accessToken.length())) + "..."));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(ApiResponse.failure("포트원 토큰 발급 실패: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/certifications/prepare")
+    @Operation(
+            summary = "📄 본인인증 준비",
+            description = """
+            포트원을 통한 본인인증 URL을 생성합니다.
+            
+            ### 프로세스
+            1. 클라이언트가 이 API를 호출하여 본인인증 URL을 획득합니다.
+            2. 클라이언트는 반환된 URL로 사용자를 리다이렉트합니다.
+            3. 사용자가 본인인증을 완료하면 `imp_uid`를 획득합니다.
+            4. 획득한 `imp_uid`로 회원가입을 진행합니다.
+            """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "본인인증 URL 생성 성공",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(value = "{\"success\": true, \"message\": \"본인인증 URL이 생성되었습니다.\", \"data\": {\"certification_url\": \"https://cert.iamport.kr/...\", \"merchant_uid\": \"cert_1234567890\"}}"))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "500", description = "서버 내부 오류",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class),
+                            examples = @ExampleObject(value = "{\"success\": false, \"message\": \"본인인증 URL 생성 중 오류가 발생했습니다.\", \"data\": null}"))
+            )
+    })
+    public ResponseEntity<ApiResponse<Object>> prepareCertification() {
+        try {
+            var result = portOneApiService.prepareCertification();
+            return ResponseEntity.ok(ApiResponse.success("본인인증 URL이 생성되었습니다.", result));
+        } catch (Exception e) {
+            log.error("본인인증 URL 생성 실패", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.failure("본인인증 URL 생성 중 오류가 발생했습니다."));
         }
     }
 
