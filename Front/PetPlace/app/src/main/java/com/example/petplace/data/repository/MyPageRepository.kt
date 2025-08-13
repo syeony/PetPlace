@@ -1,6 +1,7 @@
 package com.example.petplace.data.repository
 
 import android.util.Log
+import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.model.mypage.MyPageInfoResponse
 import com.example.petplace.data.model.mypage.PetProductRequest
 import com.example.petplace.data.model.mypage.PetProductResponse
@@ -258,6 +259,44 @@ class MyPageRepository @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "펫 용품 저장 중 오류", e)
                 Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun getMyPosts(): Result<List<FeedRecommendRes>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "내 게시글 조회 요청")
+
+                val response = api.getMyPosts()
+
+                if (response.isSuccessful) {
+                    val myPosts = response.body()
+                    if (myPosts != null) {
+                        Log.d(TAG, "내 게시글 조회 성공 - 게시글 수: ${myPosts.size}")
+                        Result.success(myPosts)
+                    } else {
+                        Log.e(TAG, "응답은 성공했지만 body가 null")
+                        Result.failure(Exception("서버 응답이 비어있습니다"))
+                    }
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "내 게시글 조회 실패: ${response.code()} ${response.message()}")
+                    Log.e(TAG, "에러 응답 본문: $errorBody")
+
+                    val errorMessage = when (response.code()) {
+                        401 -> "인증이 필요합니다. 다시 로그인해주세요."
+                        403 -> "권한이 없습니다."
+                        404 -> "게시글을 찾을 수 없습니다."
+                        500 -> "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+                        else -> "내 게시글 조회 중 오류가 발생했습니다 (${response.code()})"
+                    }
+
+                    Result.failure(Exception(errorMessage))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "내 게시글 조회 중 네트워크 오류", e)
+                Result.failure(Exception("네트워크 오류: ${e.message}"))
             }
         }
     }

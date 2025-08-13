@@ -1,6 +1,7 @@
 package com.example.petplace.data.remote
 
 import com.example.petplace.data.model.chat.CreateChatRoomRequest
+import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.model.mypage.MyPageInfoResponse
 import com.example.petplace.data.model.mypage.PetProductRequest
 import com.example.petplace.data.model.mypage.PetProductResponse
@@ -49,4 +50,9 @@ interface MyPageApiService {
     suspend fun updateProfile(
         @Body request: ProfileUpdateRequest
     ): Response<MyPageInfoResponse>
+
+    @GET("/api/feeds/me")
+    suspend fun getMyPosts(
+    ): Response<List<FeedRecommendRes>>
+
 }
