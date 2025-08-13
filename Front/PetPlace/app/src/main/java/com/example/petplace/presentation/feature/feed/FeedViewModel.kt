@@ -37,7 +37,7 @@ class BoardViewModel @Inject constructor(
     private val USER_ID = userInfo         // ← 로그인 완료되면 Token or DataStore 에서 꺼내 쓰면 됨
     // 페이지네이션 상태
     private var page = 0
-    private val size = 20
+    private val size = 5
     private var isPaging = false
     private var endReached = false
 

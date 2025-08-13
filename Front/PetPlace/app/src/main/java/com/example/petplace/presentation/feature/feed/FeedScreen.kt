@@ -1,11 +1,9 @@
 package com.example.petplace.presentation.feature.feed
 
 import android.annotation.SuppressLint
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -27,10 +25,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
@@ -40,7 +36,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -61,10 +56,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -98,9 +99,8 @@ fun FeedScreen(
 
     val refreshState = rememberPullToRefreshState()
     if (refreshState.isRefreshing) {
-        // 새로고침 시작
         viewModel.refreshFeeds {
-            refreshState.endRefresh()  // 새로고침 종료 시점에서 호출!
+            refreshState.endRefresh()
         }
     }
 
@@ -126,12 +126,10 @@ fun FeedScreen(
         }
     }
 
-    // 피드 수정으로 이동
     fun moveToEditFeed(feedId: Long, regionId: Long) {
         navController.navigate("board/edit/$feedId/$regionId")
     }
 
-    // 피드 삭제 로직(예시, 실제 삭제 API 연결 필요)
     fun deleteFeed(feedId: Long) {
         viewModel.deleteFeed(feedId)
     }
@@ -139,207 +137,249 @@ fun FeedScreen(
     val listState = rememberLazyListState()
     var showBars by remember { mutableStateOf(true) }
 
-    LaunchedEffect(listState) {
-        var prevIndex  = listState.firstVisibleItemIndex
-        var prevOffset = listState.firstVisibleItemScrollOffset
-        val thresholdPx = 12
+    // 헤더 높이(px) 측정 및 애니메이션 진행률
+    var headerHeightPx by remember { mutableStateOf(0) }
+    val density = LocalDensity.current
+    val progress by animateFloatAsState(
+        targetValue = if (showBars) 1f else 0f,
+        animationSpec = tween(durationMillis = 180, easing = LinearOutSlowInEasing),
+        label = "headerProgress"
+    )
 
+
+
+    // 1) snapshotFlow 로직 제거하고 이걸 추가
+    val headerSnapConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val dy = available.y
+                when {
+                    dy < -1f -> {          // 손가락을 위로 스와이프(리스트 위로 이동) → 헤더 숨김
+                        if (showBars) showBars = false
+                    }
+                    dy >  1f -> {          // 손가락을 아래로 스와이프(리스트 아래로 이동) → 헤더 표시
+                        if (!showBars) showBars = true
+                    }
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
+
+    // 맨 위에 닿으면 무조건 표시 (작게 보수적으로 감지)
+    LaunchedEffect(listState) {
         snapshotFlow {
-            // 헤더 토글 + 페이지네이션에 필요한 모든 값 모아서 한 번에 관찰
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset <= 2
+        }.collect { atTop ->
+            if (atTop) showBars = true
+        }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow {
             val firstIndex  = listState.firstVisibleItemIndex
             val firstOffset = listState.firstVisibleItemScrollOffset
             val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
             val total       = listState.layoutInfo.totalItemsCount
             arrayOf(firstIndex, firstOffset, lastVisible, total)
         }.collectLatest { (firstIndex, firstOffset, lastVisible, total) ->
-            // 1) 헤더 숨김/표시
-//            val dy = (firstOffset - prevOffset) + (firstIndex - prevIndex) * 1000
-//            val scrollingDown = dy > thresholdPx
-//            val scrollingUp   = dy < -thresholdPx
-//            val atTop         = (firstIndex == 0 && firstOffset == 0)
-//            showBars = atTop || scrollingUp || (!scrollingDown && showBars)
-//
-//            prevIndex  = firstIndex
-//            prevOffset = firstOffset
 
-            // 2) 리스트 끝 근처 감지 → 다음 페이지
-            if (total > 0 && lastVisible >= total - 1) {   // ← 버퍼 5개
+            if (total > 0 && lastVisible >= total - 1) {
                 viewModel.loadNextPage()
             }
         }
     }
 
 
+    val isLoading by viewModel.loading.collectAsState()
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(bgColor)
+            // 2) 풀투리프레시 → 헤더 스냅 순서로 체인
+            .nestedScroll(refreshState.nestedScrollConnection)
+            .nestedScroll(headerSnapConnection)
     ) {
-        Column {
-            AnimatedVisibility(
-                visible = showBars,
-                enter = slideInVertically { -it } + fadeIn(),
-                exit = slideOutVertically { -it } + fadeOut()
-            ) {
-                Column {
-                    //헤더
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // 왼쪽: 로고 + 텍스트
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Image(
-                                painter = painterResource(id = R.drawable.pp_logo), // 업로드한 이미지 리소스
-                                contentDescription = "Pet Place Logo",
-                                modifier = Modifier.size(50.dp)
-                            )
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column {
-                                Text(
-                                    text = "Pet Place",
-                                    fontSize = 20.sp,
-                                    color = Color(0xFF1E293B) // 짙은 남색 계열
-                                )
-                                Text(
-                                    text = "우리동네 펫 커뮤니티",
-                                    fontSize = 14.sp,
-                                    color = Color(0xFF475569)
-                                )
-                            }
-                        }
-
-                        // 오른쪽: 검색 + 알림 아이콘
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { isSearchMode = !isSearchMode }) {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "검색",
-                                    tint = Color(0xFF1E293B),
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-
-                            IconButton(onClick = { /* 알림 버튼 동작 추가 가능 */ }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.outline_notifications_24),
-                                    contentDescription = "알림",
-                                    tint = Color(0xFF1E293B),
-                                    modifier = Modifier.size(25.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    /* 검색창 (토글) */
-                    if (isSearchMode) {
-                        OutlinedTextField(
-                            value = searchText,
-                            onValueChange = viewModel::updateSearchText,
-                            placeholder = { Text("검색어를 입력하세요", fontSize = 12.sp) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .height(48.dp), // 높이 조정,
-                            singleLine = true,
-                            shape = RoundedCornerShape(45.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = hashtagColor,
-                                unfocusedBorderColor = hashtagColor,
-                                cursorColor = hashtagColor,
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White
-                            )
-                        )
-                    }
-
-                    /* 카테고리 선택 바 */
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        viewModel.allCategories.forEach { cat ->
-                            val picked = selectedCategory == cat
-                            val bg =
-                                if (picked) MaterialTheme.colorScheme.primary else Color(0xFFFFFDF9)
-                            val txtColor = if (picked) Color.White else Color(0xFF374151)
-
-                            Button(
-                                onClick = { viewModel.toggleCategory(cat) },
-                                colors = ButtonDefaults.buttonColors(containerColor = bg),
-                                border = if (picked) null else ButtonDefaults.outlinedButtonBorder.copy(
-                                    brush = Brush.linearGradient(
-                                        listOf(
-                                            Color(0xFFFFE0B3),
-                                            Color(0xFFFFE0B3)
-                                        )
-                                    )
-                                ),
-                                shape = RoundedCornerShape(14.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                modifier = Modifier.padding(end = 6.dp)
-                            ) {
-                                Text(cat, color = txtColor, fontSize = 12.sp)
-                            }
-                        }
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-
-                }
+        /** 리스트: 헤더 높이 * progress 만큼만 top padding 부여 → 헤더와 동시에 움직임 */
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(refreshState.nestedScrollConnection),
+            contentPadding = PaddingValues(
+                top = with(density) { (headerHeightPx * progress).toDp() }
+            )
+        ) {
+            items(
+                items = feeds,
+                key = { it.id }
+            ) { feed ->
+                FeedItem(
+                    feed = feed,
+                    hashtagColor = hashtagColor,
+                    onCommentTap = { showCommentsForFeedId = feed.id },
+                    viewModel = viewModel,
+                    onEditFeed = { feedId, regionId -> moveToEditFeed(feedId, regionId) },
+                    onDeleteFeed = { deleteFeed(it) }
+                )
+                Spacer(Modifier.height(6.dp))
             }
 
-            /* 피드 리스트 */
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(refreshState.nestedScrollConnection)
-            ) {
-                LazyColumn(state = listState) {
-                    items(
-                        items = feeds,
-                        key = { it.id }   // ✅ 아이템 재활용 방지, 변경 즉시 반영
-                    ) { feed ->
-                        FeedItem(
-                            feed = feed,
-                            hashtagColor = hashtagColor,
-                            onCommentTap = { showCommentsForFeedId = feed.id },
-                            viewModel = viewModel,
-                            onEditFeed = { feedId, regionId -> moveToEditFeed(feedId, regionId) },
-                            onDeleteFeed = { deleteFeed(it) }
-                        )
-                        Spacer(Modifier.height(6.dp))
-                    }
-                }
-
-                // 로딩
-                val isLoading by viewModel.loading.collectAsState()
-                if (isLoading) {
-                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+            // ✅ 로딩 인디케이터는 리스트의 "맨 아래" 하나만 표시 (풀투리프레시 중에는 숨김)
+            if (isLoading && !refreshState.isRefreshing) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         androidx.compose.material3.CircularProgressIndicator()
                     }
-                }
-                // 이건 그거임. 스크롤 땡기면 업데이트되는거.
-                if (refreshState.isRefreshing || refreshState.progress > 0f) {
-                    PullToRefreshContainer(
-                        state = refreshState,
-                        containerColor = Color.White,
-                        contentColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.align(Alignment.TopCenter)
-                    )
                 }
             }
         }
 
-        /* 댓글 바텀시트 */
+        /** 헤더: 오버레이 + translationY로 위로 슬라이드(보간은 progress로) */
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { headerHeightPx = it.size.height }
+                .graphicsLayer {
+                    translationY = -(1f - progress) * headerHeightPx
+                }
+                .background(bgColor)
+        ) {
+            // 헤더
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 왼쪽: 로고 + 텍스트
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(id = R.drawable.pp_logo),
+                        contentDescription = "Pet Place Logo",
+                        modifier = Modifier.size(50.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = "Pet Place",
+                            fontSize = 20.sp,
+                            color = Color(0xFF1E293B)
+                        )
+                        Text(
+                            text = "우리동네 펫 커뮤니티",
+                            fontSize = 14.sp,
+                            color = Color(0xFF475569)
+                        )
+                    }
+                }
+
+                // 오른쪽: 검색 + 알림 아이콘
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { isSearchMode = !isSearchMode }) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "검색",
+                            tint = Color(0xFF1E293B),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    IconButton(onClick = { /* 알림 버튼 동작 추가 가능 */ }) {
+                        Icon(
+                            painter = painterResource(R.drawable.outline_notifications_24),
+                            contentDescription = "알림",
+                            tint = Color(0xFF1E293B),
+                            modifier = Modifier.size(25.dp)
+                        )
+                    }
+                }
+            }
+
+            /* 검색창 (토글) */
+            if (isSearchMode) {
+                OutlinedTextField(
+                    value = searchText,
+                    onValueChange = viewModel::updateSearchText,
+                    placeholder = { Text("검색어를 입력하세요", fontSize = 12.sp) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .height(48.dp),
+                    singleLine = true,
+                    shape = RoundedCornerShape(45.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = hashtagColor,
+                        unfocusedBorderColor = hashtagColor,
+                        cursorColor = hashtagColor,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    )
+                )
+            }
+
+            /* 카테고리 선택 바 */
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+            ) {
+                viewModel.allCategories.forEach { cat ->
+                    val picked = selectedCategory == cat
+                    val bg =
+                        if (picked) MaterialTheme.colorScheme.primary else Color(0xFFFFFDF9)
+                    val txtColor = if (picked) Color.White else Color(0xFF374151)
+
+                    Button(
+                        onClick = { viewModel.toggleCategory(cat) },
+                        colors = ButtonDefaults.buttonColors(containerColor = bg),
+                        border = if (picked) null else ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = Brush.linearGradient(
+                                listOf(
+                                    Color(0xFFFFE0B3),
+                                    Color(0xFFFFE0B3)
+                                )
+                            )
+                        ),
+                        shape = RoundedCornerShape(14.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(end = 6.dp)
+                    ) {
+                        Text(cat, color = txtColor, fontSize = 12.sp)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+        }
+
+        // ✅ 풀투리프레시 컨테이너를 “헤더 바로 밑”에 위치시키기
+        //    헤더가 보이는 정도(progress)에 따라 동적으로 top padding 부여
+        if (refreshState.isRefreshing || refreshState.progress > 0f) {
+            PullToRefreshContainer(
+                state = refreshState,
+                containerColor = Color.White,
+                contentColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(
+                        top = with(density) { (headerHeightPx * progress).toDp() }
+                    )
+            )
+        }
+
+        // 댓글 바텀시트
         showCommentsForFeedId?.let { fid ->
             CommentBottomSheet(
                 feedId = fid,
@@ -347,29 +387,18 @@ fun FeedScreen(
                 viewModel = viewModel
             )
         }
-
-        /* 글쓰기 FAB */
-        FloatingActionButton(
-            onClick = { navController.navigate("board/write") },
-            containerColor = Color(0xFFF79800),
-            contentColor   = Color.White,
-            shape = CircleShape,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) { Icon(Icons.Default.Add, contentDescription = "글쓰기") }
     }
 }
 
-//피드
+// 피드 아이템
 @Composable
 private fun FeedItem(
     feed: FeedRecommendRes,
     hashtagColor:  Color,
     onCommentTap:  () -> Unit,
     viewModel: BoardViewModel,
-    onEditFeed: (Long, Long) -> Unit,      // <-- 수정페이지 이동 콜백 추가!
-    onDeleteFeed: (Long) -> Unit     // <-- 삭제 콜백도 추가
+    onEditFeed: (Long, Long) -> Unit,
+    onDeleteFeed: (Long) -> Unit
 ) {
     val likedSet by viewModel.likedFeeds.collectAsState()
     val liked = likedSet.contains(feed.id) || (feed.liked == true)
@@ -380,10 +409,8 @@ private fun FeedItem(
             .background(Color.White)
             .padding(vertical = 16.dp)
     ) {
-        /* 프로필 & 카테고리 */
-        // 1. Box로 감싸고, Box의 오른쪽 위에 IconButton 배치
+        // 상단 프로필/카테고리 + 더보기
         Box(modifier = Modifier.fillMaxWidth()) {
-            // 프로필/카테고리 등 Row
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -408,17 +435,14 @@ private fun FeedItem(
                 }
             }
 
-            // 점 세개 버튼(⋮) - Box의 오른쪽 위!
             if (viewModel.userInfo?.userId == feed.userId) {
                 var showMenu by remember { mutableStateOf(false) }
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopEnd) // 피드 아이템 박스의 오른쪽 위
+                        .align(Alignment.TopEnd)
                         .padding(top = 0.dp, end = 8.dp)
                 ) {
-                    IconButton(
-                        onClick = { showMenu = true }
-                    ) {
+                    IconButton(onClick = { showMenu = true }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "더보기"
@@ -449,10 +473,10 @@ private fun FeedItem(
 
         Spacer(Modifier.height(8.dp))
 
-        /* 본문 */
+        // 본문
         Text(feed.content, modifier = Modifier.padding(horizontal = 16.dp))
 
-        /* 태그 */
+        // 태그
         if (!feed.tags.isNullOrEmpty()) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.padding(horizontal = 16.dp)) {
@@ -468,19 +492,17 @@ private fun FeedItem(
         }
         Spacer(Modifier.height(8.dp))
 
-        /* ───── 이미지 영역 ───── */
+        // 이미지 영역
         if (feed.images.isNullOrEmpty()) {
-            // 이미지가 없으면
             Image(
-                painter        = painterResource(R.drawable.pp_logo),
+                painter = painterResource(R.drawable.pp_logo),
                 contentDescription = null,
-                modifier       = Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp),
-                contentScale   = ContentScale.Crop
+                contentScale = ContentScale.Crop
             )
         } else {
-            // 이미지가 있으면 Pager + 인디케이터
             val pagerState = rememberPagerState(pageCount = { feed.images!!.size })
 
             Box(
@@ -494,7 +516,7 @@ private fun FeedItem(
                 ) { page ->
                     val img: ImageRes = feed.images!![page]
                     Image(
-                        painter = rememberAsyncImagePainter("http://i13d104.p.ssafy.io:8081"+img.src),
+                        painter = rememberAsyncImagePainter("http://i13d104.p.ssafy.io:8081" + img.src),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
@@ -517,12 +539,11 @@ private fun FeedItem(
             }
         }
 
-        /* 좋아요 / 댓글 */
+        // 좋아요 / 댓글
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 10.dp)
         ) {
-
             IconButton(onClick = { viewModel.toggleLike(feed) }) {
                 Icon(
                     imageVector = if (liked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
