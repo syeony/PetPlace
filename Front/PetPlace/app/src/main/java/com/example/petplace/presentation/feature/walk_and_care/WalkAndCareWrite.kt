@@ -10,19 +10,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -34,30 +22,13 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimeInput
+import androidx.compose.material3.*
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,7 +46,7 @@ import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 
-private val AccentOrange = Color(0xFFF79800)   // #F79800
+private val AccentOrange = Color(0xFFF79800)
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,6 +54,7 @@ private val AccentOrange = Color(0xFFF79800)   // #F79800
 fun WalkAndCareWriteScreen(
     navController: NavController,
     viewModel: WalkAndCareWriteViewModel = hiltViewModel(),
+    // 필요하면 외부 콜백도 유지
     onSubmit: (WalkWriteForm) -> Unit = {}
 ) {
     val orange  = Color(0xFFF79800)
@@ -90,14 +62,24 @@ fun WalkAndCareWriteScreen(
     val hint    = Color(0xFF9CA3AF)
 
     // state collect
-    val pickedCat    by viewModel.pickedCat.collectAsState()
-    val title        by viewModel.title.collectAsState()
-    val details      by viewModel.details.collectAsState()
-    val date         by viewModel.date.collectAsState()
-    val startTime    by viewModel.startTime.collectAsState()
-    val endTime      by viewModel.endTime.collectAsState()
-    val imageUris    by viewModel.imageUris.collectAsState()
-    val enableSubmit by viewModel.isValid.collectAsState()
+    val pickedCat     by viewModel.pickedCat.collectAsState()
+    val title         by viewModel.title.collectAsState()
+    val details       by viewModel.details.collectAsState()
+    val date          by viewModel.date.collectAsState()
+    val startTime     by viewModel.startTime.collectAsState()
+    val endTime       by viewModel.endTime.collectAsState()
+    val imageUris     by viewModel.imageUris.collectAsState()
+    val enableSubmit  by viewModel.isValid.collectAsState()
+    val isSubmitting  by viewModel.isSubmitting.collectAsState()
+    val eventFlow     = viewModel.event
+
+    // snackbars
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) {
+        eventFlow.collect { msg ->
+            snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
+        }
+    }
 
     // pickers show/hide
     var showDatePicker  by remember { mutableStateOf(false) }
@@ -113,6 +95,7 @@ fun WalkAndCareWriteScreen(
 
     Scaffold(
         containerColor = Color.White,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Box(
                 modifier = Modifier
@@ -139,6 +122,7 @@ fun WalkAndCareWriteScreen(
         bottomBar = {
             Button(
                 onClick = {
+                    // 기존 외부 콜백 (원하면 삭제 가능)
                     onSubmit(
                         WalkWriteForm(
                             category  = pickedCat,
@@ -150,7 +134,13 @@ fun WalkAndCareWriteScreen(
                             image     = imageUris.firstOrNull()?.toString()
                         )
                     )
+                    // 실제 서버 등록
+                    viewModel.submit(
+                        onSuccess = { /* 성공 시 원하는 곳으로 이동 */ navController.popBackStack() },
+                        onError = { /* 스낵바에서 이미 표시됨 */ }
+                    )
                 },
+                enabled = enableSubmit && !isSubmitting,             // ✅ 활성화 조건
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .height(50.dp)
@@ -158,7 +148,7 @@ fun WalkAndCareWriteScreen(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = AccentOrange),
             ) {
-                Text("등록하기", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(if (isSubmitting) "등록 중..." else "등록하기", color = Color.White, fontWeight = FontWeight.SemiBold)
             }
         }
     ) { inner ->
@@ -166,7 +156,7 @@ fun WalkAndCareWriteScreen(
 
         Box(
             modifier = Modifier
-                .padding(inner)                 // ✅ bottomBar 만큼 자동 확보
+                .padding(inner)
                 .fillMaxSize()
         ) {
             // 스크롤 본문
@@ -174,8 +164,8 @@ fun WalkAndCareWriteScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scroll)
-                    .padding(horizontal = 16.dp) // 버튼에 가리지 않게 여유
-                    .padding(bottom = 96.dp)     // 하단
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 96.dp)     // 하단 버튼 영역 고려
             ) {
                 Spacer(Modifier.height(6.dp))
                 Text("카테고리를 하나 선택해주세요.", fontSize = 13.sp, color = Color(0xFF6B7280))
@@ -185,7 +175,7 @@ fun WalkAndCareWriteScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    listOf("산책구인","돌봄구인","산책의뢰","돌봄의뢰").forEach { cat ->
+                    listOf("산책구인", "돌봄구인", "산책의뢰", "돌봄의뢰").forEach { cat ->
                         val selected = pickedCat == cat
                         Surface(
                             color = if (selected) orange else Color(0xFFFFFDF9),
@@ -369,7 +359,7 @@ fun WalkAndCareWriteScreen(
         }
     }
 
-    // M3 DatePicker
+    // DatePicker
     if (showDatePicker) {
         val init = date?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
             ?: Instant.now().toEpochMilli()
@@ -390,7 +380,7 @@ fun WalkAndCareWriteScreen(
         }
     }
 
-    // 간단한 TimePicker (12/24h 설정은 rememberTimePickerState의 is24Hour로 제어)
+    // TimePicker
     if (showStartPicker || showEndPicker) {
         val isStart = showStartPicker
         val init = (if (isStart) startTime else endTime) ?: LocalTime.now()

@@ -55,13 +55,15 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
 import com.example.petplace.data.local.Walk.Post
 import com.example.petplace.presentation.feature.feed.categoryStyles
+import androidx.hilt.navigation.compose.hiltViewModel // ✅ 이거 추가
+
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun WalkAndCareScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    viewModel: WalkAndCareViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: WalkAndCareViewModel = hiltViewModel()
 ) {
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val search = viewModel.searchText.collectAsState()

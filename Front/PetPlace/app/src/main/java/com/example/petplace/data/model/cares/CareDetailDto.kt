@@ -32,9 +32,9 @@ data class CareDetailDto(
 
 enum class CareCategory {
     @SerializedName("WALK_WANT") WALK_WANT,
-    @SerializedName("WALK_OFFER") WALK_OFFER,
-    @SerializedName("PET_SITTING") PET_SITTING,
-    @SerializedName("ETC") ETC
+    @SerializedName("WALK_REQ") WALK_OFFER,
+    @SerializedName("CARE_WANT") CARE_WANT,
+    @SerializedName("CARE_REQ") CARE_REQ
 }
 
 enum class CareStatus {

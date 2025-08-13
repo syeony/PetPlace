@@ -1,7 +1,11 @@
 package com.example.petplace.data.remote
 
+import com.example.petplace.data.model.cares.CareCreateRequest
+import com.example.petplace.data.model.cares.CareDetail
 import com.example.petplace.data.model.cares.CareDetailDto
+import com.example.petplace.data.model.cares.CareSummary
 import com.example.petplace.data.model.cares.CareUpdateRequest
+import com.example.petplace.data.model.cares.IdResponse
 import com.example.petplace.data.model.hotel.CheckReservationAvailabilityRequest
 import com.example.petplace.presentation.feature.hotel.ApiResponse
 import com.google.android.gms.common.api.Api

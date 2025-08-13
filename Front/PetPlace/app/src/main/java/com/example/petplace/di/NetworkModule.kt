@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.remote.CaresApiService
 import com.example.petplace.data.remote.ChatApiService
 import com.example.petplace.data.remote.FeedApiService
 import com.example.petplace.data.remote.HotelApiService
@@ -208,5 +209,13 @@ private const val SERVER_BASE_URL = "http://i13d104.p.ssafy.io:8081/"
     fun providePyamentApi(
         @Named("Server") retrofit: Retrofit
     ): PaymentsApiService = retrofit.create(PaymentsApiService::class.java)
+
+
+    @Provides
+    @Singleton
+    fun provideCaresApi(
+        @Named("Server") retrofit: Retrofit
+    ): CaresApiService = retrofit.create(CaresApiService::class.java)
+
 
 }
