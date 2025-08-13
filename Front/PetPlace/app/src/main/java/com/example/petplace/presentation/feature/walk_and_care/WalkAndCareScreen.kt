@@ -2,6 +2,7 @@ package com.example.petplace.presentation.feature.walk_and_care
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,6 +57,11 @@ import com.example.petplace.R
 import com.example.petplace.data.local.Walk.Post
 import com.example.petplace.presentation.feature.feed.categoryStyles
 import androidx.hilt.navigation.compose.hiltViewModel // ✅ 이거 추가
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
+
+private const val BASE = "http://i13d104.p.ssafy.io:8081" // ← http면 매니페스트에 usesCleartextTraffic=true 필요
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -257,8 +263,22 @@ fun PostCard(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            Image(
-                painter = rememberAsyncImagePainter(post.imageUrl),
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(resolveImageUrl(post.imageUrl))
+                    .listener(
+                        onStart = {                     // (request: ImageRequest)
+                            Log.d("IMG", "load => ${resolveImageUrl(post.imageUrl)}")
+                        },
+                        onError = { _, result ->        // (request: ImageRequest, result: ErrorResult)
+                            Log.e("IMG", "error => ${resolveImageUrl(post.imageUrl)}", result.throwable)
+                        }
+                        // 필요하면 onSuccess, onCancel 도 추가 가능
+                    )
+                    .crossfade(true)
+                    .build(),
+                placeholder = painterResource(R.drawable.pp_logo),
+                error = painterResource(R.drawable.pp_logo),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -266,6 +286,8 @@ fun PostCard(
                     .clip(RoundedCornerShape(12.dp))
                     .align(Alignment.Bottom)
             )
+
+
         }
     }
 }
@@ -284,4 +306,32 @@ private fun InfoRow(
         Spacer(Modifier.width(8.dp))
         Text(value, color = Color.Gray, fontSize = 13.5.sp)
     }
+}
+
+
+private fun resolveImageUrl(raw: String?): String? {
+    if (raw == null) return null
+
+    // 1) 흔한 쓰레기 문자 정리
+    var s = raw.trim()
+        .removePrefix("\"").removeSuffix("\"")     // 양끝 따옴표 제거
+        .removePrefix("[").removeSuffix("]")       // 배열 문자열로 올 때
+    if (s.isBlank() || s.equals("null", true)) return null
+
+    // 2) 여러 개가 콤마/세미콜론으로 올 때 첫 것만
+    s = s.split(',', ';').first().trim()
+
+    // 3) 이미 풀 URL이면 그대로
+    if (s.startsWith("http://") || s.startsWith("https://")) return s
+
+    // 4) BASE + 경로를 안전하게 합치기 (인코딩 포함)
+    //    Uri.Builder가 경로 세그먼트를 알아서 인코딩해줌
+    val base = android.net.Uri.parse(BASE)
+    val clean = s.removePrefix("/") // 절대경로면 슬래시 제거하고 세그먼트로 추가
+    val segments = clean.split('/').filter { it.isNotBlank() }
+
+    val builder = base.buildUpon().encodedPath(null) // 기존 path 초기화
+    segments.forEach { seg -> builder.appendPath(seg) } // 각 세그먼트 인코딩
+
+    return builder.build().toString() // 예: http://.../images/1755071....jpg
 }

@@ -26,7 +26,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,18 +35,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.data.local.Walk.WalkWriteForm
+import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareWriteViewModel
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
-
-private val AccentOrange = Color(0xFFF79800)
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -54,39 +52,42 @@ private val AccentOrange = Color(0xFFF79800)
 fun WalkAndCareWriteScreen(
     navController: NavController,
     viewModel: WalkAndCareWriteViewModel = hiltViewModel(),
-    // 필요하면 외부 콜백도 유지
     onSubmit: (WalkWriteForm) -> Unit = {}
 ) {
-    val orange  = Color(0xFFF79800)
+    // === colors ===
     val outline = Color(0xFFE5E7EB)
     val hint    = Color(0xFF9CA3AF)
-
-    // state collect
-    val pickedCat     by viewModel.pickedCat.collectAsState()
-    val title         by viewModel.title.collectAsState()
-    val details       by viewModel.details.collectAsState()
-    val date          by viewModel.date.collectAsState()
-    val startTime     by viewModel.startTime.collectAsState()
-    val endTime       by viewModel.endTime.collectAsState()
-    val imageUris     by viewModel.imageUris.collectAsState()
-    val enableSubmit  by viewModel.isValid.collectAsState()
-    val isSubmitting  by viewModel.isSubmitting.collectAsState()
-    val eventFlow     = viewModel.event
-
-    // snackbars
-    val snackbarHostState = remember { SnackbarHostState() }
+    val accent  = Color(0xFFF79800)
     LaunchedEffect(Unit) {
-        eventFlow.collect { msg ->
-            snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
+        if (viewModel.petId.value == null)    viewModel.setPetId(13L)          // 보유 펫 ID로 교체
+        if (viewModel.regionId.value == null) viewModel.setRegionId(4700000000) // 실제 지역 ID(Long)로 교체
+    }
+    // === state ===
+    val category     by viewModel.pickedCat.collectAsState()
+    val title        by viewModel.title.collectAsState()
+    val details      by viewModel.details.collectAsState()
+    val startDate    by viewModel.startDate.collectAsState()
+    val endDate      by viewModel.endDate.collectAsState()
+    val startTime    by viewModel.startTime.collectAsState()
+    val endTime      by viewModel.endTime.collectAsState()
+    val imageUris    by viewModel.imageUris.collectAsState()
+    val enableSubmit by viewModel.isValid.collectAsState()
+    val isSubmitting by viewModel.isSubmitting.collectAsState()
+
+    val mode = remember(category) {
+        when (category) {
+            "산책구인", "산책의뢰" -> Mode.WALK
+            "돌봄구인", "돌봄의뢰" -> Mode.CARE
+            else -> Mode.NONE
         }
     }
 
-    // pickers show/hide
-    var showDatePicker  by remember { mutableStateOf(false) }
+    // === pickers ===
+    var showDateRange  by remember { mutableStateOf(false) }
     var showStartPicker by remember { mutableStateOf(false) }
     var showEndPicker   by remember { mutableStateOf(false) }
 
-    // 갤러리 (최대 5장)
+    // === gallery ===
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickMultipleVisualMedia(5)
     ) { uris: List<Uri> ->
@@ -94,331 +95,304 @@ fun WalkAndCareWriteScreen(
     }
 
     Scaffold(
-        containerColor = Color.White,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            ) {
-                IconButton(
-                    onClick = { navController.popBackStack() },
-                    modifier = Modifier.align(Alignment.CenterStart)
-                ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+            SmallTopAppBar(
+                title = { Text("돌봄/산책 구인 등록") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "뒤로")
+                    }
                 }
-                Text(
-                    text = "돌봄/산책 구인 등록",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.Center),
-                    textAlign = TextAlign.Center
-                )
-            }
+            )
         },
         bottomBar = {
             Button(
                 onClick = {
-                    // 기존 외부 콜백 (원하면 삭제 가능)
                     onSubmit(
                         WalkWriteForm(
-                            category  = pickedCat,
+                            category  = category,
                             title     = title,
                             details   = details,
-                            date      = date?.let { "%02d.%02d".format(it.monthValue, it.dayOfMonth) } ?: "",
+                            date      = when (mode) {
+                                Mode.CARE -> {
+                                    val s = startDate?.let { "%02d.%02d".format(it.monthValue, it.dayOfMonth) } ?: ""
+                                    val e = endDate?.let   { "%02d.%02d".format(it.monthValue, it.dayOfMonth) } ?: ""
+                                    if (s.isNotBlank() && e.isNotBlank()) "$s ~ $e" else ""
+                                }
+                                Mode.WALK -> ""
+                                else -> ""
+                            },
                             startTime = startTime?.let { "%02d:%02d".format(it.hour, it.minute) } ?: "",
-                            endTime   = endTime?.let { "%02d:%02d".format(it.hour, it.minute) } ?: "",
+                            endTime   = endTime?.let   { "%02d:%02d".format(it.hour, it.minute) } ?: "",
                             image     = imageUris.firstOrNull()?.toString()
                         )
                     )
-                    // 실제 서버 등록
                     viewModel.submit(
-                        onSuccess = { /* 성공 시 원하는 곳으로 이동 */ navController.popBackStack() },
-                        onError = { /* 스낵바에서 이미 표시됨 */ }
+                        onSuccess = { navController.popBackStack() },
+                        onError = { /* TODO: snackbar */ }
                     )
                 },
-                enabled = enableSubmit && !isSubmitting,             // ✅ 활성화 조건
+                enabled = enableSubmit && !isSubmitting,
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 8.dp)
                     .height(50.dp)
                     .fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentOrange),
+                colors = ButtonDefaults.buttonColors(containerColor = accent)
             ) {
-                Text(if (isSubmitting) "등록 중..." else "등록하기", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(if (isSubmitting) "등록 중..." else "등록하기",
+                    color = Color.White, fontWeight = FontWeight.SemiBold)
             }
         }
     ) { inner ->
         val scroll = rememberScrollState()
-
-        Box(
+        Column(
             modifier = Modifier
                 .padding(inner)
                 .fillMaxSize()
+                .verticalScroll(scroll)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 96.dp)
         ) {
-            // 스크롤 본문
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scroll)
-                    .padding(horizontal = 16.dp)
-                    .padding(bottom = 96.dp)     // 하단 버튼 영역 고려
-            ) {
-                Spacer(Modifier.height(6.dp))
-                Text("카테고리를 하나 선택해주세요.", fontSize = 13.sp, color = Color(0xFF6B7280))
-                Spacer(Modifier.height(10.dp))
+            // ================= 공통 영역 (항상 보임) =================
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    listOf("산책구인", "돌봄구인", "산책의뢰", "돌봄의뢰").forEach { cat ->
-                        val selected = pickedCat == cat
-                        Surface(
-                            color = if (selected) orange else Color(0xFFFFFDF9),
-                            contentColor = if (selected) Color.White else Color(0xFF374151),
-                            shape = RoundedCornerShape(20.dp),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(36.dp)
-                                .clickable { viewModel.selectCategory(cat) }
-                                .border(
-                                    width = if (selected) 0.dp else 1.dp,
-                                    color = if (selected) Color.Transparent else Color(0xFFFFE0B3),
-                                    shape = RoundedCornerShape(20.dp)
-                                )
-                        ) {
-                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text(cat, fontSize = 13.sp)
-                            }
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-                Text("제목", fontSize = 13.sp, color = Color(0xFF111827), fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = viewModel::updateTitle,
-                    placeholder = { Text("제목을 입력해주세요", fontSize = 13.sp, color = hint) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = outline, unfocusedBorderColor = outline,
-                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
-                    )
-                )
-
-                Spacer(Modifier.height(16.dp))
-                Text("펫 사진", fontSize = 13.sp, color = Color(0xFF111827), fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(8.dp))
-
-                // 업로드 카드 + 미리보기
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // 업로드 카드
-                    Box(
+            // 1) 카테고리 선택 (칩)
+            Spacer(Modifier.height(6.dp))
+            Text("카테고리를 하나 선택해주세요.", fontSize = 13.sp, color = Color(0xFF6B7280))
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                listOf("산책구인", "산책의뢰", "돌봄구인", "돌봄의뢰").forEach { cat ->
+                    val selected = category == cat
+                    Surface(
+                        color = if (selected) accent else Color(0xFFFFFDF9),
+                        contentColor = if (selected) Color.White else Color(0xFF374151),
+                        shape = RoundedCornerShape(20.dp),
                         modifier = Modifier
-                            .size(96.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF3F4F6))
-                            .border(1.dp, Color(0xFFD7D7D7), RoundedCornerShape(12.dp))
-                            .clickable {
-                                galleryLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                        contentAlignment = Alignment.Center
+                            .weight(1f)
+                            .height(36.dp)
+                            .clickable { viewModel.selectCategory(cat) }
+                            .border(
+                                width = if (selected) 0.dp else 1.dp,
+                                color = if (selected) Color.Transparent else Color(0xFFFFE0B3),
+                                shape = RoundedCornerShape(20.dp)
+                            )
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = Color.Gray)
-                            Spacer(Modifier.height(4.dp))
-                            Text("${imageUris.size} / 5", fontSize = 12.sp, color = Color.Gray)
-                        }
-                    }
-
-                    // 프리뷰들
-                    if (imageUris.isNotEmpty()) {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(imageUris) { uri ->
-                                Box {
-                                    Image(
-                                        painter = rememberAsyncImagePainter(uri),
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .size(96.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .border(1.dp, Color(0xFFD7D7D7), RoundedCornerShape(12.dp))
-                                    )
-                                    IconButton(
-                                        onClick = { viewModel.removeImage(uri) },
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .offset(x = 6.dp, y = (-6).dp)
-                                            .size(24.dp)
-                                            .background(Color(0x66000000), RoundedCornerShape(12.dp))
-                                    ) {
-                                        Icon(Icons.Default.Clear, contentDescription = "삭제", tint = Color.White)
-                                    }
-                                }
-                            }
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(cat, fontSize = 13.sp)
                         }
                     }
                 }
+            }
 
-                Spacer(Modifier.height(16.dp))
-                Text("상세 내용", fontSize = 13.sp, color = Color(0xFF111827), fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = details,
-                    onValueChange = viewModel::updateDetails,
-                    placeholder = {
-                        Text(
-                            "펫의 이름과 특이사항(질병, 약 투여 등), 하고싶은 말 등을 입력해주세요.",
-                            fontSize = 13.sp,
-                            color = hint
-                        )
-                    },
+            // 2) 제목
+            Spacer(Modifier.height(16.dp))
+            Text("제목", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = title,
+                onValueChange = viewModel::updateTitle,
+                placeholder = { Text("제목을 입력해주세요", fontSize = 13.sp, color = hint) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = outline, unfocusedBorderColor = outline,
+                    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
+                )
+            )
+
+            // 3) 이미지 업로드 + 미리보기
+            Spacer(Modifier.height(16.dp))
+            Text("펫 사진", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 120.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = outline, unfocusedBorderColor = outline,
-                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
-                    )
-                )
-
-                Spacer(Modifier.height(16.dp))
-                Text("날짜", fontSize = 13.sp, color = Color(0xFF111827), fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = viewModel.dateText(),
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
-                            Icon(Icons.Default.DateRange, contentDescription = "날짜")
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = outline, unfocusedBorderColor = outline,
-                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
-                    )
-                )
-
-                Spacer(Modifier.height(16.dp))
-                Text("시간", fontSize = 13.sp, color = Color(0xFF111827), fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = viewModel.startText(),
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = {
-                            IconButton(onClick = { showStartPicker = true }) {
-                                Icon(Icons.Default.Info, contentDescription = "시작")
-                            }
+                        .size(96.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF3F4F6))
+                        .border(1.dp, Color(0xFFD7D7D7), RoundedCornerShape(12.dp))
+                        .clickable {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
                         },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = outline, unfocusedBorderColor = outline,
-                            focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
-                        )
-                    )
-                    OutlinedTextField(
-                        value = viewModel.endText(),
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = {
-                            IconButton(onClick = { showEndPicker = true }) {
-                                Icon(Icons.Default.Info, contentDescription = "종료")
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = outline, unfocusedBorderColor = outline,
-                            focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    // DatePicker
-    if (showDatePicker) {
-        val init = date?.atStartOfDay(ZoneId.systemDefault())?.toInstant()?.toEpochMilli()
-            ?: Instant.now().toEpochMilli()
-        val state = rememberDatePickerState(initialSelectedDateMillis = init)
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    state.selectedDateMillis?.let {
-                        viewModel.setDate(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate())
-                    }
-                    showDatePicker = false
-                }) { Text("확인") }
-            },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text("취소") } }
-        ) {
-            DatePicker(state = state)
-        }
-    }
-
-    // TimePicker
-    if (showStartPicker || showEndPicker) {
-        val isStart = showStartPicker
-        val init = (if (isStart) startTime else endTime) ?: LocalTime.now()
-        val state = rememberTimePickerState(
-            initialHour = init.hour,
-            initialMinute = init.minute,
-            is24Hour = false
-        )
-        AlertDialog(
-            onDismissRequest = {
-                showStartPicker = false
-                showEndPicker = false
-            }
-        ) {
-            Surface(shape = RoundedCornerShape(16.dp)) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(if (isStart) "시작 시간" else "종료 시간", style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(16.dp))
-                    TimeInput(state = state)
-                    Spacer(Modifier.height(16.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = {
-                            showStartPicker = false
-                            showEndPicker = false
-                        }) { Text("취소") }
-                        Spacer(Modifier.width(8.dp))
-                        TextButton(onClick = {
-                            val t = LocalTime.of(state.hour, state.minute)
-                            if (isStart) viewModel.setStartTime(t) else viewModel.setEndTime(t)
-                            showStartPicker = false
-                            showEndPicker = false
-                        }) { Text("확인") }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.Gray)
+                        Spacer(Modifier.height(4.dp))
+                        Text("${imageUris.size} / 5", fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
+                if (imageUris.isNotEmpty()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(imageUris) { uri ->
+                            Box {
+                                Image(
+                                    painter = rememberAsyncImagePainter(uri),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(96.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .border(1.dp, Color(0xFFD7D7D7), RoundedCornerShape(12.dp))
+                                )
+                                IconButton(
+                                    onClick = { viewModel.removeImage(uri) },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 6.dp, y = (-6).dp)
+                                        .size(24.dp)
+                                        .background(Color(0x66000000), RoundedCornerShape(12.dp))
+                                ) { Icon(Icons.Default.Clear, contentDescription = "삭제", tint = Color.White) }
+                            }
+                        }
                     }
                 }
             }
+
+            // 4) 상세 내용
+            Spacer(Modifier.height(16.dp))
+            Text("상세 내용", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = details,
+                onValueChange = viewModel::updateDetails,
+                placeholder = {
+                    Text("펫의 이름/특이사항/요청사항 등을 입력해주세요.", fontSize = 13.sp, color = hint)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 120.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = outline, unfocusedBorderColor = outline,
+                    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
+                )
+            )
+
+            // ================= 모드별 영역 (이것만 스위칭) =================
+            when (mode) {
+                Mode.WALK -> {
+                    Spacer(Modifier.height(16.dp))
+                    Text("시간", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = startTime?.let { "%02d:%02d".format(it.hour, it.minute) } ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = {
+                                IconButton(onClick = { showStartPicker = true }) {
+                                    Icon(Icons.Default.Info, contentDescription = "시작")
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = outline, unfocusedBorderColor = outline,
+                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
+                            )
+                        )
+                        OutlinedTextField(
+                            value = endTime?.let { "%02d:%02d".format(it.hour, it.minute) } ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = {
+                                IconButton(onClick = { showEndPicker = true }) {
+                                    Icon(Icons.Default.Info, contentDescription = "종료")
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = outline, unfocusedBorderColor = outline,
+                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
+                            )
+                        )
+                    }
+                }
+                Mode.CARE -> {
+                    Spacer(Modifier.height(16.dp))
+                    Text("날짜(기간)", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = buildString {
+                            val s = startDate?.let { "%04d-%02d-%02d".format(it.year, it.monthValue, it.dayOfMonth) }
+                            val e = endDate?.let   { "%04d-%02d-%02d".format(it.year, it.monthValue, it.dayOfMonth) }
+                            append(listOfNotNull(s, e).joinToString(" ~ "))
+                        },
+                        onValueChange = {},
+                        readOnly = true,
+                        trailingIcon = {
+                            IconButton(onClick = { showDateRange = true }) {
+                                Icon(Icons.Default.DateRange, contentDescription = "기간")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = outline, unfocusedBorderColor = outline,
+                            focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
+                        )
+                    )
+                }
+                Mode.NONE -> Unit
+            }
+        }
+
+        // ===== Picker 다이얼로그들 =====
+        if (showStartPicker || showEndPicker) {
+            val isStart = showStartPicker
+            val init = (if (isStart) startTime else endTime) ?: LocalTime.now()
+            val tp = rememberTimePickerState(init.hour, init.minute, is24Hour = false)
+            AlertDialog(onDismissRequest = { showStartPicker = false; showEndPicker = false }) {
+                Surface(shape = RoundedCornerShape(16.dp)) {
+                    Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(if (isStart) "시작 시간" else "종료 시간", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(16.dp))
+                        TimeInput(state = tp)
+                        Spacer(Modifier.height(16.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = { showStartPicker = false; showEndPicker = false }) { Text("취소") }
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(onClick = {
+                                val t = LocalTime.of(tp.hour, tp.minute)
+                                if (isStart) viewModel.setStartTime(t) else viewModel.setEndTime(t)
+                                showStartPicker = false; showEndPicker = false
+                            }) { Text("확인") }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showDateRange) {
+            val zone = ZoneId.systemDefault()
+            val s = startDate?.atStartOfDay(zone)?.toInstant()?.toEpochMilli()
+            val e = endDate?.atStartOfDay(zone)?.toInstant()?.toEpochMilli()
+            val rp = rememberDateRangePickerState(
+                initialSelectedStartDateMillis = s,
+                initialSelectedEndDateMillis = e
+            )
+            DatePickerDialog(
+                onDismissRequest = { showDateRange = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        rp.selectedStartDateMillis?.let {
+                            viewModel.setStartDate(Instant.ofEpochMilli(it).atZone(zone).toLocalDate())
+                        }
+                        rp.selectedEndDateMillis?.let {
+                            viewModel.setEndDate(Instant.ofEpochMilli(it).atZone(zone).toLocalDate())
+                        }
+                        showDateRange = false
+                    }) { Text("확인") }
+                },
+                dismissButton = { TextButton(onClick = { showDateRange = false }) { Text("취소") } }
+            ) { DateRangePicker(state = rp) }
         }
     }
 }
+
+private enum class Mode { WALK, CARE, NONE }

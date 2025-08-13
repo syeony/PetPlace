@@ -1,6 +1,8 @@
 package com.example.petplace.data.repository
 
+import com.example.petplace.data.model.cares.CareCategory
 import com.example.petplace.data.model.cares.CareCreateRequest
+import com.example.petplace.data.model.cares.CareItem
 import com.example.petplace.data.model.cares.CareUpdateRequest
 import com.example.petplace.data.remote.CaresApiService
 import javax.inject.Inject
@@ -8,8 +10,26 @@ import javax.inject.Inject
 class CaresRepository @Inject constructor(
     private val api: CaresApiService
 ) {
-    suspend fun list(page: Int = 0, size: Int = 20) =
-        runCatching { api.getCares(page, size) }
+    suspend fun list(
+        page: Int = 0,
+        size: Int = 20,
+        regionId: Long? = 4700000000,
+        sort: String? = "createdAt,desc"
+    ) = runCatching { api.getCares(regionId!!, page, size,sort!!) }
+
+//    suspend fun listContent(
+//        page: Int = 0,
+//        size: Int = 20,
+//        regionId: Long? = null,
+//        category: CareCategory? = null,
+//        sort: String? = "createdAt,desc"
+//    ): Result<List<CareItem>> = runCatching {
+//        val resp = api.getCares(page, size, regionId, category, sort)
+//        if (!resp.isSuccessful) error("HTTP ${resp.code()}: ${resp.errorBody()?.string()}")
+//        val body = resp.body() ?: error("Empty body")
+//        if (!body.success) error(body.message)
+//        body.data?.content ?: emptyList()
+//    }
 
     suspend fun detail(id: Long) =
         runCatching { api.getCareDetail(id) }
