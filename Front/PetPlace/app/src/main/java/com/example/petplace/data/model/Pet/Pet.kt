@@ -1,4 +1,4 @@
-package com.example.petplace.data.model.Pet
+package com.example.petplace.data.model.pet
 
 data class PetRes(
     val id: Long,

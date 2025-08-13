@@ -1,10 +1,11 @@
 package com.example.petplace.data.remote
 
-import com.example.petplace.data.model.Pet.PetRes
+import com.example.petplace.data.model.pet.PetRes
 import com.example.petplace.data.model.pet.PetInfoResponse
 import com.example.petplace.data.model.pet.PetRequest
 import com.example.petplace.data.model.pet.PetResponse
 import com.example.petplace.data.model.pet.PetUpdateRequest
+
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -30,4 +31,5 @@ interface PetApiService {
 
     @GET("/api/pets/me")
     suspend fun getMyPets(): List<PetRes>
+
 }

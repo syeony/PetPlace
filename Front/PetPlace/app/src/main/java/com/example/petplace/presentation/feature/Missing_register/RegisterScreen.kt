@@ -254,7 +254,6 @@ fun RegisterScreen(
                     if (isSubmitting) return@Button
                     viewModel.submitRegister(
                         onSuccess = { id ->
-                            Toast.makeText(context, "등록 완료 (#$id)", Toast.LENGTH_SHORT).show()
                             navController.navigate("${BottomNavItem.Neighborhood.route}?showDialog=true") {
                                 popUpTo("Missing_register") { inclusive = true }
                             }
