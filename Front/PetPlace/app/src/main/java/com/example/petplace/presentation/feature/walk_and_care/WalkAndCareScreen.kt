@@ -61,7 +61,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 
-private const val BASE = "http://i13d104.p.ssafy.io:8081" // ← http면 매니페스트에 usesCleartextTraffic=true 필요
+private const val BASE = "http://i13d104.p.ssafy.io:8081"
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -95,7 +95,6 @@ fun WalkAndCareScreen(
                 .fillMaxSize()
 //                .background(Color.White)
         ) {
-            // ⬇️ 헤더(위치, 검색, 카테고리)만 패딩 유지
             Column(
                 Modifier
                     .fillMaxWidth()

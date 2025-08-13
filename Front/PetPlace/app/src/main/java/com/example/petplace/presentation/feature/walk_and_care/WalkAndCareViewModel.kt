@@ -3,43 +3,75 @@ package com.example.petplace.presentation.feature.walk_and_care
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.data.local.Walk.Post
+import com.example.petplace.data.model.cares.CareItem
+import com.example.petplace.data.model.cares.PageResponse
 import com.example.petplace.data.repository.CaresRepository
-import com.google.ai.client.generativeai.type.content
+import com.example.petplace.presentation.feature.hotel.ApiResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.example.petplace.data.model.cares.CareItem // ← 아래 3) DTO 정의 참조
-import com.example.petplace.data.model.cares.PageResponse
-import com.example.petplace.presentation.feature.hotel.ApiResponse
-
 
 @HiltViewModel
 class WalkAndCareViewModel @Inject constructor(
     private val caresRepository: CaresRepository
 ) : ViewModel() {
 
+    // 검색어
     private val _searchText = MutableStateFlow("")
-    val searchText: StateFlow<String> = _searchText
+    val searchText: StateFlow<String> = _searchText.asStateFlow()
 
+    // 선택된 카테고리: null 이면 "전체" 취급
     private val _selectedCategory = MutableStateFlow<String?>(null)
-    val selectedCategory: StateFlow<String?> = _selectedCategory
+    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
 
-    private val _filteredPosts = MutableStateFlow<List<Post>>(emptyList())
-    val filteredPosts: StateFlow<List<Post>> = _filteredPosts
+    // 전체 포스트 (서버 원본)
+    private val _allPosts = MutableStateFlow<List<Post>>(emptyList())
+    val allPosts: StateFlow<List<Post>> = _allPosts.asStateFlow()
 
-    val allCategories = listOf("산책구인", "돌봄구인", "산책의뢰", "돌봄의뢰")
+    // 탭에서 보여줄 카테고리 (전체 제거)
+    val allCategories: List<String> = listOf("산책구인", "돌봄구인", "산책의뢰", "돌봄의뢰")
 
-    private var allPosts: List<Post> = emptyList()
+    // 필터 결과: 카테고리(null=전체) + 검색어 반영
+    val filteredPosts: StateFlow<List<Post>> =
+        combine(_allPosts, _selectedCategory, _searchText) { list, selected, query ->
+            val q = query.trim()
+
+            list.filter { p ->
+                val matchesCategory = selected == null ||
+                        normalizeCategoryLabel(p.category) == normalizeCategoryLabel(selected)
+
+                val matchesQuery = q.isBlank() ||
+                        p.title.contains(q, ignoreCase = true) ||
+                        p.body.contains(q, ignoreCase = true)
+
+                matchesCategory && matchesQuery
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {
         fetchPosts()
     }
 
+    // ───────── Actions ─────────
+    fun toggleCategory(cat: String) {
+        // 같은 걸 한 번 더 누르면 해제(null) → 전체 취급
+        _selectedCategory.value = if (_selectedCategory.value == cat) null else cat
+    }
 
-// ⚠ 잘못된 임포트 제거: com.google.ai.client.generativeai.type.content (절대 X)
+    fun updateSearchText(text: String) {
+        _searchText.value = text
+    }
+
+    fun clearFilters() {
+        _selectedCategory.value = null   // 전체
+        _searchText.value = ""
+    }
 
     fun fetchPosts(page: Int = 0, size: Int = 20) {
         viewModelScope.launch {
@@ -55,12 +87,11 @@ class WalkAndCareViewModel @Inject constructor(
                         val timeText = formatTimeRange(care.startDatetime, care.endDatetime)
 
                         Post(
-                            category = care.categoryDescription
-                                ?: mapCategoryToKorean(care.category),
+                            category = normalizeCategoryLabel(
+                                care.categoryDescription ?: mapEnumToKoreanLabel(care.category)
+                            ),
                             title = care.title.orEmpty(),
-                            // 목록 응답엔 content가 없음 → 대체 텍스트(또는 "")
                             body = buildString {
-                                // 필요하면 간단 요약을 조합
                                 if (!care.regionName.isNullOrBlank()) append("[${care.regionName}] ")
                                 append(timeText.takeIf { it != "-" } ?: dateText)
                             },
@@ -72,55 +103,29 @@ class WalkAndCareViewModel @Inject constructor(
                         )
                     }
 
-                    setPosts(posts)
+                    _allPosts.value = posts
                 }
                 .onFailure { it.printStackTrace() }
         }
     }
 
-
-    fun toggleCategory(cat: String) {
-        _selectedCategory.update { if (it == cat) null else cat }
-        applyFilters()
-    }
-
-    fun updateSearchText(text: String) {
-        _searchText.value = text
-        applyFilters()
-    }
-
-    fun clearFilters() {
-        _selectedCategory.value = null
-        _searchText.value = ""
-        applyFilters()
-    }
-
-    fun setPosts(posts: List<Post>) {
-        allPosts = posts
-        applyFilters()
-    }
-
-    private fun applyFilters() {
-        val cat = _selectedCategory.value
-        val q = _searchText.value.trim().lowercase()
-
-        _filteredPosts.value = allPosts.filter { post ->
-            val hitCat = (cat == null || post.category == cat)
-            val hitQuery = q.isBlank() ||
-                    post.title.lowercase().contains(q) ||
-                    post.body.lowercase().contains(q)
-            hitCat && hitQuery
+    private fun normalizeCategoryLabel(src: String?): String {
+        val k = src?.trim()?.replace(" ", "")?.uppercase() ?: return "산책구인"
+        return when (k) {
+            "산책구인", "산책구해요", "WALK_WANT" -> "산책구인"
+            "돌봄구인", "돌봄구해요", "CARE_WANT" -> "돌봄구인"
+            "산책의뢰", "산책해줄게요", "WALK_OFFER" -> "산책의뢰"
+            "돌봄의뢰", "돌봄해줄게요", "CARE_OFFER", "CARE_REQ" -> "돌봄의뢰"
+            else -> "산책구인"
         }
     }
 
-    // --------- helpers ---------
-
-    private fun mapCategoryToKorean(enumName: String?): String =
-        when (enumName) {
+    private fun mapEnumToKoreanLabel(enumName: String?): String =
+        when (enumName?.uppercase()) {
             "WALK_WANT"  -> "산책구인"
             "CARE_WANT"  -> "돌봄구인"
             "WALK_OFFER" -> "산책의뢰"
-            "CARE_REQ", "CARE_OFFER" -> "돌봄의뢰" // 서버 명칭 중 하나일 수 있어 대비
+            "CARE_OFFER", "CARE_REQ" -> "돌봄의뢰"
             else -> "산책구인"
         }
 
@@ -150,9 +155,10 @@ class WalkAndCareViewModel @Inject constructor(
 
     private fun extractTime(dt: String?): String? {
         return try {
-            if (dt == null) return null
-            val tPart = dt.split('T', ' ').getOrNull(1) ?: return null
+            val tPart = dt?.split('T', ' ')?.getOrNull(1) ?: return null
             tPart.substring(0, 5) // HH:mm
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
     }
 }
