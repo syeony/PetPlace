@@ -3,6 +3,7 @@ package com.minjeok4go.petplace.user.entity;
 import com.minjeok4go.petplace.profile.dto.UpdateUserRequest;
 import com.minjeok4go.petplace.profile.entity.Introduction;
 import com.minjeok4go.petplace.pet.entity.Pet;
+import com.minjeok4go.petplace.region.entity.Region;
 import com.minjeok4go.petplace.user.service.UserPetSmell;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -49,8 +50,9 @@ public class User {
     @Column
     private LocalDateTime deletedAt;
 
-    @Column(name = "region_id") // nullable = true로 변경 (테스트용)
-    private Long regionId; // ⭐️ 나중에 Region 엔티티와 @ManyToOne 관계로 변경될 수 있습니다.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "region_id")
+    private Region region;
 
     @Column(name = "default_pet_id")
     private Integer defaultPetId; // ⭐️ 나중에 Pet 엔티티와 @OneToOne 관계로 변경될 수 있습니다.
@@ -101,16 +103,30 @@ public class User {
     @OneToOne(mappedBy = "user", fetch = FetchType.LAZY)
     private Introduction introduction;
 
+    public void updateRegion(Region region) {
+        this.region = region;
+    }
+
+    // ⭐️ 기존 코드를 위한 임시 메소드 제공 ⭐️
+    @Deprecated // 이 메소드는 곧 사라질 예정임을 팀원들에게 알려줍니다.
+    @Transient  // 이 메소드는 DB 컬럼과 관계 없음을 명시합니다.
+    public Long getRegionId() {
+        if (this.region != null) {
+            return this.region.getId();
+        }
+        return null;
+    }
+
     public void setIntroduction(Introduction intro) { this.introduction = intro; }
 
     // [개선] 기존 이메일 회원가입용 빌더 수정
     @Builder
-    public User(String userName, String password, String name, String nickname, Long regionId, String ci, String phoneNumber, String gender, LocalDate birthday) {
+    public User(String userName, String password, String name, String nickname, Region region, String ci, String phoneNumber, String gender, LocalDate birthday) {
         this.userName = userName;
         this.password = password;
         this.name = name;
         this.nickname = nickname;
-        this.regionId = regionId;
+        this.region = region;
         this.ci = ci;
         this.phoneNumber = phoneNumber;
         this.gender = gender;
@@ -125,7 +141,7 @@ public class User {
     }
 
     // [개선] 신규 소셜 회원가입용 팩토리 메서드 추가
-    public static User createSocialUser(String name, String nickname, Long regionId, String ci,
+    public static User createSocialUser(String name, String nickname, Region region, String ci,
                                         String phoneNumber, String gender, LocalDate birthday,
                                         String socialId, String socialEmail, String profileImageUrl, 
                                         LoginType loginType, String encodedRandomPassword) {
@@ -134,7 +150,7 @@ public class User {
         user.password = encodedRandomPassword; // 랜덤 패스워드 설정 (null 대신)
         user.name = name;
         user.nickname = nickname;
-        user.regionId = regionId;
+        user.region = region;
         user.ci = ci;
         user.phoneNumber = phoneNumber;
         user.gender = gender;
@@ -208,7 +224,6 @@ public class User {
         this.nickname = req.getNickname() != null ? req.getNickname() : this.nickname;
         this.password = password != null ? password : this.password;
         this.userImgSrc = req.getImgSrc() != null ? req.getImgSrc() : this.userImgSrc;
-        this.regionId = req.getRegionId() != null ? req.getRegionId() : this.regionId;
     }
 
     public void applyExpDelta(long delta, UserPetSmell petSmell) {

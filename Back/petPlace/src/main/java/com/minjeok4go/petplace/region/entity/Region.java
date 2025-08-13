@@ -2,6 +2,7 @@ package com.minjeok4go.petplace.region.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.locationtech.jts.geom.Point;
 
 @Entity
 @Table(name = "regions")
@@ -16,6 +17,7 @@ public class Region {
     @Column(name = "parent_id")
     private Long parentId;
 
-    // geometry 컬럼은 생략(필요 시 Spatial 타입 적용 가능)
-    // private Point geometry;
+    // geometry 컬럼 - MySQL GEOMETRY 타입, NULL 허용
+    @Column(columnDefinition = "POINT", nullable = true)
+    private Point geometry;
 }
