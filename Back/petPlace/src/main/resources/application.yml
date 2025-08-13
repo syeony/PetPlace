@@ -47,6 +47,7 @@ server:
 portone:
   api-key: ${PORTONE_API_KEY}
   secret-key: ${PORTONE_SECRET_KEY}
+  imp-code: ${PORTONE_IMP_CODE}
   store-id: ${PORTONE_STORE_ID}
   channel-key: channel-key-680df6ca-d2e7-4c93-9a7c-bae25c42e559
   base-url: https://api.iamport.kr
