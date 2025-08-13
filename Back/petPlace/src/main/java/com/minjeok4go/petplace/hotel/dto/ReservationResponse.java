@@ -73,6 +73,33 @@ public class ReservationResponse {
     }
 
     /**
+     * Reservation 엔티티와 Hotel 엔티티로부터 DTO 생성 (호텔 정보 직접 전달)
+     */
+    public static ReservationResponse from(Reservation reservation, com.minjeok4go.petplace.hotel.entity.Hotel hotel) {
+        // 예약된 날짜들을 LocalDate 리스트로 변환
+        List<LocalDate> reservedDates = reservation.getReservedDates().stream()
+                .map(AvailableDate::getDate)
+                .sorted() // 날짜순 정렬
+                .collect(Collectors.toList());
+
+        return ReservationResponse.builder()
+                .id(reservation.getId())
+                .userId(reservation.getUserId())
+                .petId(reservation.getPetId())
+                .hotelId(reservation.getHotelId())
+                .hotelName(hotel.getName()) // 직접 전달받은 hotel 정보 사용
+                .reservedDates(reservedDates)
+                .checkInDate(reservation.getCheckInDate())
+                .checkOutDate(reservation.getCheckOutDate())
+                .totalDays(reservation.getTotalDays())
+                .totalPrice(reservation.getTotalPrice())
+                .status(reservation.getStatus())
+                .specialRequests(reservation.getSpecialRequests())
+                .createdAt(reservation.getCreatedAt())
+                .build();
+    }
+
+    /**
      * 연속된 날짜 예약인지 확인
      */
     public boolean isConsecutiveReservation() {
