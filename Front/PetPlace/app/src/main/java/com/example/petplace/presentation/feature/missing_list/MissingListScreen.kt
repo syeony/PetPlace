@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -27,6 +28,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -56,7 +58,7 @@ fun MissingListScreen(
 ) {
     val bgColor = Color(0xFFFEF9F0)
     val orange  = Color(0xFFF79800)
-    val items by viewModel.items.collectAsState()
+    val ui by viewModel.ui.collectAsState()
 
     Column(
         modifier = modifier
@@ -76,24 +78,68 @@ fun MissingListScreen(
             }
         }
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(bottom = 16.dp),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            items(items, key = { it.id }) { item ->
-                MissingCard(
-                    item = item,
-                    orange = orange,
-                    onChatClick = {
-                        // TODO: 채팅방 이동 (API/라우팅 나오면 교체)
-                        // navController.navigate("chatDetail/${chatRoomId}")
+        when {
+            ui.isLoading && ui.items.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
+            }
+            ui.error != null && ui.items.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) { Text(text = ui.error ?: "오류가 발생했습니다.") }
+            }
+            else -> {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(ui.items, key = { it.id }) { item ->
+                        MissingCard(
+                            item = item,
+                            orange = orange,
+                            onChatClick = {
+                                // TODO: 채팅방 이동
+                            }
+                        )
                     }
-                )
+
+                    if (ui.hasMore && !ui.isLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Button(
+                                    onClick = { viewModel.loadNext() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = orange),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) { Text("더 보기", color = Color.White) }
+                            }
+                        }
+                    }
+
+                    if (ui.isLoading && ui.items.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) { CircularProgressIndicator() }
+                        }
+                    }
+                }
             }
         }
     }
 }
+
 
 @Composable
 private fun MissingCard(

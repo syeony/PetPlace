@@ -2,7 +2,7 @@ package com.example.petplace.presentation.feature.missing_register
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.petplace.data.model.Pet.PetRes
+import com.example.petplace.data.model.pet.PetRes
 import com.example.petplace.data.repository.PetRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
