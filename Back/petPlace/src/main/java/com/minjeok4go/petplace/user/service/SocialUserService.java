@@ -1,8 +1,11 @@
 package com.minjeok4go.petplace.user.service;
 
+import lombok.RequiredArgsConstructor;
 import com.minjeok4go.petplace.auth.dto.SocialSignupRequest;
 import com.minjeok4go.petplace.auth.jwt.JwtTokenProvider;
 import com.minjeok4go.petplace.common.constant.SocialProvider;
+import com.minjeok4go.petplace.feed.service.FeedService;
+import com.minjeok4go.petplace.region.entity.Region;
 import com.minjeok4go.petplace.user.dto.VerificationData;
 import com.minjeok4go.petplace.user.entity.LoginType;
 import com.minjeok4go.petplace.user.entity.User;
@@ -12,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.minjeok4go.petplace.region.repository.RegionRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -27,7 +31,9 @@ public class SocialUserService {
     private final UserRepository userRepository;
     private final PortOneApiService portOneApiService;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider; // 추가
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RegionRepository regionRepository;
+
 
     /**
      * 소셜 ID로 기존 사용자 조회
@@ -117,26 +123,36 @@ public class SocialUserService {
         String randomPassword = UUID.randomUUID().toString();
         String encodedPassword = passwordEncoder.encode(randomPassword);
 
-        // 4. 소셜 사용자 생성
+        // ✅ 4. DTO에서 받은 regionId로 실제 Region 엔티티 조회
+        Long regionId = request.getRegionId();
+        if (regionId == null) {
+            // 소셜 회원가입 시 지역 선택이 필수인 경우
+            throw new IllegalArgumentException("지역 ID는 필수 입력값입니다.");
+        }
+        Region region = regionRepository.findById(regionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 지역 ID입니다: " + regionId));
+
+        // 5. 소셜 사용자 생성
         LoginType loginType = convertProviderToLoginType(request.getProvider());
 
+        // ✅ 6. User.createSocialUser() 팩토리 메소드에 조회한 Region 객체를 전달
         User socialUser = User.createSocialUser(
                 verificationData.getName(),
                 request.getNickname(),
-                request.getRegionId(),
+                region,
                 verificationData.getCi(),
                 verificationData.getPhone(),
                 verificationData.getGender(),
                 verificationData.getBirthDate(),
-                socialId,           // 임시토큰에서 추출한 검증된 socialId
-                socialEmail,        // 임시토큰에서 추출한 검증된 email
-                profileImage,       // 임시토큰에서 추출한 검증된 profileImage
+                socialId,         // 임시토큰에서 추출한 검증된 socialId
+                socialEmail,      // 임시토큰에서 추출한 검증된 email
+                profileImage,     // 임시토큰에서 추출한 검증된 profileImage
                 loginType,
-                encodedPassword     // 인코딩된 랜덤 패스워드
+                encodedPassword   // 인코딩된 랜덤 패스워드
         );
 
         User savedUser = userRepository.save(socialUser);
-        log.info("소셜 사용자 생성 완료: userId={}, provider={}, socialId={}", 
+        log.info("소셜 사용자 생성 완료: userId={}, provider={}, socialId={}",
                 savedUser.getId(), request.getProvider(), socialId);
 
         return savedUser;
