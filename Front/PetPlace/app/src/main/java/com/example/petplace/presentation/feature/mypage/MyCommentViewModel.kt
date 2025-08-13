@@ -19,7 +19,6 @@ data class MyCommentInfo(
     val content: String,
     val authorName: String,
     val authorProfileImage: String?,
-    val region: String,  // 이 정보는 CommentRes에 없으므로 별도로 처리 필요
     val timeAgo: String,
     val originalPostId: Long,
     val originalPostTitle: String,  // 이 정보도 CommentRes에 없으므로 별도로 처리 필요
@@ -53,7 +52,6 @@ class MyCommentViewModel @Inject constructor(
                                 content = comment.content,
                                 authorName = comment.userNick,
                                 authorProfileImage = comment.userImg,
-                                region = "지역 정보 없음", // CommentRes에 지역 정보가 없으므로 기본값
                                 timeAgo = formatTimeAgo(comment.createdAt),
                                 originalPostId = comment.feedId,
                                 originalPostTitle = "게시글 제목", // CommentRes에 게시글 제목이 없으므로 기본값 또는 별도 조회 필요

@@ -182,8 +182,15 @@ fun CommentItem(
                         .size(40.dp)
                         .clip(CircleShape)
                 ) {
+                    val profileImageUrl = if (!comment.authorProfileImage.isNullOrEmpty()) {
+                        if (comment.authorProfileImage.startsWith("http")) {
+                            comment.authorProfileImage
+                        } else {
+                            "http://43.201.108.195:8081${comment.authorProfileImage}"
+                        }
+                    } else null
                     AsyncImage(
-                        model = comment.authorProfileImage,
+                        model = profileImageUrl,
                         contentDescription = "프로필 이미지",
                         placeholder = painterResource(id = R.drawable.ic_mypage),
                         error = painterResource(id = R.drawable.ic_mypage),
@@ -204,11 +211,11 @@ fun CommentItem(
                         ),
                         color = Color.Black
                     )
-                    Text(
-                        text = comment.region,
-                        style = AppTypography.bodySmall,
-                        color = Color.Gray
-                    )
+//                    Text(
+//                        text = comment.region,
+//                        style = AppTypography.bodySmall,
+//                        color = Color.Gray
+//                    )
                 }
 
                 Text(
