@@ -341,7 +341,7 @@ fun MyPageScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         // 목욕 용품
                         PetSupplyItem(
@@ -412,7 +412,7 @@ fun MyPageScreen(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         // MY 메뉴들
                         MyMenuItem(
@@ -458,12 +458,12 @@ fun MyPageScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        MyMenuItem(
+                        WalkCareMenuItem(
                             icon = R.drawable.my_walk,
                             title = "내 산책",
                             onClick = { /* 산책 로직 */ }
                         )
-                        MyMenuItem(
+                        WalkCareMenuItem(
                             icon = R.drawable.my_care,
                             title = "내 돌봄",
                             onClick = { /* 돌봄 로직 */ }
@@ -599,7 +599,46 @@ fun MyMenuItem(
     // 아이콘 배경 박스
     Box(
         modifier = Modifier
-            .size(96.dp) // 아이콘 영역 크기
+            .size(90.dp) // 아이콘 영역 크기
+            .clip(RoundedCornerShape(12.dp)) // 둥근 사각형
+            .background(Color(0xFFF5F5F5)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .clickable { onClick() }
+                .padding(8.dp)
+        ) {
+            Image(
+                painter = painterResource(id = icon),
+                contentDescription = title,
+                modifier = Modifier.size(40.dp) // 아이콘 크기
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 메뉴 이름
+            Text(
+                text = title,
+                style = AppTypography.bodySmall,
+                color = Color(0xFF333333),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun WalkCareMenuItem(
+    icon: Int,
+    title: String,
+    onClick: () -> Unit
+) {
+    // 아이콘 배경 박스
+    Box(
+        modifier = Modifier
+            .height(100.dp)
+            .width(120.dp)
             .clip(RoundedCornerShape(12.dp)) // 둥근 사각형
             .background(Color(0xFFF5F5F5)),
         contentAlignment = Alignment.Center
@@ -638,7 +677,7 @@ fun PetSupplyItem(
 ) {
     Box(
         modifier = Modifier
-            .size(90.dp)
+            .size(96.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
     ) {
