@@ -3,6 +3,7 @@ package com.minjeok4go.petplace.feed.service;
 import com.minjeok4go.petplace.comment.dto.FeedComment;
 import com.minjeok4go.petplace.comment.entity.Comment;
 import com.minjeok4go.petplace.comment.repository.CommentRepository;
+import com.minjeok4go.petplace.common.constant.ActivityType;
 import com.minjeok4go.petplace.common.constant.FeedCategory;
 import com.minjeok4go.petplace.common.constant.ImageType;
 import com.minjeok4go.petplace.feed.dto.*;
@@ -19,6 +20,7 @@ import com.minjeok4go.petplace.image.repository.ImageRepository;
 import com.minjeok4go.petplace.like.repository.LikeRepository;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.service.RecommendationCacheService;
+import com.minjeok4go.petplace.user.service.UserExperienceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -40,6 +42,7 @@ public class FeedService {
     private final ImageRepository imageRepository;
     private final LikeRepository likeRepository;
     private final RecommendationCacheService recommendationCacheService; // ⬅ 추가
+    private final UserExperienceService expService;
 
 
     @Transactional(readOnly = true)
@@ -81,6 +84,7 @@ public class FeedService {
         syncTags(feed.getId(), req.getTagIds());
         syncImages(feed.getId(), req.getImages());
 
+        expService.applyActivity(user, ActivityType.FEED_CREATE);
 
         return getFeedDetail(saved.getId(), user);
     }
@@ -105,7 +109,6 @@ public class FeedService {
         syncTags(feed.getId(), req.getTagIds());
         syncImages(feed.getId(), req.getImages());
 
-
         return getFeedDetail(saved.getId(), user);
     }
 
@@ -118,6 +121,7 @@ public class FeedService {
         feed.delete();
         feedRepository.save(feed);
 
+        expService.applyActivity(user, ActivityType.FEED_DELETE);
 
         return new DeleteFeedResponse(id);
     }

@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.like.service;
 
+import com.minjeok4go.petplace.common.constant.ActivityType;
 import com.minjeok4go.petplace.feed.dto.FeedLikeResponse;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.repository.FeedRepository;
@@ -8,6 +9,7 @@ import com.minjeok4go.petplace.like.dto.CreateLikeRequest;
 import com.minjeok4go.petplace.like.entity.Likes;
 import com.minjeok4go.petplace.like.repository.LikeRepository;
 import com.minjeok4go.petplace.user.entity.User;
+import com.minjeok4go.petplace.user.service.UserExperienceService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,6 +23,7 @@ public class LikeService {
     private final FeedRepository feedRepository;
     private final LikeRepository likeRepository;
     private final FeedService feedService;
+    private final UserExperienceService expService;
 //    @Transactional
 //    public FeedLikeResponse createLike(CreateLikeRequest req, User me) {
 //        // 1) Feed가 실제로 존재하는지 확인
@@ -47,19 +50,23 @@ public class LikeService {
 //
 //        return feedService.decreaseLike(feed);
 //    }
-@Transactional
-public FeedLikeResponse createLike(CreateLikeRequest req, User me) {
-    Feed feed = feedRepository.findByIdAndDeletedAtIsNull(req.getFeedId())
-            .orElseThrow(() -> new RuntimeException("feed not found"));
 
-    // 이미 좋아요면 멱등 응답
-    if (likeRepository.existsByFeedAndUser(feed, me)) {
-        return new FeedLikeResponse(feed.getId(), true, feed.getLikes());
+    @Transactional
+    public FeedLikeResponse createLike(CreateLikeRequest req, User me) {
+        Feed feed = feedRepository.findByIdAndDeletedAtIsNull(req.getFeedId())
+                .orElseThrow(() -> new RuntimeException("feed not found"));
+
+        // 이미 좋아요면 멱등 응답
+        if (likeRepository.existsByFeedAndUser(feed, me)) {
+            return new FeedLikeResponse(feed.getId(), true, feed.getLikes());
+        }
+
+        likeRepository.save(new Likes(feed, me));
+
+        expService.applyActivity(me, ActivityType.LIKE_CREATE);
+
+        return feedService.increaseLike(feed);   // ✅ 여기서 호출
     }
-
-    likeRepository.save(new Likes(feed, me));
-    return feedService.increaseLike(feed);   // ✅ 여기서 호출
-}
 
     @Transactional
     public FeedLikeResponse deleteLike(Long feedId, User me) {
@@ -68,7 +75,9 @@ public FeedLikeResponse createLike(CreateLikeRequest req, User me) {
 
         // 없으면 0건 삭제(멱등)
         likeRepository.deleteByFeedAndUser(feed, me);
-        // 이미 0일 수 있으니 음수 방지 로직이 있으면 추가
+
+        expService.applyActivity(me, ActivityType.LIKE_DELETE);
+
         return feedService.decreaseLike(feed);   // ✅ 여기서 호출
     }
 
@@ -82,10 +91,12 @@ public FeedLikeResponse createLike(CreateLikeRequest req, User me) {
 
         if (existed) {
             long deleted = likeRepository.deleteByFeedAndUser(feed, me);
+            expService.applyActivity(me, ActivityType.LIKE_DELETE);
             liked = false;
         } else {
             try {
                 likeRepository.save(new Likes(feed, me));
+                expService.applyActivity(me, ActivityType.LIKE_CREATE);
             } catch (DataIntegrityViolationException ignored) {
                 // 동시 클릭으로 유니크 제약에 걸려도 최종 liked=true로 처리
             }
