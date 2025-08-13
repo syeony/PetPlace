@@ -67,7 +67,7 @@ public class SecurityConfig {
 
                                 // PortOne 결제 웹훅 (PortOne 서버가 직접 호출하므로 인증이 없어야 함)
                                 "/api/payments/webhook",
-                                "api/payments/webhook/v1",
+                                "/api/payments/webhook/v1",
 
                                 // 에러 페이지
                                 "/error"
