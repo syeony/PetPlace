@@ -65,6 +65,7 @@ fun SingleChatScreen(
     val messages by viewModel.messages.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val chatPartnerName by viewModel.chatPartnerName.collectAsState()
+    val chatPartnerProfileImage by viewModel.chatPartnerProfileImage.collectAsState()
     val imageUploadStatus by viewModel.imageUploadStatus.collectAsState()
 
     // 이미지 선택 런처
@@ -137,6 +138,7 @@ fun SingleChatScreen(
             // Top App Bar
             ChatTopAppBar(
                 chatPartnerName = chatPartnerName ?: "로딩 중...",
+                chatPartnerProfileImage = chatPartnerProfileImage,
                 isConnected = connectionStatus,
                 onBackClick = {
                     navController.popBackStack()
@@ -563,6 +565,7 @@ fun AttachmentOptionItem(option: AttachmentOption, onClick: () -> Unit) {
 @Composable
 fun ChatTopAppBar(
     chatPartnerName: String,
+    chatPartnerProfileImage: String? = null,
     isConnected: Boolean = true,
     onBackClick: () -> Unit = {},
     onShareClick: () -> Unit = {}
@@ -594,12 +597,15 @@ fun ChatTopAppBar(
                 .padding(top = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_mypage),
+            AsyncImage(
+                model = chatPartnerProfileImage,
                 contentDescription = "프로필 이미지",
                 modifier = Modifier
                     .size(36.dp)
-                    .clip(CircleShape)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+                placeholder = painterResource(id = R.drawable.ic_mypage), // 로딩 중 플레이스홀더
+                error = painterResource(id = R.drawable.ic_mypage) // 에러 시 기본 이미지
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(

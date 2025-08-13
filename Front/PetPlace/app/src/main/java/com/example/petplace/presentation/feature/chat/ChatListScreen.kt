@@ -392,8 +392,8 @@ fun MissingPetCard(
 fun ChatListScreenPreview() {
     // Preview에서는 더미 데이터 사용
     val dummyChatRooms = listOf(
-        ChatRoom(1, "홍길동", "인의동", "안녕하세요! 잘 지내시죠?", "오전 10:15", 3, R.drawable.ic_mypage),
-        ChatRoom(2, "이순신", "진평동", "오늘 회의는 몇 시죠?", "오전 9:50", 1, R.drawable.ic_mypage)
+        ChatRoom(1, "홍길동", "인의동", "안녕하세요! 잘 지내시죠?", "오전 10:15", 3, null),
+        ChatRoom(2, "이순신", "진평동", "오늘 회의는 몇 시죠?", "오전 9:50", 1, null)
     )
 
     Column(
