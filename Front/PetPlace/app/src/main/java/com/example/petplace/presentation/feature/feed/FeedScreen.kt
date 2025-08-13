@@ -65,6 +65,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -72,10 +73,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
+import coil.request.ImageRequest
 import com.example.petplace.R
 import com.example.petplace.data.model.feed.FeedRecommendRes
-import com.example.petplace.data.model.feed.ImageRes
 import com.example.petplace.data.model.feed.TagRes
 import kotlinx.coroutines.flow.collectLatest
 
@@ -191,8 +193,9 @@ fun FeedScreen(
         }
     }
 
-
     val isLoading by viewModel.loading.collectAsState()
+    val isAppending by viewModel.appending.collectAsState()   // 👈 추가
+
 
     Box(
         modifier = modifier
@@ -228,7 +231,7 @@ fun FeedScreen(
             }
 
             // ✅ 로딩 인디케이터는 리스트의 "맨 아래" 하나만 표시 (풀투리프레시 중에는 숨김)
-            if (isLoading && !refreshState.isRefreshing) {
+            if ((isLoading || isAppending ) && !refreshState.isRefreshing) {
                 item {
                     Box(
                         modifier = Modifier
@@ -497,32 +500,52 @@ private fun FeedItem(
             Image(
                 painter = painterResource(R.drawable.pp_logo),
                 contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp),
+                modifier = Modifier.fillMaxWidth().height(300.dp),
                 contentScale = ContentScale.Crop
             )
         } else {
             val pagerState = rememberPagerState(pageCount = { feed.images!!.size })
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-            ) {
-                HorizontalPager(
-                    state   = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    val img: ImageRes = feed.images!![page]
-                    Image(
-                        painter = rememberAsyncImagePainter("http://i13d104.p.ssafy.io:8081" + img.src),
+            Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
+                HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                    val img = feed.images!![page]
+                    val url = "http://i13d104.p.ssafy.io:8081${img.src}"
+
+                    SubcomposeAsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(url)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
-                    )
+                    ) {
+                        when (painter.state) {
+                            is coil.compose.AsyncImagePainter.State.Success -> {
+                                // 성공 시에만 실제 이미지 그리기
+                                SubcomposeAsyncImageContent()
+                            }
+                            is coil.compose.AsyncImagePainter.State.Loading,
+                            is coil.compose.AsyncImagePainter.State.Empty -> {
+                                // 로딩 중: 고정 높이의 미색 박스(또는 Shimmer 가능)
+                                Box(
+                                    Modifier.fillMaxSize().background(Color(0xFFF6F6F6))
+                                )
+                            }
+                            is coil.compose.AsyncImagePainter.State.Error -> {
+                                // 에러: 로고/에러 이미지
+                                Image(
+                                    painter = painterResource(R.drawable.pp_logo),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                    }
                 }
 
+                // 페이지 인디케이터
                 Text(
                     text = "${pagerState.currentPage + 1}/${feed.images!!.size}",
                     fontSize = 12.sp,
@@ -530,10 +553,7 @@ private fun FeedItem(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .background(
-                            Color.Black.copy(alpha = 0.45f),
-                            RoundedCornerShape(8.dp)
-                        )
+                        .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             }
