@@ -6,9 +6,11 @@ import com.minjeok4go.petplace.comment.dto.DeleteCommentResponse;
 import com.minjeok4go.petplace.comment.dto.MyComment;
 import com.minjeok4go.petplace.comment.entity.Comment;
 import com.minjeok4go.petplace.comment.repository.CommentRepository;
+import com.minjeok4go.petplace.common.constant.ActivityType;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.service.FeedService;
 import com.minjeok4go.petplace.user.entity.User;
+import com.minjeok4go.petplace.user.service.UserExperienceService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -24,6 +26,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final FeedService feedService;
+    private final UserExperienceService expService;
 
     @Transactional(readOnly = true)
     public MyComment getCommentDetail(Long id) {
@@ -87,6 +90,9 @@ public class CommentService {
                 .build();
 
         Comment saved = commentRepository.save(comment);
+
+        expService.applyActivity(me, ActivityType.COMMENT_CREATE);
+
         return mapComment(saved);
     }
 
@@ -97,6 +103,8 @@ public class CommentService {
                 .orElseThrow(() -> new AccessDeniedException("본인 댓글이 아니거나 존재하지 않습니다"));
 
         softDeleteRecursively(comment);
+
+        expService.applyActivity(me, ActivityType.COMMENT_DELETE);
 
         return new DeleteCommentResponse(id);
     }
@@ -128,16 +136,38 @@ public class CommentService {
                 .build();
     }
 
+//    private FeedComment mapCommentWithReplies(Comment comment) {
+//        List<FeedComment> replyDtos = comment.getReplies().stream()
+//                .map(this::mapCommentWithReplies)
+//                .toList();
+//
+//        return FeedComment.builder()
+//                .id(comment.getId())
+//                .parentCommentId(comment.getParentComment() != null
+//                        ? comment.getParentComment().getId()
+//                        : null)
+//                .feedId(comment.getFeed().getId())
+//                .content(comment.getContent())
+//                .userId(comment.getUserId())
+//                .userNick(comment.getUserNick())
+//                .userImg(comment.getUserImg())
+//                .createdAt(comment.getCreatedAt())
+//                .updatedAt(comment.getUpdatedAt())
+//                .deletedAt(comment.getDeletedAt())
+//                .replies(replyDtos)
+//                .build();
+//    }
     private FeedComment mapCommentWithReplies(Comment comment) {
-        List<FeedComment> replyDtos = comment.getReplies().stream()
+        List<Comment> activeReplies =
+                commentRepository.findByParentCommentIdAndDeletedAtIsNullOrderByIdAsc(comment.getId());
+
+        List<FeedComment> replyDtos = activeReplies.stream()
                 .map(this::mapCommentWithReplies)
                 .toList();
 
         return FeedComment.builder()
                 .id(comment.getId())
-                .parentCommentId(comment.getParentComment() != null
-                        ? comment.getParentComment().getId()
-                        : null)
+                .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
                 .feedId(comment.getFeed().getId())
                 .content(comment.getContent())
                 .userId(comment.getUserId())

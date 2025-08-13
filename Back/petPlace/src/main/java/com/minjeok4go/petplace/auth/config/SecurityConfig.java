@@ -6,6 +6,7 @@ import com.minjeok4go.petplace.auth.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -31,63 +32,48 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                // ✅ Swagger 관련 경로 (가장 먼저 배치)
-                                "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/webjars/**",
-                                "/favicon.ico",
-
-                                // 테스트 페이지 (개발용)
-                                "/test/**",
-
-                                // 사용자 API
-                                "/api/user/signup",
-                                "/api/user/check-username",
-                                "/api/user/check-nickname",
-                                "/api/user/certifications/prepare",
-                                "/api/user/test-portone-token",
-                                "/api/user/test-portone-cert/**",
-
-                                // 소셜로그인
-                                "/api/auth/social/login",
-                                "/api/auth/social/signup",
-                                "/api/auth/social/check-linkable",
-
-                                // 인증 API
-                                "/api/auth/login",
-                                "/api/auth/refresh",
-
-                                // 추천 API
-                                "/api/recommend/group",
-                                "/api/recommend/batch",
-
-                                // 기타 공개 API
-                                "/api/upload/images",
-                                "/images/**",
-                                "/error",
-
-                                // 채팅 기능 API
-                                "/api/chat/**",
-                                "/ws/**",
-                                "/ws/chat/**",
-
-                                // 호텔 API
-                                "/api/hotels/**",
-                                "/api/reservations/**",
-                                "/api/payments/**",
-
-                                //호텔 결제
-                                "/api/payments/webhook",
-                                "/api/auth/**"
-
-
-
+                        // 🔽 명시적으로 GET 메소드만 허용할 경로들
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/hotels/**" // 호텔 정보 조회는 누구나 가능
+                                // 추가적으로 GET 요청만 허용할 API가 있다면 여기에 추가
                         ).permitAll()
 
-                        // 나머지는 인증 필요
+                        // 🔽 인증 없이 누구나 접근 가능한 경로들
+                        .requestMatchers(
+                                // Swagger 관련 경로
+                                "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**",
+                                "/swagger-resources/**", "/webjars/**", "/favicon.ico",
+
+                                // 테스트 페이지
+                                "/test/**",
+
+                                // 사용자 가입/인증 관련
+                                "/api/user/signup", "/api/user/check-username", "/api/user/check-nickname",
+                                "/api/user/certifications/prepare", "/api/user/test-portone-token", "/api/user/test-portone-cert/**",
+
+                                // 소셜로그인 및 인증
+                                "/api/auth/**",
+                                "/api/auth/social/**",
+
+
+                                // 추천 API
+                                "/api/recommend/group", "/api/recommend/batch",
+
+                                // 파일 업로드 및 조회
+                                "/api/upload/images", "/images/**",
+
+                                // 웹소켓 연결 경로
+                                "/ws/**",
+
+                                // PortOne 결제 웹훅 (PortOne 서버가 직접 호출하므로 인증이 없어야 함)
+                                "/api/payments/webhook",
+                                "/api/payments/webhook/v1",
+
+                                // 에러 페이지
+                                "/error"
+                        ).permitAll()
+
+                        // 🔼 위에서 설정한 경로 외의 모든 요청은 인증이 필요함
                         .anyRequest().authenticated()
                 )
                 // 필터 순서 조정

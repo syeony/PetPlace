@@ -79,6 +79,7 @@ public class Feed {
         this.id = feedId;
     }
 
+
     public Feed(CreateFeedRequest req, User user){
         this.content = req.getContent();
         this.userId = user.getId();
@@ -86,6 +87,9 @@ public class Feed {
         this.userImg = user.getUserImgSrc();
         this.regionId = req.getRegionId();
         this.category = FeedCategory.valueOf(req.getCategory());
+
+        this.likes = 0;
+        this.views = 0;
     }
 
     public void update() {
