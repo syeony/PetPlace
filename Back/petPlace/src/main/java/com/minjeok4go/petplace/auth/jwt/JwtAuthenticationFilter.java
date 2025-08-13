@@ -60,7 +60,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // WebSocket (채팅) 관련
             "/ws/**",
-            "/api/chat/**"
+            "/api/chat/**",
+
+            // 호텔 API
+            "/api/hotels/**",
+            "/api/reservations/**",
+            "/api/payments/**",
+
+            // 결제 웹훅 (JWT 인증 불필요)
+            "/api/payments/webhook",
+            "/api/auth/**"
     };
 
     @Override

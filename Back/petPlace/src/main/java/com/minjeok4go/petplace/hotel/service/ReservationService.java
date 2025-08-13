@@ -67,11 +67,11 @@ public class ReservationService {
 
         // 6. 예약 저장
         Reservation savedReservation = reservationRepository.save(reservation);
-        savedReservation.setHotel(hotel); // 응답용 호텔 정보 설정
 
         log.info("예약 생성 완료: 예약 ID {}, 총 가격: {}", savedReservation.getId(), totalPrice);
 
-        return ReservationResponse.from(savedReservation);
+        // 응답 생성 시 호텔 정보를 직접 전달
+        return ReservationResponse.from(savedReservation, hotel);
     }
 
     /**
