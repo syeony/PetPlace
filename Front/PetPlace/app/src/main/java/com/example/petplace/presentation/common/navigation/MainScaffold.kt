@@ -151,7 +151,10 @@ fun MainScaffold() {
             composable("missing_register") { RegisterScreen(navController) }
             composable("family/select") { FamilySelectScreen(navController) }
             composable("walk_and_care") { WalkAndCareScreen(navController) }
-            composable("missing_list"){ MissingListScreen(navController) }
+//            composable("missing_list"){ MissingListScreen(navController) }
+            composable("missing_list") {
+                MissingListScreen(navController)
+            }
             composable(
                 route = "board/edit/{feedId}/{regionId}",
                 arguments = listOf(
