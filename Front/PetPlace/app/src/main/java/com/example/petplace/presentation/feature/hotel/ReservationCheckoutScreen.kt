@@ -179,17 +179,23 @@ fun ReservationCheckoutScreen(
                             ) { impUid, mUid ->
                                 // 4) 결제 검증
                                 Log.d("PAY", "$impUid $mUid")
-                                val ok = viewModel.verifyPayment(impUid, mUid)
-                                if (ok) {
-                                    // 5) 예약 확정
+//                                val ok = viewModel.verifyPayment(impUid, mUid)
+//                                if (ok) {
+//                                    // 5) 예약 확정
+//                                    viewModel.confirmReservation(reservationId)
+//
+//                                    // (선택) 성공 화면 이동
+//                                     navController.navigate("hotel/success")
+//                                } else {
+//                                    // 검증 실패 알림 처리
+//
+//                                }
+                                // 5) 예약 확정
                                     viewModel.confirmReservation(reservationId)
 
                                     // (선택) 성공 화면 이동
                                      navController.navigate("hotel/success")
-                                } else {
-                                    // 검증 실패 알림 처리
 
-                                }
                             }
                         }
                     }

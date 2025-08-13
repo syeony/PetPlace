@@ -130,27 +130,42 @@ class HotelSharedViewModel @Inject constructor(
         }
     }
 
-    // 결제 검증 호출
-    suspend fun verifyPayment(impUid: String, merchantUid: String): Boolean {
-        return try {
-            val res = paymentsApi.verify(VerifyPaymentRequest(merchantUid = merchantUid, impUid = impUid))
-            Log.d("PAY viewMDoel", "verifyPayment:$merchantUid $impUid ")
-            if (!res.isSuccessful) {
-                _event.send("결제 검증 실패: HTTP ${res.code()}")
-                return false
-            }
+//    // 결제 검증 호출
+//    suspend fun verifyPayment(impUid: String, merchantUid: String): Boolean {
+//        return try {
+//            val res = paymentsApi.verify(VerifyPaymentRequest(merchantUid = merchantUid, impUid = impUid))
+//            Log.d("PAY viewMDoel", "verifyPayment:$merchantUid $impUid ")
+//            if (!res.isSuccessful) {
+//                _event.send("결제 검증 실패: HTTP ${res.code()}")
+//                return false
+//            }
+//
+//            val body = res.body() // ApiResponse<VerifyPaymentResponse>?
+//            val ok = (body?.success == true && body.data?.confirmed == true)
+//            if (!ok) {
+//                _event.send(body?.data?.message ?: body?.message ?: "결제 검증 실패")
+//            }
+//            ok
+//        } catch (e: Throwable) {
+//            _event.send("결제 검증 오류: ${e.message}")
+//            false
+//        }
+//    }
 
-            val body = res.body() // ApiResponse<VerifyPaymentResponse>?
-            val ok = (body?.success == true && body.data?.confirmed == true)
-            if (!ok) {
-                _event.send(body?.data?.message ?: body?.message ?: "결제 검증 실패")
-            }
-            ok
-        } catch (e: Throwable) {
-            _event.send("결제 검증 오류: ${e.message}")
-            false
-        }
+
+
+
+    suspend fun testWebhook(merchantUid: String, status: String): Boolean {
+        val body = """{"merchantUid":"$merchantUid","status":"$status"}"""
+        val res = paymentsApi.verifyWebhook(
+            webhookId = "wh_${System.currentTimeMillis()}",
+            webhookSignature = "computed-signature",
+            webhookTimestamp = (System.currentTimeMillis()/1000).toString(),
+            body = body
+        )
+        return res.isSuccessful
     }
+
 
     fun selectDate(checkIn: String, checkOut: String) {
         _reservationState.value = _reservationState.value.copy(

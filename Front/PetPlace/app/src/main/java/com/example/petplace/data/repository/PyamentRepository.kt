@@ -23,7 +23,7 @@ class PyamentRepository @Inject constructor(
 ) {
     suspend fun prepare( req: PreparePaymentRequest)= api.prepare(req)
 
-    suspend fun verify( req: VerifyPaymentRequest)= api.verify(req)
+//    suspend fun verify( req: VerifyPaymentRequest)= api.verify(req)
 
 }
 
