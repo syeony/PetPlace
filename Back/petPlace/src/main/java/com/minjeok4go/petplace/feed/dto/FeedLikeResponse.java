@@ -12,7 +12,11 @@ public class FeedLikeResponse {
 
     @NotNull
     private Long feedId;
+//
+//    @NotNull
+//    private Integer feedLikes;
 
-    @NotNull
-    private Integer feedLikes;
+    private boolean liked;   // 현재 내가 좋아요한 상태
+    private int likeCount;   // 최종 카운트
+
 }
