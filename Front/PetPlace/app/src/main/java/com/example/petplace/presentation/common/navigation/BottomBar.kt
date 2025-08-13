@@ -22,6 +22,7 @@ fun BottomBar(navController: NavHostController) {
     val items = listOf(
         BottomNavItem.Feed,
         BottomNavItem.Neighborhood,
+        BottomNavItem.CreateFeed,
         BottomNavItem.Chat,
         BottomNavItem.MyPage
     )

@@ -11,6 +11,7 @@ sealed class BottomNavItem(
 ) {
     object Feed : BottomNavItem("nav_feed", R.drawable.ic_feed, R.string.feed)
     object Neighborhood : BottomNavItem("nav_neighborhood", R.drawable.ic_map, R.string.neighborhood)
+    object CreateFeed: BottomNavItem("nav_createfeed", R.drawable.outline_add_box_24, R.string.createfeed)
     object Chat : BottomNavItem("nav_chat", R.drawable.ic_chat, R.string.chat)
     object MyPage : BottomNavItem("nav_mypage", R.drawable.ic_mypage, R.string.mypage)
     //홈  게시판 지도 채팅 마이페이지
