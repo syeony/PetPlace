@@ -71,6 +71,7 @@ fun MyPageScreen(
     val uiState by viewModel.uiState.collectAsState()
     // val app = PetPlaceApp.getAppContext() as PetPlaceApp
     // val userInfo = app.getUserInfo()
+    val dividerColor = Color(0xFFE5E7EB)
 
     // Error 처리
     uiState.error?.let { error ->
@@ -116,7 +117,7 @@ fun MyPageScreen(
         }
         // 프로필 섹션
         item {
-            Divider(color = Color.LightGray, thickness = 1.dp)
+            Divider(color = dividerColor, thickness = 1.dp)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -230,7 +231,7 @@ fun MyPageScreen(
                     )
                 }
             }
-            Divider(color = Color.LightGray, thickness = 1.dp)
+            Divider(color = dividerColor, thickness = 1.dp)
         }
 
         // 내 가족 섹션
@@ -302,7 +303,7 @@ fun MyPageScreen(
                     }
                 }
             }
-            Divider(color = Color.LightGray, thickness = 1.dp)
+            Divider(color = dividerColor, thickness = 1.dp)
         }
 
         // 펫 용품 섹션
@@ -374,7 +375,7 @@ fun MyPageScreen(
                     }
                 }
             }
-            Divider(color = Color.LightGray, thickness = 1.dp)
+            Divider(color = dividerColor, thickness = 1.dp)
             // 용품 관리 다이얼로그
             if (uiState.showSupplyDialog) {
                 PetSupplyDialog(
@@ -432,7 +433,7 @@ fun MyPageScreen(
                     }
                 }
             }
-            Divider(color = Color.LightGray, thickness = 1.dp)
+            Divider(color = dividerColor, thickness = 1.dp)
         }
 
         // 산책/돌봄 섹션

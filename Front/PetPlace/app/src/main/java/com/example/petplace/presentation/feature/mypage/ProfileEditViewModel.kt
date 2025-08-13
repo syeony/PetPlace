@@ -40,17 +40,17 @@ data class ProfileEditUiState(
     val isLocationVerified: Boolean = false,
     val currentLocation: String? = null,
     val isVerifyingLocation: Boolean = false,
-//    val currentPassword: String = "",
-//    val newPassword: String = "",
-//    val confirmPassword: String = "",
-//    val currentPwVisible: Boolean = false,
-//    val newPwVisible: Boolean = false,
-//    val confirmPwVisible: Boolean = false,
+    val currentPassword: String = "",
+    val newPassword: String = "",
+    val confirmPassword: String = "",
+    val currentPwVisible: Boolean = false,
+    val newPwVisible: Boolean = false,
+    val confirmPwVisible: Boolean = false,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null,
     val successMessage: String? = null,
-//    val passwordValidationError: String? = null
+    val passwordValidationError: String? = null
 )
 
 @HiltViewModel
@@ -123,6 +123,56 @@ class ProfileEditViewModel @Inject constructor(
     fun updateProfileImage(uri: Uri?) {
         _uiState.value = _uiState.value.copy(profileImageUri = uri)
     }
+
+    fun updateNewPassword(password: String) {
+        _uiState.value = _uiState.value.copy(
+            newPassword = password,
+            passwordValidationError = null // 입력할 때 오류 메시지 클리어
+        )
+
+        // 실시간 유효성 검증 (비밀번호를 입력하고 있을 때)
+        if (password.isNotEmpty()) {
+            validatePasswordRealtime()
+        }
+    }
+
+    fun updateConfirmPassword(password: String) {
+        _uiState.value = _uiState.value.copy(
+            confirmPassword = password,
+            passwordValidationError = null // 입력할 때 오류 메시지 클리어
+        )
+
+        // 실시간 유효성 검증 (확인 비밀번호를 입력하고 있을 때)
+        if (password.isNotEmpty()) {
+            validatePasswordRealtime()
+        }
+    }
+
+    fun updateCurrentPassword(password: String) {
+        _uiState.value = _uiState.value.copy(
+            currentPassword = password,
+            passwordValidationError = null // 입력할 때 오류 메시지 클리어
+        )
+    }
+
+    fun toggleCurrentPasswordVisibility() {
+        _uiState.value = _uiState.value.copy(
+            currentPwVisible = !_uiState.value.currentPwVisible
+        )
+    }
+
+    fun toggleNewPasswordVisibility() {
+        _uiState.value = _uiState.value.copy(
+            newPwVisible = !_uiState.value.newPwVisible
+        )
+    }
+
+    fun toggleConfirmPasswordVisibility() {
+        _uiState.value = _uiState.value.copy(
+            confirmPwVisible = !_uiState.value.confirmPwVisible
+        )
+    }
+
     fun requestLocationVerification() {
 //        if (_uiState.value.isLocationVerified) {
 //            // 이미 인증된 경우 재인증 여부 확인
@@ -192,70 +242,72 @@ class ProfileEditViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getCurrentLocation(): Location? = suspendCancellableCoroutine { continuation ->
-        try {
-            val context = PetPlaceApp.getAppContext()
+    private suspend fun getCurrentLocation(): Location? =
+        suspendCancellableCoroutine { continuation ->
+            try {
+                val context = PetPlaceApp.getAppContext()
 
-            if (ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                continuation.resume(null)
-                return@suspendCancellableCoroutine
-            }
-
-            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
-                .setMaxUpdateDelayMillis(5000)
-                .setMinUpdateIntervalMillis(2000)
-                .build()
-
-            val locationCallback = object : LocationCallback() {
-                override fun onLocationResult(locationResult: LocationResult) {
-                    super.onLocationResult(locationResult)
-                    val location = locationResult.lastLocation
-                    fusedLocationClient.removeLocationUpdates(this)
-                    continuation.resume(location)
+                if (ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
+                    continuation.resume(null)
+                    return@suspendCancellableCoroutine
                 }
-            }
 
-            // 먼저 마지막 알려진 위치 시도
-            fusedLocationClient.lastLocation
-                .addOnSuccessListener { location ->
-                    if (location != null) {
-                        // 최근 위치가 있으면 사용 (5분 이내)
-                        val fiveMinutesAgo = System.currentTimeMillis() - 5 * 60 * 1000
-                        if (location.time > fiveMinutesAgo) {
-                            continuation.resume(location)
-                            return@addOnSuccessListener
+                val locationRequest =
+                    LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
+                        .setMaxUpdateDelayMillis(5000)
+                        .setMinUpdateIntervalMillis(2000)
+                        .build()
+
+                val locationCallback = object : LocationCallback() {
+                    override fun onLocationResult(locationResult: LocationResult) {
+                        super.onLocationResult(locationResult)
+                        val location = locationResult.lastLocation
+                        fusedLocationClient.removeLocationUpdates(this)
+                        continuation.resume(location)
+                    }
+                }
+
+                // 먼저 마지막 알려진 위치 시도
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { location ->
+                        if (location != null) {
+                            // 최근 위치가 있으면 사용 (5분 이내)
+                            val fiveMinutesAgo = System.currentTimeMillis() - 5 * 60 * 1000
+                            if (location.time > fiveMinutesAgo) {
+                                continuation.resume(location)
+                                return@addOnSuccessListener
+                            }
                         }
+
+                        // 최근 위치가 없거나 오래된 경우 새로 요청
+                        fusedLocationClient.requestLocationUpdates(
+                            locationRequest,
+                            locationCallback,
+                            null
+                        )
+                    }
+                    .addOnFailureListener {
+                        // 마지막 위치 가져오기 실패 시 새로 요청
+                        fusedLocationClient.requestLocationUpdates(
+                            locationRequest,
+                            locationCallback,
+                            null
+                        )
                     }
 
-                    // 최근 위치가 없거나 오래된 경우 새로 요청
-                    fusedLocationClient.requestLocationUpdates(
-                        locationRequest,
-                        locationCallback,
-                        null
-                    )
-                }
-                .addOnFailureListener {
-                    // 마지막 위치 가져오기 실패 시 새로 요청
-                    fusedLocationClient.requestLocationUpdates(
-                        locationRequest,
-                        locationCallback,
-                        null
-                    )
+                // 타임아웃 처리 (15초)
+                continuation.invokeOnCancellation {
+                    fusedLocationClient.removeLocationUpdates(locationCallback)
                 }
 
-            // 타임아웃 처리 (15초)
-            continuation.invokeOnCancellation {
-                fusedLocationClient.removeLocationUpdates(locationCallback)
+            } catch (e: Exception) {
+                continuation.resume(null)
             }
-
-        } catch (e: Exception) {
-            continuation.resume(null)
         }
-    }
 
     // 좌표를 실제 주소로 변환하는 함수
     private suspend fun getAddressFromLocation(latitude: Double, longitude: Double): String? {
@@ -319,6 +371,90 @@ class ProfileEditViewModel @Inject constructor(
             return false
         }
 
+        if (!validatePasswordChange()) {
+            return false
+        }
+
+        return true
+    }
+
+    private fun validatePasswordRealtime() {
+        val state = _uiState.value
+
+        // 새 비밀번호가 입력된 경우에만 검증
+        if (state.newPassword.isNotEmpty()) {
+            when {
+                state.newPassword.length < 6 -> {
+                    _uiState.value = state.copy(
+                        passwordValidationError = "비밀번호는 최소 6자 이상이어야 합니다."
+                    )
+                    return
+                }
+
+                state.newPassword == state.currentPassword && state.currentPassword.isNotEmpty() -> {
+                    _uiState.value = state.copy(
+                        passwordValidationError = "새 비밀번호는 현재 비밀번호와 달라야 합니다."
+                    )
+                    return
+                }
+            }
+        }
+
+        // 확인 비밀번호가 입력된 경우 일치 여부 검증
+        if (state.confirmPassword.isNotEmpty() && state.newPassword.isNotEmpty()) {
+            if (state.newPassword != state.confirmPassword) {
+                _uiState.value = state.copy(
+                    passwordValidationError = "새 비밀번호가 일치하지 않습니다."
+                )
+                return
+            }
+        }
+
+        // 모든 검증을 통과한 경우 오류 메시지 클리어
+        _uiState.value = state.copy(passwordValidationError = null)
+    }
+
+    private fun validatePasswordChange(): Boolean {
+        val state = _uiState.value
+
+        if (state.newPassword.isNotEmpty() || state.confirmPassword.isNotEmpty()) {
+            if (state.currentPassword.isEmpty()) {
+                _uiState.value = state.copy(
+                    passwordValidationError = "현재 비밀번호를 입력해주세요."
+                )
+                return false
+            }
+
+            if (state.newPassword.isEmpty()) {
+                _uiState.value = state.copy(
+                    passwordValidationError = "새 비밀번호를 입력해주세요."
+                )
+                return false
+            }
+
+            if (state.newPassword != state.confirmPassword) {
+                _uiState.value = state.copy(
+                    passwordValidationError = "새 비밀번호가 일치하지 않습니다."
+                )
+                return false
+            }
+
+            if (state.newPassword.length < 6) {
+                _uiState.value = state.copy(
+                    passwordValidationError = "비밀번호는 최소 6자 이상이어야 합니다."
+                )
+                return false
+            }
+
+            // 새 비밀번호와 현재 비밀번호가 같은지 검증
+            if (state.newPassword == state.currentPassword) {
+                _uiState.value = state.copy(
+                    passwordValidationError = "새 비밀번호는 현재 비밀번호와 달라야 합니다."
+                )
+                return false
+            }
+        }
+
         return true
     }
 
@@ -335,41 +471,82 @@ class ProfileEditViewModel @Inject constructor(
                 var updateSuccessCount = 0
                 val updateResults = mutableListOf<String>()
 
-                // 1. 이미지 업데이트 처리
+                // 1. 이미지 업로드 처리 (필요한 경우)
+                var uploadedImageUrl: String? = null
                 currentState.profileImageUri?.let { uri ->
                     try {
                         Log.d("ProfileEdit", "이미지 업로드 시작")
                         val uploadedUrls = imageRepository.uploadImages(listOf(uri))
 
                         if (uploadedUrls.isNotEmpty()) {
-                            val imageUrl = uploadedUrls.first()
-                            Log.d("ProfileEdit", "이미지 업로드 완료: $imageUrl")
-
-                            // 서버에 프로필 이미지 업데이트 요청
-                            myPageRepository.updateProfileImage(imageUrl)
-                                .onSuccess { response ->
-                                    Log.d("ProfileEdit", "프로필 이미지 서버 업데이트 성공")
-                                    _uiState.value = _uiState.value.copy(
-                                        profileImageUrl = response.userImgSrc,
-                                        profileImageUri = null // 업로드 완료 후 URI 초기화
-                                    )
-                                    updateSuccessCount++
-                                    updateResults.add("프로필 이미지")
-                                }
-                                .onFailure { exception ->
-                                    Log.e("ProfileEdit", "프로필 이미지 서버 업데이트 실패", exception)
-                                    throw Exception("이미지 업데이트 실패: ${exception.message}")
-                                }
+                            uploadedImageUrl = uploadedUrls.first()
+                            Log.d("ProfileEdit", "이미지 업로드 완료: $uploadedImageUrl")
                         } else {
                             throw Exception("이미지 업로드에 실패했습니다.")
                         }
                     } catch (e: Exception) {
-                        Log.e("ProfileEdit", "이미지 처리 전체 실패", e)
+                        Log.e("ProfileEdit", "이미지 업로드 실패", e)
                         throw e
                     }
                 }
 
-                // 2. 소개글 업데이트 처리
+                // 2. 프로필 통합 업데이트 API 호출
+                val hasPasswordChange = currentState.newPassword.isNotEmpty() &&
+                        currentState.currentPassword.isNotEmpty()
+                val hasNicknameChange = currentState.nickname.trim() != currentState.userName
+                val hasImageChange = uploadedImageUrl != null
+
+                Log.d("ProfileEdit", """
+                업데이트 체크:
+                - 비밀번호 변경: $hasPasswordChange
+                - 닉네임 변경: $hasNicknameChange  
+                - 이미지 변경: $hasImageChange
+                - 현재 비밀번호: ${if (currentState.currentPassword.isNotEmpty()) "입력됨" else "비어있음"}
+                - 새 비밀번호: ${if (currentState.newPassword.isNotEmpty()) "입력됨" else "비어있음"}
+            """.trimIndent())
+
+                // 프로필 업데이트가 필요한 경우에만 API 호출
+                if (hasPasswordChange || hasNicknameChange || hasImageChange) {
+                    myPageRepository.updateProfile(
+                        nickname = if (hasNicknameChange) currentState.nickname.trim() else null,
+                        curPassword = if (hasPasswordChange) currentState.currentPassword else null,
+                        newPassword = if (hasPasswordChange) currentState.newPassword else null,
+                        imgSrc = uploadedImageUrl,
+                        regionId = null
+                    )
+                        .onSuccess { response ->
+                            Log.d("ProfileEdit", "프로필 통합 업데이트 성공")
+
+                            // UI 상태 업데이트
+                            _uiState.value = _uiState.value.copy(
+                                profileImageUrl = response.userImgSrc,
+                                profileImageUri = null,
+                                nickname = response.nickname ?: currentState.nickname
+                            )
+
+                            // 성공한 항목들 추적
+                            if (hasImageChange) updateResults.add("프로필 이미지")
+                            if (hasNicknameChange) updateResults.add("닉네임")
+                            if (hasPasswordChange) {
+                                updateResults.add("비밀번호")
+                                Log.d("ProfileEdit", "비밀번호 변경 성공")
+                                // 비밀번호 필드 초기화
+                                _uiState.value = _uiState.value.copy(
+                                    currentPassword = "",
+                                    newPassword = "",
+                                    confirmPassword = ""
+                                )
+                            }
+                        }
+                        .onFailure { exception ->
+                            Log.e("ProfileEdit", "프로필 통합 업데이트 실패", exception)
+                            throw exception
+                        }
+                } else {
+                    Log.d("ProfileEdit", "프로필 업데이트 항목이 없음")
+                }
+
+                // 3. 소개글 업데이트 처리 (별도 API)
                 val introductionText = currentState.introduction.trim()
                 if (introductionText.isNotEmpty()) {
                     try {
@@ -390,8 +567,8 @@ class ProfileEditViewModel @Inject constructor(
                                         )
                                             .onSuccess { introResponse ->
                                                 Log.d("ProfileEdit", "소개글 저장 성공: ${introResponse.content}")
-                                                updateSuccessCount++
                                                 updateResults.add("소개글")
+                                                updateSuccessCount++
                                             }
                                             .onFailure { exception ->
                                                 Log.e("ProfileEdit", "소개글 저장 실패", exception)
@@ -405,8 +582,8 @@ class ProfileEditViewModel @Inject constructor(
                                                     )
                                                         .onSuccess { introResponse ->
                                                             Log.d("ProfileEdit", "POST 재시도 성공: ${introResponse.content}")
-                                                            updateSuccessCount++
                                                             updateResults.add("소개글")
+                                                            updateSuccessCount++
                                                         }
                                                         .onFailure { retryException ->
                                                             Log.e("ProfileEdit", "POST 재시도도 실패", retryException)
@@ -431,8 +608,8 @@ class ProfileEditViewModel @Inject constructor(
                                 )
                                     .onSuccess { introResponse ->
                                         Log.d("ProfileEdit", "기본 업데이트로 소개글 저장 성공")
-                                        updateSuccessCount++
                                         updateResults.add("소개글")
+                                        updateSuccessCount++
                                     }
                                     .onFailure { introException ->
                                         Log.e("ProfileEdit", "기본 업데이트로도 실패", introException)
@@ -449,9 +626,9 @@ class ProfileEditViewModel @Inject constructor(
                 // 작업 완료 대기 (비동기 작업들이 완료될 때까지)
                 delay(1000)
 
-                // 3. 결과 처리
+                // 4. 결과 처리
                 val successMessage = when {
-                    updateSuccessCount == 0 -> "변경사항이 저장되지 않았습니다."
+                    updateResults.isEmpty() -> "변경사항이 저장되지 않았습니다."
                     updateResults.size == 1 -> "${updateResults[0]}가 업데이트되었습니다."
                     else -> "${updateResults.joinToString(", ")}가 업데이트되었습니다."
                 }
@@ -475,47 +652,11 @@ class ProfileEditViewModel @Inject constructor(
         }
     }
 
-//    private fun validatePasswordChange(): Boolean {
-//        val state = _uiState.value
-//
-//        if (state.newPassword.isNotEmpty() || state.confirmPassword.isNotEmpty()) {
-//            if (state.currentPassword.isEmpty()) {
-//                _uiState.value = state.copy(
-//                    passwordValidationError = "현재 비밀번호를 입력해주세요."
-//                )
-//                return false
-//            }
-//
-//            if (state.newPassword.isEmpty()) {
-//                _uiState.value = state.copy(
-//                    passwordValidationError = "새 비밀번호를 입력해주세요."
-//                )
-//                return false
-//            }
-//
-//            if (state.newPassword != state.confirmPassword) {
-//                _uiState.value = state.copy(
-//                    passwordValidationError = "새 비밀번호가 일치하지 않습니다."
-//                )
-//                return false
-//            }
-//
-//            if (state.newPassword.length < 6) {
-//                _uiState.value = state.copy(
-//                    passwordValidationError = "비밀번호는 최소 6자 이상이어야 합니다."
-//                )
-//                return false
-//            }
-//        }
-//
-//        return true
-//    }
-
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(
             error = null,
             successMessage = null,
-//            passwordValidationError = null
+            passwordValidationError = null
         )
     }
 }

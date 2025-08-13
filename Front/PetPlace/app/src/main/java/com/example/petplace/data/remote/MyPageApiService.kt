@@ -7,6 +7,7 @@ import com.example.petplace.data.model.mypage.PetProductResponse
 import com.example.petplace.data.model.mypage.ProfileImageRequest
 import com.example.petplace.data.model.mypage.ProfileIntroductionRequest
 import com.example.petplace.data.model.mypage.ProfileIntroductionResponse
+import com.example.petplace.data.model.mypage.ProfileUpdateRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -43,4 +44,9 @@ interface MyPageApiService {
     suspend fun updateProfileIntroduction(
         @Body request: ProfileIntroductionRequest
     ): Response<ProfileIntroductionResponse>
+
+    @PUT("/api/profiles/me/update")
+    suspend fun updateProfile(
+        @Body request: ProfileUpdateRequest
+    ): Response<MyPageInfoResponse>
 }

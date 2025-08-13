@@ -7,6 +7,7 @@ import com.example.petplace.data.model.mypage.PetProductResponse
 import com.example.petplace.data.model.mypage.ProfileImageRequest
 import com.example.petplace.data.model.mypage.ProfileIntroductionRequest
 import com.example.petplace.data.model.mypage.ProfileIntroductionResponse
+import com.example.petplace.data.model.mypage.ProfileUpdateRequest
 import com.example.petplace.data.remote.MyPageApiService
 import com.example.petplace.presentation.feature.mypage.SupplyType
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +47,59 @@ class MyPageRepository @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "마이페이지 정보 조회 중 오류", e)
                 Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun updateProfile(
+        nickname: String? = null,
+        curPassword: String? = null,
+        newPassword: String? = null,
+        imgSrc: String? = null,
+        regionId: Int? = null
+    ): Result<MyPageInfoResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "프로필 업데이트 요청")
+
+                val request = ProfileUpdateRequest(
+                    nickname = nickname,
+                    curPassword = curPassword,
+                    newPassword = newPassword,
+                    imgSrc = imgSrc,
+                    regionId = regionId
+                )
+                val response = api.updateProfile(request)
+
+                if (response.isSuccessful) {
+                    val result = response.body()
+                    if (result != null) {
+                        Log.d(TAG, "프로필 업데이트 성공")
+                        Result.success(result)
+                    } else {
+                        Log.e(TAG, "응답은 성공했지만 body가 null")
+                        Result.failure(Exception("서버 응답이 비어있습니다"))
+                    }
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "프로필 업데이트 실패: ${response.code()} ${response.message()}")
+                    Log.e(TAG, "에러 응답 본문: $errorBody")
+
+                    val errorMessage = when (response.code()) {
+                        400 -> "잘못된 요청입니다. 입력 내용을 확인해주세요."
+                        401 -> "현재 비밀번호가 올바르지 않습니다."
+                        403 -> "권한이 없습니다."
+                        404 -> "사용자를 찾을 수 없습니다."
+                        409 -> "이미 사용중인 닉네임입니다."
+                        500 -> "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+                        else -> "프로필 업데이트 중 오류가 발생했습니다 (${response.code()})"
+                    }
+
+                    Result.failure(Exception(errorMessage))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "프로필 업데이트 중 네트워크 오류", e)
+                Result.failure(Exception("네트워크 오류: ${e.message}"))
             }
         }
     }
