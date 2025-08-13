@@ -1,6 +1,7 @@
 package com.example.petplace.data.repository
 
 import android.util.Log
+import com.example.petplace.data.model.Pet.PetRes
 import com.example.petplace.data.model.pet.PetInfoResponse
 import com.example.petplace.data.model.pet.PetRequest
 import com.example.petplace.data.model.pet.PetResponse
@@ -18,6 +19,8 @@ class PetRepository @Inject constructor(
     companion object {
         private const val TAG = "PetRepository"
     }
+
+    suspend fun getMyPets(): List<PetRes> = api.getMyPets()
 
     suspend fun getPetInfo(petId: Int): Result<PetInfoResponse> {
         return withContext(Dispatchers.IO) {
