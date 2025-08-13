@@ -304,23 +304,22 @@ fun FeedScreen(
                     .nestedScroll(refreshState.nestedScrollConnection)
             ) {
                 LazyColumn(state = listState) {
-                    items(feeds) { feed ->
+                    items(
+                        items = feeds,
+                        key = { it.id }   // ✅ 아이템 재활용 방지, 변경 즉시 반영
+                    ) { feed ->
                         FeedItem(
                             feed = feed,
                             hashtagColor = hashtagColor,
                             onCommentTap = { showCommentsForFeedId = feed.id },
                             viewModel = viewModel,
-                            onEditFeed = { feedId, regionId ->
-                                moveToEditFeed(
-                                    feedId,
-                                    regionId
-                                )
-                            },
-                            onDeleteFeed = { deleteFeed(it) }      // 삭제 콜백
+                            onEditFeed = { feedId, regionId -> moveToEditFeed(feedId, regionId) },
+                            onDeleteFeed = { deleteFeed(it) }
                         )
                         Spacer(Modifier.height(6.dp))
                     }
                 }
+
                 // 로딩
                 val isLoading by viewModel.loading.collectAsState()
                 if (isLoading) {
@@ -372,7 +371,8 @@ private fun FeedItem(
     onEditFeed: (Long, Long) -> Unit,      // <-- 수정페이지 이동 콜백 추가!
     onDeleteFeed: (Long) -> Unit     // <-- 삭제 콜백도 추가
 ) {
-    val liked = viewModel.isFeedLiked(feed.id)
+    val likedSet by viewModel.likedFeeds.collectAsState()
+    val liked = likedSet.contains(feed.id) || (feed.liked == true)
 
     Column(
         modifier = Modifier
