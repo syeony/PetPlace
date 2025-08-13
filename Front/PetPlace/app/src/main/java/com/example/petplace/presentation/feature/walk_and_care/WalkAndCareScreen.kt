@@ -263,22 +263,13 @@ fun PostCard(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(resolveImageUrl(post.imageUrl))
-                    .listener(
-                        onStart = {                     // (request: ImageRequest)
-                            Log.d("IMG", "load => ${resolveImageUrl(post.imageUrl)}")
-                        },
-                        onError = { _, result ->        // (request: ImageRequest, result: ErrorResult)
-                            Log.e("IMG", "error => ${resolveImageUrl(post.imageUrl)}", result.throwable)
-                        }
-                        // 필요하면 onSuccess, onCancel 도 추가 가능
-                    )
-                    .crossfade(true)
-                    .build(),
-                placeholder = painterResource(R.drawable.pp_logo),
-                error = painterResource(R.drawable.pp_logo),
+            // PostCard의 이미지 렌더러 교체
+            Image(
+                painter = rememberAsyncImagePainter(
+                    fullUrl(post.imageUrl).also {
+                        Log.d("WalkAndCareScreen", "이미지 URL: $it")
+                    }
+                ),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -286,6 +277,8 @@ fun PostCard(
                     .clip(RoundedCornerShape(12.dp))
                     .align(Alignment.Bottom)
             )
+
+
 
 
         }
@@ -334,4 +327,9 @@ private fun resolveImageUrl(raw: String?): String? {
     segments.forEach { seg -> builder.appendPath(seg) } // 각 세그먼트 인코딩
 
     return builder.build().toString() // 예: http://.../images/1755071....jpg
+}// 공용: null/빈값/슬래시 정리
+private fun fullUrl(path: String?): Any {
+    val p = path?.trim().orEmpty()
+    if (p.isBlank() || p.equals("null", true)) return R.drawable.pp_logo
+    return if (p.startsWith("http")) p else BASE + (if (p.startsWith("/")) "" else "/") + p
 }

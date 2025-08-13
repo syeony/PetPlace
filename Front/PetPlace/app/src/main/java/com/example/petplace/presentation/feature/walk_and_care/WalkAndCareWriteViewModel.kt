@@ -1,7 +1,9 @@
+// presentation/feature/walk_and_care/WalkAndCareWriteViewModel.kt
 package com.example.petplace.presentation.feature.walk_and_care
 
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -24,6 +26,8 @@ class WalkAndCareWriteViewModel @Inject constructor(
     private val imageRepository: ImageRepository
 ) : ViewModel() {
 
+    private val TAG = "WalkAndCareWrite"
+
     // UI 표시용 라벨(탭 순서)
     val categories = listOf("산책구인", "산책의뢰", "돌봄구인", "돌봄의뢰")
 
@@ -38,6 +42,7 @@ class WalkAndCareWriteViewModel @Inject constructor(
     private val _startDate    = MutableStateFlow<LocalDate?>(null)
     private val _endDate      = MutableStateFlow<LocalDate?>(null)
 
+    // 선택한 로컬 사진 URI들
     private val _imageUris    = MutableStateFlow<List<Uri>>(emptyList())
 
     // 서버 필수값
@@ -117,10 +122,19 @@ class WalkAndCareWriteViewModel @Inject constructor(
     fun setRegionId(id: Long)  { _regionId.value = id }
 
     fun addImages(uris: List<Uri>) {
-        _imageUris.value = (_imageUris.value + uris).distinct().take(5)
+        val merged = (_imageUris.value + uris).distinct().take(5)
+        _imageUris.value = merged
+        Log.d(TAG, "이미지 추가. 총 ${merged.size}개")
+        merged.forEachIndexed { i, u -> Log.d(TAG, "  [URI $i] $u") }
     }
-    fun removeImage(uri: Uri) { _imageUris.value = _imageUris.value - uri }
-    fun clearImages()         { _imageUris.value = emptyList() }
+    fun removeImage(uri: Uri) {
+        _imageUris.value = _imageUris.value - uri
+        Log.d(TAG, "이미지 제거: $uri, 남은 개수=${_imageUris.value.size}")
+    }
+    fun clearImages() {
+        _imageUris.value = emptyList()
+        Log.d(TAG, "이미지 전부 초기화")
+    }
 
     // ---------- 화면 표시용 포맷 ----------
     @RequiresApi(Build.VERSION_CODES.O)
@@ -166,15 +180,33 @@ class WalkAndCareWriteViewModel @Inject constructor(
         viewModelScope.launch {
             _isSubmitting.value = true
             try {
-                // 1) 이미지 업로드
+                // 1) 이미지 업로드 (로그 상세)
+                val localUris = _imageUris.value
+                Log.d(TAG, "업로드 시작: 로컬 URI ${localUris.size}개")
+                localUris.forEachIndexed { i, u -> Log.d(TAG, "  [업로드 대상 $i] $u") }
+
                 val uploadedUrls =
-                    if (_imageUris.value.isNotEmpty())
-                        imageRepository.uploadImages(_imageUris.value)
+                    if (localUris.isNotEmpty())
+                        imageRepository.uploadImages(localUris)
                     else emptyList()
 
-                // 업로드 요청했는데 URL이 0개면 실패로 간주 (레포는 그대로)
-                if (_imageUris.value.isNotEmpty() && uploadedUrls.isEmpty()) {
+                Log.d(TAG, "업로드 완료: 서버 URL ${uploadedUrls.size}개 (distinct=${uploadedUrls.toSet().size})")
+                uploadedUrls.forEachIndexed { i, u -> Log.d(TAG, "  [서버 URL $i] $u") }
+
+                // 업로드 요청했는데 URL이 0개면 실패로 간주
+                if (localUris.isNotEmpty() && uploadedUrls.isEmpty()) {
                     throw IllegalStateException("이미지 업로드에 실패했습니다.")
+                }
+
+                // 개수/중복 경고(프로필 이미지가 반복 들어가는 케이스 조기 포착)
+                if (uploadedUrls.isNotEmpty()) {
+                    if (uploadedUrls.size != localUris.size) {
+                        Log.w(TAG, "경고: 업로드 결과 개수가 입력 개수와 다름 (input=${localUris.size}, result=${uploadedUrls.size})")
+                    }
+                    val dupCount = uploadedUrls.size - uploadedUrls.toSet().size
+                    if (dupCount > 0) {
+                        Log.w(TAG, "경고: 업로드 URL에 중복 감지됨 (dup=$dupCount)")
+                    }
                 }
 
                 // 2) 바디 생성
@@ -196,12 +228,12 @@ class WalkAndCareWriteViewModel @Inject constructor(
                             petId     = pid,
                             regionId  = rid,
                             category  = mapLabelToEnum(_pickedCat.value),
-                            startDate = LocalDate.now().format(dateFmt), // ✅ 오늘 날짜
+                            startDate = LocalDate.now().format(dateFmt),
                             endDate   = null,
                             startTime = st.format(timeFmt),
                             endTime   = et.format(timeFmt),
                             imageUrls = uploadedUrls
-                        )
+                        ).also { Log.d(TAG, "요청 바디(산책): $it") }
                     }
                     Mode.CARE -> {
                         val sd = _startDate.value
@@ -225,7 +257,7 @@ class WalkAndCareWriteViewModel @Inject constructor(
                             startTime = null,
                             endTime   = null,
                             imageUrls = uploadedUrls
-                        )
+                        ).also { Log.d(TAG, "요청 바디(돌봄): $it") }
                     }
                     else -> {
                         onError("카테고리를 선택해주세요.")
@@ -242,6 +274,7 @@ class WalkAndCareWriteViewModel @Inject constructor(
                             val body = resp.body()
                             val ok = body?.success == true
                             val id = body?.data as? Long
+                            Log.d(TAG, "등록 응답: http=${resp.code()} success=$ok id=$id body=$body")
                             if (ok) {
                                 onSuccess(id)
                                 _event.send("등록 완료")
@@ -252,18 +285,21 @@ class WalkAndCareWriteViewModel @Inject constructor(
                             }
                         } else {
                             val msg = "HTTP ${resp.code()}: ${resp.errorBody()?.string()}"
+                            Log.e(TAG, "등록 실패: $msg")
                             onError(msg); _event.send(msg)
                         }
                     }
                     .onFailure { e ->
                         _isSubmitting.value = false
                         val msg = e.message ?: "네트워크 오류"
+                        Log.e(TAG, "등록 실패(onFailure): $msg", e)
                         onError(msg); _event.send(msg)
                     }
 
             } catch (e: Exception) {
                 _isSubmitting.value = false
                 val msg = e.message ?: "업로드 실패"
+                Log.e(TAG, "submit 예외: $msg", e)
                 onError(msg); _event.send(msg)
             }
         }
