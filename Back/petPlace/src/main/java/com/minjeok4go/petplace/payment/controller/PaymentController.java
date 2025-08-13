@@ -90,4 +90,31 @@ public class PaymentController {
         }
     }
 
+    @Operation(
+            summary = "포트원 V1 웹훅 수신 (서버 전용)",
+            description = "포트원 V1 형식의 웹훅을 처리합니다.",
+            security = {} // 이 엔드포인트는 JWT 인증이 필요 없음을 명시
+    )
+    @PostMapping("/webhook/v1")
+    public ResponseEntity<String> handleV1Webhook(@RequestBody Map<String, Object> payload) {
+        
+        String impUid = (String) payload.get("imp_uid");
+        String merchantUid = (String) payload.get("merchant_uid");
+        String status = (String) payload.get("status");
+        
+        log.info("포트원 V1 웹훅 수신 - imp_uid: {}, merchant_uid: {}, status: {}", impUid, merchantUid, status);
+
+        try {
+            if ("paid".equals(status)) {
+                paymentService.processV1PaidPayment(impUid, merchantUid);
+            } else if ("cancelled".equals(status)) {
+                paymentService.processV1CancelledPayment(impUid, merchantUid);
+            }
+            return ResponseEntity.ok("V1 Webhook processed successfully");
+        } catch (Exception e) {
+            log.error("V1 웹훅 처리 실패 - imp_uid: {}, error: {}", impUid, e.getMessage(), e);
+            return ResponseEntity.ok("V1 Webhook processed with error");
+        }
+    }
+
 }

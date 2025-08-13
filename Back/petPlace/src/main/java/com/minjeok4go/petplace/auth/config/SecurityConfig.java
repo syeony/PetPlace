@@ -53,6 +53,8 @@ public class SecurityConfig {
 
                                 // 소셜로그인 및 인증
                                 "/api/auth/**",
+                                "/api/auth/social/**",
+
 
                                 // 추천 API
                                 "/api/recommend/group", "/api/recommend/batch",
@@ -65,6 +67,7 @@ public class SecurityConfig {
 
                                 // PortOne 결제 웹훅 (PortOne 서버가 직접 호출하므로 인증이 없어야 함)
                                 "/api/payments/webhook",
+                                "api/payments/webhook/v1",
 
                                 // 에러 페이지
                                 "/error"
