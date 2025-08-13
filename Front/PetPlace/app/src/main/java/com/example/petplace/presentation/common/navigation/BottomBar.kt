@@ -6,13 +6,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.petplace.presentation.common.theme.PrimaryColor
@@ -49,7 +47,7 @@ fun BottomBar(navController: NavHostController) {
                     }
                 },
                 icon = { Icon(painterResource(item.icon), contentDescription = null) },
-                label = { Text(stringResource(item.title)) },
+//                label = { Text(stringResource(item.title)) },
                 interactionSource = remember { MutableInteractionSource() }, // ripple 영향 최소화
                 colors = NavigationBarItemDefaults.colors(
                     indicatorColor = Color.Transparent,

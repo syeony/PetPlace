@@ -23,7 +23,6 @@ import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
 import com.example.petplace.presentation.feature.createfeed.CreateFeedScreen
 import com.example.petplace.presentation.feature.feed.BoardEditScreen
-import com.example.petplace.presentation.feature.feed.BoardWriteScreen
 import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.hotel.AnimalSelectScreen
 import com.example.petplace.presentation.feature.hotel.DateSelectionScreen
@@ -63,7 +62,7 @@ fun MainScaffold() {
     val bottomNavRoutes = listOf(
         BottomNavItem.Feed.route,
         BottomNavItem.Neighborhood.route,
-        BottomNavItem.CreateFeed.route,
+//        BottomNavItem.CreateFeed.route,
         BottomNavItem.Chat.route,
         BottomNavItem.MyPage.route
     )
@@ -98,7 +97,7 @@ fun MainScaffold() {
                     navController = navController
                 )
             }
-            composable("board/write") { BoardWriteScreen(navController = navController) }
+//            composable("board/write") { BoardWriteScreen(navController = navController) }
             composable(
                 route = "${BottomNavItem.Neighborhood.route}?showDialog={showDialog}",
                 arguments = listOf(
