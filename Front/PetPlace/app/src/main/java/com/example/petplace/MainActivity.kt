@@ -63,15 +63,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // 앱 시작 시 1회 토큰 가져와 로그 출력 (콘솔에서 복사해도 됨)
-        lifecycleScope.launch {
-            try {
-                val token = FirebaseMessaging.getInstance().token.await()
-                Log.d("FCM", "Device FCM Token: $token")
-            } catch (e: Exception) {
-                Log.e("FCM", "Failed to get token", e)
-            }
-        }
+
     }
 
     private fun createNotificationChannel() {
@@ -86,27 +78,4 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-private fun TokenTestBar(onGetToken: (String) -> Unit) {
-    val scope = rememberCoroutineScope()
-    var token by remember { mutableStateOf<String?>(null) }
-    val clipboard = LocalClipboardManager.current
 
-    Surface(tonalElevation = 1.dp) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = {
-                scope.launch {
-                    try {
-                        val t = FirebaseMessaging.getInstance().token.await()
-                        token = t
-                        onGetToken(t)
-                    } catch (_: Exception) { }
-                }
-            }) { Text("FCM 토큰 가져오기") }
-
-            Button(onClick = {
-                token?.let { clipboard.setText(AnnotatedString(it)) }
-            }, enabled = token != null) { Text("토큰 복사") }
-        }
-    }
-}
