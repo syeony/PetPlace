@@ -31,7 +31,9 @@ import org.springframework.web.bind.annotation.*;
 public class MissingController {
 
     private final MissingService missingService;
-
+    private static final String MISSING_UPLOAD_DIR = System.getProperty("os.name").toLowerCase().contains("win")
+            ? "C:/Users/SSAFY/Desktop/test_folder/"
+            : "/home/ubuntu/upload/images/lost_pets_images/";
     /**
      * 실종 신고 등록 
      */

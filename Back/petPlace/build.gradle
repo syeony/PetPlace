@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'com.minjeok4go'
-version = '0.0.1-SNAPSHOT_ver_0_9_0'
+version = '0.0.1-SNAPSHOT_ver_0_9_1'
 
 java {
     toolchain {
