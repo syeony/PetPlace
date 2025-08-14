@@ -40,6 +40,8 @@ import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.missing_list.MissingListScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
+import com.example.petplace.presentation.feature.mypage.MyCommentScreen
+import com.example.petplace.presentation.feature.mypage.MyLikePostScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import com.example.petplace.presentation.feature.hotel.HotelDetailScreen
@@ -212,6 +214,8 @@ fun MainScaffold() {
                 )
             }
             composable("my_post") { MyPostScreen(navController) }
+            composable("my_comment") { MyCommentScreen(navController) }
+            composable("my_likePost") { MyLikePostScreen(navController) }
 
 
 //            composable("hotel"){AnimalSelectScreen(navController)}

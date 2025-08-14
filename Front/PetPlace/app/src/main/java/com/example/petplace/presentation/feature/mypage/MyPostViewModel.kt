@@ -4,6 +4,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.R
+import com.example.petplace.data.model.feed.FeedRecommendRes
+import com.example.petplace.data.repository.MyPageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,18 +31,17 @@ val categoryStyles = mapOf(
     "정보" to Pair(Color(0xFFE8F5E9), Color(0xFF388E3C))
 )
 
-data class MyPostUiState(
-    val posts: List<Post> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null,
-    val isRefreshing: Boolean = false
-)
 
 @HiltViewModel
 class MyPostViewModel @Inject constructor(
-    // TODO: Add repositories when they're implemented
-    // private val postRepository: PostRepository
+    private val myPageRepository: MyPageRepository
 ) : ViewModel() {
+    data class MyPostUiState(
+        val posts: List<FeedRecommendRes> = emptyList(),
+        val isLoading: Boolean = false,
+        val error: String? = null,
+        val isRefreshing: Boolean = false
+    )
 
     private val _uiState = MutableStateFlow(MyPostUiState())
     val uiState: StateFlow<MyPostUiState> = _uiState.asStateFlow()
@@ -54,14 +55,19 @@ class MyPostViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-                // TODO: Replace with actual repository call
-                // val posts = postRepository.getMyPosts()
-                val posts = getSamplePosts()
-
-                _uiState.value = _uiState.value.copy(
-                    posts = posts,
-                    isLoading = false
-                )
+                myPageRepository.getMyPosts()
+                    .onSuccess { posts ->
+                        _uiState.value = _uiState.value.copy(
+                            posts = posts,
+                            isLoading = false
+                        )
+                    }
+                    .onFailure { exception ->
+                        _uiState.value = _uiState.value.copy(
+                            error = exception.message ?: "게시글을 불러오는 중 오류가 발생했습니다.",
+                            isLoading = false
+                        )
+                    }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = e.message ?: "게시글을 불러오는 중 오류가 발생했습니다.",
@@ -76,14 +82,19 @@ class MyPostViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isRefreshing = true, error = null)
 
-                // TODO: Replace with actual repository call
-                // val posts = postRepository.getMyPosts()
-                val posts = getSamplePosts()
-
-                _uiState.value = _uiState.value.copy(
-                    posts = posts,
-                    isRefreshing = false
-                )
+                myPageRepository.getMyPosts()
+                    .onSuccess { posts ->
+                        _uiState.value = _uiState.value.copy(
+                            posts = posts,
+                            isRefreshing = false
+                        )
+                    }
+                    .onFailure { exception ->
+                        _uiState.value = _uiState.value.copy(
+                            error = exception.message ?: "게시글을 새로고침하는 중 오류가 발생했습니다.",
+                            isRefreshing = false
+                        )
+                    }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = e.message ?: "게시글을 새로고침하는 중 오류가 발생했습니다.",

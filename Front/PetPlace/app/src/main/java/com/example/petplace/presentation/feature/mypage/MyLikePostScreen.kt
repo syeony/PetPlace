@@ -38,11 +38,11 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.layout.ContentScale
 
-// 메인 화면
+// 찜한글 화면
 @Composable
-fun MyPostScreen(
+fun MyLikePostScreen(
     navController: NavController,
-    viewModel: MyPostViewModel = hiltViewModel()
+    viewModel: MyLikePostViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -77,14 +77,13 @@ fun MyPostScreen(
                     }
 
                     Text(
-                        text = "내 게시글",
+                        text = "찜한 게시글",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         color = Color(0xFF000000),
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
-
             }
         },
     ) { innerPadding ->
@@ -104,8 +103,11 @@ fun MyPostScreen(
                         .padding(innerPadding),
                     verticalArrangement = Arrangement.spacedBy(6.dp)  // Feed와 동일한 간격
                 ) {
-                    items(uiState.posts) { post ->
-                        MyPostFeedItem(feed = post)  // 새로운 컴포넌트 사용
+                    items(uiState.likedPosts) { post ->
+                        MyLikePostFeedItem(
+                            feed = post,
+                            onLikeClick = { viewModel.toggleLike(post.id) }
+                        )
                     }
                 }
             }
@@ -114,7 +116,10 @@ fun MyPostScreen(
 }
 
 @Composable
-private fun MyPostFeedItem(feed: FeedRecommendRes) {
+private fun MyLikePostFeedItem(
+    feed: FeedRecommendRes,
+    onLikeClick: () -> Unit
+) {
     val hashtagColor = Color(0xFFF79800)
 
     Column(
@@ -220,7 +225,7 @@ private fun MyPostFeedItem(feed: FeedRecommendRes) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 10.dp)
         ) {
-            IconButton(onClick = { /* 내 게시글에서는 좋아요 기능 비활성화 */ }) {
+            IconButton(onClick = onLikeClick) {
                 Icon(
                     imageVector = if (feed.liked == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = "좋아요",
@@ -232,7 +237,7 @@ private fun MyPostFeedItem(feed: FeedRecommendRes) {
 
             Spacer(Modifier.width(15.dp))
 
-            IconButton(onClick = { /* 댓글 보기 기능 비활성화 */ }) {
+            IconButton(onClick = { /* 댓글 보기 기능 */ }) {
                 Icon(
                     painter = painterResource(R.drawable.outline_chat_bubble_24),
                     contentDescription = "댓글",
