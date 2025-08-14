@@ -1,5 +1,6 @@
 package com.example.petplace.presentation.feature.walk_and_care
 
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -69,10 +70,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -91,6 +94,33 @@ fun WalkAndCareWriteScreen(
     viewModel: WalkAndCareWriteViewModel = hiltViewModel(),
     onSubmit: (WalkWriteForm) -> Unit = {}
 ) {
+    val context = LocalContext.current
+
+// 권한 요청 런처
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        val granted = results[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                results[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            viewModel.updateRegionByLocation(context)
+        }
+    }
+
+// 진입 시 권한 확인 후 regionId 업데이트
+    LaunchedEffect(Unit) {
+        val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
+        val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
+        val pm = ContextCompat.checkSelfPermission(context, fine)
+        val pm2 = ContextCompat.checkSelfPermission(context, coarse)
+        if (pm != PackageManager.PERMISSION_GRANTED &&
+            pm2 != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(arrayOf(fine, coarse))
+        } else {
+            viewModel.updateRegionByLocation(context)
+        }
+    }
     // === colors ===
     val outline = Color(0xFFE5E7EB)
     val hint    = Color(0xFF9CA3AF)

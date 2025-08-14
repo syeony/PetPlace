@@ -38,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -66,11 +67,66 @@ private const val BASE = "http://i13d104.p.ssafy.io:8081"
 fun WalkAndCareScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    viewModel: WalkAndCareViewModel = hiltViewModel()
+    viewModel: WalkAndCareViewModel = hiltViewModel(),
+    // ✅ 현재 위치를 상위에서 주입받도록(이미 어플에 위치 모듈 있을 가능성 높음)
+    currentLat: Double? = null,
+    currentLon: Double? = null
 ) {
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val search = viewModel.searchText.collectAsState()
     val posts by viewModel.filteredPosts.collectAsState()
+    val regionName by viewModel.regionName.collectAsState() // ✅ 동네 상태
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // 1) 권한 상태
+    // ✅ 올바른 코드
+    val permissionLauncher =
+        androidx.activity.compose.rememberLauncherForActivityResult(
+            contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+        ) { /* onResult */ }
+
+    // 2) 최초 진입 시 권한 없으면 요청
+    LaunchedEffect(Unit) {
+        val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
+        val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
+        val pm = androidx.core.content.ContextCompat.checkSelfPermission(context, fine)
+        val pm2 = androidx.core.content.ContextCompat.checkSelfPermission(context, coarse)
+        if (pm != android.content.pm.PackageManager.PERMISSION_GRANTED &&
+            pm2 != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(arrayOf(fine, coarse))
+        }
+    }
+
+    // 3) 권한이 있으면 실제 좌표 한 번 가져와서 호출
+    LaunchedEffect(regionName) {
+        // regionName이 아직 없을 때만 시도 (중복 호출 방지)
+        if (regionName != null) return@LaunchedEffect
+
+        val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
+        val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
+        val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(context, fine) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(context, coarse) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+
+        if (hasFine || hasCoarse) {
+            val loc = LocationProvider.getCurrentLocation(context)
+            if (loc != null) {
+                android.util.Log.d("WalkAndCareScreen", "GPS lat=${loc.latitude}, lon=${loc.longitude}")
+                viewModel.setRegionByLocation(loc.latitude, loc.longitude)
+            } else {
+                android.util.Log.e("WalkAndCareScreen", "현재 위치를 가져오지 못했습니다 (null)")
+            }
+        }
+    }
+
+    // ✅ 첫 진입 시 위치가 있으면 인증 호출
+    LaunchedEffect(currentLat, currentLon) {
+        if (currentLat != null && currentLon != null) {
+            viewModel.setRegionByLocation(currentLat, currentLon)
+        }
+    }
 
     val hashtagColor = Color(0xFFFFE0B3)
 
@@ -80,7 +136,7 @@ fun WalkAndCareScreen(
         handle?.getStateFlow("walk_post_created", false)
     }?.collectAsState() ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
-    androidx.compose.runtime.LaunchedEffect(postCreated) {
+    LaunchedEffect(postCreated) {
         if (postCreated) {
             viewModel.fetchPosts()                       // ✅ 바로 새로고침
             handle?.remove<Boolean>("walk_post_created")
@@ -120,7 +176,13 @@ fun WalkAndCareScreen(
                             .size(16.dp), // 원하는 크기로 조절
                         tint = Color.Unspecified // 원본 이미지 색상 유지
                     )
-                    Text(" 구미시 인의동", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+//                    Text(" 구미시 인의동", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    // ✅ regionName이 오면 "구미시 {regionName}" 형식으로 표기
+                    Text(
+                        text = regionName ?: " 동네 확인 중...",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))

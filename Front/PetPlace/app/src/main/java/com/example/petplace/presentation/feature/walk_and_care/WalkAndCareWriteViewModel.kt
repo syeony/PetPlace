@@ -12,6 +12,7 @@ import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.model.cares.CareCategory
 import com.example.petplace.data.model.cares.CareCreateRequest
 import com.example.petplace.data.model.mypage.MyPageInfoResponse
+import com.example.petplace.data.remote.UserApiService
 import com.example.petplace.data.repository.CaresRepository
 import com.example.petplace.data.repository.ImageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,8 +36,40 @@ import javax.inject.Inject
 class WalkAndCareWriteViewModel @Inject constructor(
     private val caresRepository: CaresRepository,
     private val imageRepository: ImageRepository,
+    private val userApi: UserApiService, // ✅ Repo 대신 ApiService 직접 주입
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    fun updateRegionByLocation(context: Context) {
+        viewModelScope.launch {
+            val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
+            val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
+            val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(context, fine) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+            val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(context, coarse) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+
+            if (hasFine || hasCoarse) {
+                val loc = LocationProvider.getCurrentLocation(context)
+                if (loc != null) {
+                    Log.d(TAG, "GPS lat=${loc.latitude}, lon=${loc.longitude}")
+                    try {
+                        val res = userApi.authenticateDong(loc.latitude, loc.longitude)
+                        if (res.success && res.data != null) {
+                            _regionId.value = res.data.regionId
+                            Log.d(TAG, "regionId 업데이트 성공: ${res.data.regionId}, name=${res.data.regionName}")
+                        } else {
+                            Log.e(TAG, "동네 인증 실패: ${res.message}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "동네 인증 API 오류", e)
+                    }
+                } else {
+                    Log.e(TAG, "현재 위치를 가져오지 못했습니다 (null)")
+                }
+            }
+        }
+    }
 
     val app = context as PetPlaceApp
     val user = app.getUserInfo() ?: throw IllegalStateException("로그인 필요")
@@ -200,7 +233,7 @@ class WalkAndCareWriteViewModel @Inject constructor(
 
         val currentMode = mode.value
         val pid = _petId.value
-        val rid = user.regionId
+        val rid = _regionId.value ?: user.regionId
         val t = _title.value.trim()
         val c = _details.value.trim()
 

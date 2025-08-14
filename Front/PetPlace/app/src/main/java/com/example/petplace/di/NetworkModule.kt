@@ -16,6 +16,7 @@ import com.example.petplace.data.remote.MissingApiService
 import com.example.petplace.data.remote.MyPageApiService
 import com.example.petplace.data.remote.PaymentsApiService
 import com.example.petplace.data.remote.PetApiService
+import com.example.petplace.data.remote.UserApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -229,4 +230,10 @@ private const val SERVER_BASE_URL = "http://i13d104.p.ssafy.io:8081/"
     fun providePetApi(
         @Named("Server") retrofit: Retrofit
     ): PetApiService = retrofit.create(PetApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUserApi(
+        @Named("Server") retrofit: Retrofit
+    ): UserApiService = retrofit.create(UserApiService::class.java)
 }

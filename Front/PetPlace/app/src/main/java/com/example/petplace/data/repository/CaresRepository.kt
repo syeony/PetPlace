@@ -19,9 +19,9 @@ class CaresRepository @Inject constructor(
     suspend fun list(
         page: Int = 0,
         size: Int = 20,
-        regionId: Long? = user.regionId,
-        sort: String? = "createdAt,desc"
-    ) = runCatching { api.getCares(regionId!!, page, size,sort!!) }
+        regionId: Long,
+        sort: String = "createdAt,desc"
+    ) = runCatching { api.getCares(regionId, page, size, sort) }
 
 //    suspend fun listContent(
 //        page: Int = 0,

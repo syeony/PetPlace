@@ -1,10 +1,13 @@
+// WalkAndCareViewModel.kt
 package com.example.petplace.presentation.feature.walk_and_care
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.data.local.Walk.Post
 import com.example.petplace.data.model.cares.CareItem
 import com.example.petplace.data.model.cares.PageResponse
+import com.example.petplace.data.remote.UserApiService
 import com.example.petplace.data.repository.CaresRepository
 import com.example.petplace.presentation.feature.hotel.ApiResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,75 +20,98 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private fun pickPreviewImage(care: CareItem): String {
-    // 1순위: sort == 1
-    val primary = care.images.firstOrNull { it.sort == 0 }?.src
-    if (!primary.isNullOrBlank()) return primary
-
-    // 2순위: sort가 가장 작은 이미지
-    val fallback = care.images.minByOrNull { it.sort }?.src
-    return fallback?.trim().orEmpty() // 없으면 빈 문자열 (카드에서 기본 이미지 처리)
-}
-
 @HiltViewModel
 class WalkAndCareViewModel @Inject constructor(
-    private val caresRepository: CaresRepository
+    private val caresRepository: CaresRepository,
+    private val userApi: UserApiService, // ✅ Repo 대신 ApiService 직접 주입
 ) : ViewModel() {
 
-    // 검색어
+    private val _regionName = MutableStateFlow<String?>(null)
+    val regionName: StateFlow<String?> = _regionName.asStateFlow()
+
+    private val _regionId = MutableStateFlow<Long?>(null)
+    val regionId: StateFlow<Long?> = _regionId.asStateFlow()
+
+    fun setRegionByLocation(lat: Double, lon: Double) {
+        Log.d("WalkVM", "위도=$lat, 경도=$lon")
+        viewModelScope.launch {
+            val res = runCatching { userApi.authenticateDong(lat, lon) }
+                .onFailure { e ->
+                    Log.e("WalkVM", "dong-auth API fail", e)
+                    _regionName.value = " 동네 인증 실패"
+                }
+                .getOrNull() ?: return@launch
+
+            if (!res.success) {
+                _regionName.value = " 동네 인증 실패"
+                return@launch
+            }
+
+            val finalName = res.data?.regionName?.trim().orEmpty()
+            val finalId = res.data?.regionId
+
+            Log.d("WalkVM", "regionName(final)=$finalName, regionId(final)=$finalId")
+
+            _regionName.value = " $finalName"
+            _regionId.value = finalId
+
+            // ✅ regionId가 생겼으니 바로 리스트 호출
+            if (finalId != null) {
+                fetchPosts(page = 0, size = 20)
+            }
+        }
+    }
+
+    // ───────── 아래는 기존 코드 그대로 ─────────
+
     private val _searchText = MutableStateFlow("")
     val searchText: StateFlow<String> = _searchText.asStateFlow()
 
-    // 선택된 카테고리: null 이면 "전체" 취급
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
 
-    // 전체 포스트 (서버 원본)
     private val _allPosts = MutableStateFlow<List<Post>>(emptyList())
-    val allPosts: StateFlow<List<Post>> = _allPosts.asStateFlow()
 
-    // 탭에서 보여줄 카테고리 (전체 제거)
     val allCategories: List<String> = listOf("산책구인", "돌봄구인", "산책의뢰", "돌봄의뢰")
 
-    // 필터 결과: 카테고리(null=전체) + 검색어 반영
     val filteredPosts: StateFlow<List<Post>> =
         combine(_allPosts, _selectedCategory, _searchText) { list, selected, query ->
             val q = query.trim()
-
             list.filter { p ->
                 val matchesCategory = selected == null ||
                         normalizeCategoryLabel(p.category) == normalizeCategoryLabel(selected)
-
                 val matchesQuery = q.isBlank() ||
                         p.title.contains(q, ignoreCase = true) ||
                         p.body.contains(q, ignoreCase = true)
-
                 matchesCategory && matchesQuery
             }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {
-        fetchPosts()
+        // ❌ 기존에 fetchPosts()가 있었다면 제거
+        // ✅ regionId가 들어오면 자동으로 리스트 갱신
+        viewModelScope.launch {
+            regionId.collect { id ->
+                if (id != null) fetchPosts()
+            }
+        }
     }
 
-    // ───────── Actions ─────────
     fun toggleCategory(cat: String) {
-        // 같은 걸 한 번 더 누르면 해제(null) → 전체 취급
         _selectedCategory.value = if (_selectedCategory.value == cat) null else cat
     }
-
-    fun updateSearchText(text: String) {
-        _searchText.value = text
-    }
-
-    fun clearFilters() {
-        _selectedCategory.value = null   // 전체
-        _searchText.value = ""
-    }
+    fun updateSearchText(text: String) { _searchText.value = text }
+    fun clearFilters() { _selectedCategory.value = null; _searchText.value = "" }
 
     fun fetchPosts(page: Int = 0, size: Int = 20) {
         viewModelScope.launch {
-            caresRepository.list(page, size)
+            val id = _regionId.value
+            if (id == null) {
+                Log.e("WalkVM", "regionId 없음 → fetchPosts 중단")
+                return@launch
+            }
+
+            caresRepository.list(page, size, regionId = id)
                 .onSuccess { resp ->
                     val body: ApiResponse<PageResponse<CareItem>>? = resp.body()
                     val pageData: PageResponse<CareItem>? = body?.data
@@ -101,7 +127,7 @@ class WalkAndCareViewModel @Inject constructor(
                                 .filter { it.isNotBlank() }
 
                         Post(
-                            id = care.id, // ✅ 추가
+                            id = care.id,
                             category = normalizeCategoryLabel(
                                 care.categoryDescription ?: mapEnumToKoreanLabel(care.category)
                             ),
@@ -118,7 +144,6 @@ class WalkAndCareViewModel @Inject constructor(
                             reporterAvatarUrl = care.userImg
                         )
                     }
-
                     _allPosts.value = posts
                 }
                 .onFailure { it.printStackTrace() }
@@ -145,7 +170,6 @@ class WalkAndCareViewModel @Inject constructor(
             else -> "산책구인"
         }
 
-    /** "YYYY-MM-DDTHH:mm[:ss]" → "MM.dd ~ MM.dd" / "MM.dd" */
     private fun formatDateRange(start: String?, end: String?): String {
         val s = start?.takeIf { it.length >= 10 }?.substring(5, 10)?.replace("-", ".")
         val e = end?.takeIf { it.length >= 10 }?.substring(5, 10)?.replace("-", ".")
@@ -157,7 +181,6 @@ class WalkAndCareViewModel @Inject constructor(
         }
     }
 
-    /** "YYYY-MM-DDTHH:mm[:ss]" → "HH:mm ~ HH:mm" */
     private fun formatTimeRange(start: String?, end: String?): String {
         val st = extractTime(start)
         val et = extractTime(end)
@@ -172,9 +195,15 @@ class WalkAndCareViewModel @Inject constructor(
     private fun extractTime(dt: String?): String? {
         return try {
             val tPart = dt?.split('T', ' ')?.getOrNull(1) ?: return null
-            tPart.substring(0, 5) // HH:mm
-        } catch (_: Exception) {
-            null
-        }
+            tPart.substring(0, 5)
+        } catch (_: Exception) { null }
     }
+}
+
+// 카드 썸네일 선택 유틸
+private fun pickPreviewImage(care: CareItem): String {
+    val primary = care.images.firstOrNull { it.sort == 0 }?.src
+    if (!primary.isNullOrBlank()) return primary
+    val fallback = care.images.minByOrNull { it.sort }?.src
+    return fallback?.trim().orEmpty()
 }
