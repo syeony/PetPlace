@@ -24,4 +24,6 @@ class JoinRepository @Inject constructor(
     suspend fun signUp(signUp: JoinRequest) = api.signUp(signUp)
     suspend fun signUpKakao( request: KakaoJoinRequest) = api.signUpKakao(request)
 
+    suspend fun verifyUserNeighborhood(lat: Double, lon: Double) = api.verifyUserNeighborhood(lat, lon)
+
 }

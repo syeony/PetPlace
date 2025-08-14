@@ -12,6 +12,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.repository.MyPageRepository
 import com.example.petplace.data.repository.ImageRepository
+import com.example.petplace.data.repository.JoinRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -58,7 +59,9 @@ data class ProfileEditUiState(
 
 @HiltViewModel
 class ProfileEditViewModel @Inject constructor(
-    private val myPageRepository: MyPageRepository, private val imageRepository: ImageRepository
+    private val myPageRepository: MyPageRepository,
+    private val imageRepository: ImageRepository,
+    private val joinRepository: JoinRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileEditUiState())
@@ -190,6 +193,7 @@ class ProfileEditViewModel @Inject constructor(
                 val location = getCurrentLocation()
 
                 if (location != null) {
+                    Log.d("location", "requestLocationVerification: ${location}")
                     val addressDeferred =
                         async { getAddressFromLocation(location.latitude, location.longitude) }
                     val regionIdDeferred =
@@ -201,7 +205,7 @@ class ProfileEditViewModel @Inject constructor(
                     if (address != null && regionId != null) {
                         Log.d("ProfileEdit", "위치 인증 성공")
                         Log.d("ProfileEdit", "주소: $address")
-                        Log.d("ProfileEdit", "법정동코드: $regionId")
+                        Log.d("ProfileEdit", "지역코드: $regionId")
 
                         _uiState.value = _uiState.value.copy(
                             isVerifyingLocation = false,
@@ -528,13 +532,13 @@ class ProfileEditViewModel @Inject constructor(
                             Log.d("ProfileEdit", "지역 코드 오류로 인한 재시도 - 기본 코드 사용")
 
                             try {
-                                // 기본 경상북도 코드로 재시도
+                                // 기본 인동동 코드로 재시도
                                 myPageRepository.updateProfile(
                                     nickname = if (hasNicknameChange) currentState.nickname.trim() else null,
                                     curPassword = if (hasPasswordChange) currentState.currentPassword else null,
                                     newPassword = if (hasPasswordChange) currentState.newPassword else null,
                                     imgSrc = uploadedImageUrl,
-                                    regionId = 4700000000L // 경상북도 기본 코드
+                                    regionId = 37050700L // 인동동 기본 코드
                                 )
                                     .onSuccess { response ->
                                         Log.d("ProfileEdit", "기본 지역 코드로 재시도 성공")
@@ -544,7 +548,7 @@ class ProfileEditViewModel @Inject constructor(
                                             profileImageUrl = response.userImgSrc,
                                             profileImageUri = null,
                                             nickname = response.nickname ?: currentState.nickname,
-                                            currentRegionId = 4700000000L // 기본 코드로 업데이트
+                                            currentRegionId = 37050700L // 기본 코드로 업데이트
                                         )
 
                                         // 성공한 항목들 추적
@@ -683,186 +687,32 @@ class ProfileEditViewModel @Inject constructor(
         }
     }
 
-    // 2. 법정동코드 생성 시스템 (10자리 체계)
     private suspend fun getRegionIdFromLocation(latitude: Double, longitude: Double): Long? {
         return withContext(Dispatchers.IO) {
             try {
-                if (Geocoder.isPresent()) {
-                    val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+                val response = joinRepository.verifyUserNeighborhood(
+                    lat = latitude,
+                    lon = longitude
+                )
 
-                    if (!addresses.isNullOrEmpty()) {
-                        val address = addresses[0]
-
-                        val adminArea = address.adminArea // 시/도
-                        val locality = address.locality ?: address.subAdminArea // 시/군/구
-                        val thoroughfare = address.thoroughfare ?: address.subLocality // 동/읍/면
-
-                        val codeString = generateLegalDongCode(adminArea, locality, thoroughfare)
-                        return@withContext codeString?.toLongOrNull() // String을 Long으로 변환
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null && body.success && body.data != null) {
+                        return@withContext body.data.regionId
+                    } else {
+                        Log.e("ProfileEdit", "동네 인증 실패: ${body?.message}")
                     }
+                } else {
+                    Log.e("ProfileEdit", "API 호출 실패: ${response.code()} ${response.message()}")
                 }
+
                 return@withContext null
             } catch (e: Exception) {
-                Log.e("ProfileEdit", "지역 코드 추출 실패", e)
+                Log.e("ProfileEdit", "동네 인증 중 오류 발생", e)
                 return@withContext null
             }
         }
     }
-
-    // 3. 법정동코드 생성 함수 (10자리: 시도(2) + 시군구(3) + 읍면동(3) + 리(2))
-    private fun generateLegalDongCode(
-        adminArea: String?, locality: String?, thoroughfare: String?
-    ): String? {
-        if (adminArea == null) return "4700000000" // 경상북도 기본 코드
-
-        try {
-            // 1단계: 시도코드 (2자리)
-            val sidoCode = getSidoCode(adminArea) ?: return "4700000000"
-
-            // 2단계: 시군구코드 (2자리)
-            val sigunguCode = getSigunguCode(sidoCode, locality) ?: "00"
-
-            // 3단계: 읍면동코드 (3자리)
-            val dongCode = getDongCode(sidoCode, sigunguCode, thoroughfare) ?: "000"
-
-            // 4단계: 리코드 (3자리)
-            val riCode = "000"
-
-            val generatedCode = "$sidoCode$sigunguCode$dongCode$riCode"
-
-            Log.d("ProfileEdit", "코드 생성 과정:")
-            Log.d("ProfileEdit", "- 시도: $adminArea -> $sidoCode")
-            Log.d("ProfileEdit", "- 시군구: $locality -> $sigunguCode")
-            Log.d("ProfileEdit", "- 동: $thoroughfare -> $dongCode")
-            Log.d("ProfileEdit", "- 최종 코드: $generatedCode")
-
-            // DB에 없을 가능성이 높은 코드인 경우 기본 코드 반환
-            if (dongCode == "000" && sidoCode == "47" && sigunguCode == "19") {
-                Log.d("ProfileEdit", "DB에 없는 동으로 판단, 경상북도 기본 코드 사용: $thoroughfare")
-                return "4700000000"
-            }
-
-            return generatedCode
-
-        } catch (e: Exception) {
-            Log.e("ProfileEdit", "지역 코드 생성 중 오류", e)
-            return "4700000000"
-        }
-    }
-
-
-    // 4. 시도코드 매핑 (표준 행정구역코드)
-    private fun getSidoCode(adminArea: String): String? {
-        return when {
-            adminArea.contains("서울") -> "11"
-            adminArea.contains("부산") -> "21"
-            adminArea.contains("대구") -> "22"
-            adminArea.contains("인천") -> "23"
-            adminArea.contains("광주") -> "24"
-            adminArea.contains("대전") -> "25"
-            adminArea.contains("울산") -> "26"
-            adminArea.contains("세종") -> "29"
-            adminArea.contains("경기") -> "31"
-            adminArea.contains("강원") -> "32"
-            adminArea.contains("충청북도") || adminArea.contains("충북") -> "33"
-            adminArea.contains("충청남도") || adminArea.contains("충남") -> "34"
-            adminArea.contains("전라북도") || adminArea.contains("전북") -> "35"
-            adminArea.contains("전라남도") || adminArea.contains("전남") -> "36"
-            adminArea.contains("경상북도") || adminArea.contains("경북") -> "47" // 실제 경북 코드
-            adminArea.contains("경상남도") || adminArea.contains("경남") -> "48" // 실제 경남 코드
-            adminArea.contains("제주") -> "50"
-            else -> null
-        }
-    }
-
-    // 5. 시군구코드 생성 (3자리)
-    private fun getSigunguCode(sidoCode: String, locality: String?): String? {
-        if (locality.isNullOrEmpty()) return "00"
-
-        Log.d("ProfileEdit", "getSigunguCode - sidoCode: $sidoCode, locality: $locality")
-
-        // 경상북도(47)의 실제 시군구 코드 패턴 (2자리)
-        if (sidoCode == "47") {
-            val baseCode = when {
-                locality.contains("포항시") -> "11" // 포항시
-                locality.contains("경주시") -> "13" // 경주시
-                locality.contains("김천시") -> "15" // 김천시
-                locality.contains("안동시") -> "17" // 안동시
-                locality.contains("구미시") -> "19" // 구미시 (2자리)
-                locality.contains("영주시") -> "21" // 영주시
-                locality.contains("영천시") -> "23" // 영천시
-                locality.contains("상주시") -> "25" // 상주시
-                locality.contains("문경시") -> "28" // 문경시
-                locality.contains("경산시") -> "29" // 경산시
-                else -> {
-                    val code = generateConsistentCode(locality, 10, 99)
-                    Log.d("ProfileEdit", "기타 지역 시군구 코드 생성: $locality -> $code")
-                    code
-                }
-            }
-            Log.d("ProfileEdit", "경상북도 시군구 코드: $locality -> $baseCode")
-            return baseCode
-        }
-
-        // 다른 시도의 경우 일관된 해시 기반 코드 생성 (2자리)
-        val code = generateConsistentCode(locality, 10, 99)
-        Log.d("ProfileEdit", "다른 시도 시군구 코드: $locality -> $code")
-        return code
-    }
-
-    // 6. 읍면동코드 생성 (3자리)
-    private fun getDongCode(sidoCode: String, sigunguCode: String, thoroughfare: String?): String? {
-        if (thoroughfare.isNullOrEmpty()) return "000"
-
-        Log.d("ProfileEdit", "getDongCode - sidoCode: $sidoCode, sigunguCode: $sigunguCode, thoroughfare: $thoroughfare")
-
-        // 구미시(19) 실제 동코드 패턴 적용
-        if (sidoCode == "47" && sigunguCode == "19") {
-            val result = when {
-                thoroughfare.contains("인동동") || thoroughfare.contains("인동") -> "067" // 4719067000
-                thoroughfare.contains("진미동") || thoroughfare.contains("진미") -> "068" // 4719068000
-                thoroughfare.contains("양포동") || thoroughfare.contains("양포") -> "069" // 4719069000
-                thoroughfare.contains("원평동") || thoroughfare.contains("원평") -> "064"
-                thoroughfare.contains("도량동") || thoroughfare.contains("도량") -> "065"
-                // 임수동 명시적 매핑
-                thoroughfare.contains("임수동") || thoroughfare.contains("임수") -> {
-                    Log.d("ProfileEdit", "임수동 매핑 성공!")
-                    "066" // 4719066000
-                }
-                thoroughfare.contains("선산면") -> "250"
-                thoroughfare.contains("고아읍") -> "253"
-                thoroughfare.contains("옥성면") -> "259"
-                thoroughfare.contains("무을면") -> "271"
-                thoroughfare.contains("해평면") -> "273"
-                thoroughfare.contains("산동면") -> "275"
-                else -> {
-                    Log.d("ProfileEdit", "구미시 알 수 없는 동: $thoroughfare, 기본 코드 사용")
-                    "000"
-                }
-            }
-            Log.d("ProfileEdit", "구미시 동코드 결과: $thoroughfare -> $result")
-            return result
-        }
-
-        // 다른 지역은 동명 기반 일관된 코드 생성
-        val result = generateConsistentCode(thoroughfare, 1, 999)
-        Log.d("ProfileEdit", "다른 지역 동코드: $thoroughfare -> $result")
-        return result
-    }
-
-
-    // 7. 일관된 해시 기반 코드 생성 헬퍼 함수
-    private fun generateConsistentCode(input: String, min: Int, max: Int): String {
-        val range = max - min + 1
-        val hashCode = input.hashCode().absoluteValue % range + min
-
-        // 자릿수에 따라 포맷 결정
-        return when (max) {
-            in 10..99 -> String.format("%02d", hashCode)  // 2자리
-            else -> String.format("%03d", hashCode)       // 3자리
-        }
-    }
-
 
     fun clearMessages() {
         _uiState.value = _uiState.value.copy(
