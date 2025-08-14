@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.widget.Toast
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 
 object CommonUtils {
@@ -28,18 +29,19 @@ object CommonUtils {
      * @param onLocationReceived 위도·경도를 받을 콜백
      */
     @SuppressLint("MissingPermission")
-    fun getCurrentLocation(
-        context: Context,
-        onLocationReceived: (latitude: Double, longitude: Double) -> Unit
-    ) {
-        val client = LocationServices.getFusedLocationProviderClient(context)
-        client.lastLocation
-            .addOnSuccessListener { location ->
-                location?.let {
-                    onLocationReceived(it.latitude, it.longitude)
+    suspend fun getCurrentLocation(context: Context): Pair<Double, Double>? =
+        suspendCancellableCoroutine { cont ->
+            val client = LocationServices.getFusedLocationProviderClient(context)
+            client.lastLocation
+                .addOnSuccessListener { location ->
+                    cont.resume(location?.let { it.latitude to it.longitude }, null)
                 }
-            }
-    }
+                .addOnFailureListener {
+                    cont.resume(null, null)
+                }
+        }
+
+
 
     @SuppressLint("MissingPermission")
     suspend fun getXY(context: Context): Pair<Double, Double>? {

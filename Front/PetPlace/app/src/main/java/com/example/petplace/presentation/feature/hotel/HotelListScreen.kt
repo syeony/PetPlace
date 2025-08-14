@@ -7,6 +7,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -18,9 +20,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.BackgroundColor
 import com.example.petplace.presentation.common.theme.PrimaryColor
@@ -28,30 +35,42 @@ import com.kizitonwose.calendar.compose.HorizontalCalendar
 import com.kizitonwose.calendar.compose.rememberCalendarState
 import com.kizitonwose.calendar.core.DayPosition
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.util.Locale
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.petplace.PetPlaceApp
+import com.example.petplace.util.CommonUtils
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HotelListScreen(
     navController: NavController,
-    viewModel: HotelSharedViewModel
+    viewModel: HotelSharedViewModel = hiltViewModel(),
+
 ) {
     var expanded by remember { mutableStateOf(false) }
     val reservationState by viewModel.reservationState.collectAsState()
 
-    // 🔹 화면에서 선택한 날짜 상태
+    // 화면에서 선택한 날짜 상태
     var startDate by remember { mutableStateOf<LocalDate?>(null) }
     var endDate by remember { mutableStateOf<LocalDate?>(null) }
-
-    // 🔹 ViewModel 상태와 동기화
+    val hotelList by viewModel.hotelList.collectAsState()
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    // ViewModel 상태와 동기화
     LaunchedEffect(reservationState.checkInDate, reservationState.checkOutDate) {
         startDate = reservationState.checkInDate?.takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) }
         endDate = reservationState.checkOutDate?.takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) }
     }
+    LaunchedEffect(Unit) {
+        viewModel.getHotelList()
+//        Log.d("내 지역", "HotelListScreen:${userInfo.} ")
 
+    }
     Log.d("check", "checkIn=${reservationState.checkInDate}, checkOut=${reservationState.checkOutDate}")
 
     val currentMonth = YearMonth.now()
@@ -62,7 +81,6 @@ fun HotelListScreen(
         firstDayOfWeek = DayOfWeek.MONDAY
     )
     val coroutineScope = rememberCoroutineScope()
-
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -72,11 +90,16 @@ fun HotelListScreen(
                         modifier = Modifier.clickable { expanded = !expanded }
                     ) {
                         val displayText = when {
-                            startDate != null && endDate != null -> "${startDate} ~ ${endDate}"
+                            startDate != null && endDate != null -> "$startDate ~ $endDate"
                             startDate != null -> startDate.toString()
                             else -> "체크인 / 체크아웃"
                         }
-                        Text(text = displayText, style = AppTypography.bodyLarge)
+                        Box(
+                            modifier = Modifier.fillMaxHeight(),
+                            contentAlignment = Alignment.Center // 세로 중앙 정렬
+                        ) {
+                            Text(text = displayText, style = AppTypography.bodyLarge)
+                        }
                         Icon(
                             imageVector = if (expanded) Icons.Default.KeyboardArrowUp
                             else Icons.Default.KeyboardArrowDown,
@@ -89,7 +112,9 @@ fun HotelListScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BackgroundColor)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BackgroundColor),
+                modifier = Modifier.height(48.dp), // 높이 줄이기
+                windowInsets = WindowInsets(0.dp)  // 상단 패딩 제거
             )
         }
     ) { innerPadding ->
@@ -100,7 +125,7 @@ fun HotelListScreen(
                 .fillMaxSize()
         ) {
 
-            // 🔹 달력 & 마릿수 선택 박스
+            // 날짜/마릿수 선택 시트
             AnimatedVisibility(visible = expanded) {
                 Column(
                     modifier = Modifier
@@ -139,7 +164,7 @@ fun HotelListScreen(
                         ) { Text(">") }
                     }
 
-                    // 🔹 달력
+                    // 달력
                     HorizontalCalendar(
                         state = calendarState,
                         dayContent = { day ->
@@ -168,7 +193,7 @@ fun HotelListScreen(
                                             } else day.date
                                         }
 
-                                        // 🔹 선택될 때마다 ViewModel 업데이트
+                                        // 선택될 때마다 ViewModel 업데이트
                                         viewModel.selectDate(
                                             startDate?.toString().orEmpty(),
                                             endDate?.toString().orEmpty()
@@ -186,24 +211,20 @@ fun HotelListScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 🔹 마릿수 선택
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.LightGray)
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(onClick = { viewModel.decreaseAnimalCount() }) {
-                            Text("-")
-                        }
-                        Text("${reservationState.animalCount} 마리")
-                        IconButton(onClick = { viewModel.increaseAnimalCount() }) {
-                            Text("+")
-                        }
-                    }
+                    // 마릿수 선택
+//                    Row(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .clip(RoundedCornerShape(12.dp))
+//                            .background(Color(0xFFF2F2F2))
+//                            .padding(8.dp),
+//                        horizontalArrangement = Arrangement.SpaceBetween,
+//                        verticalAlignment = Alignment.CenterVertically
+//                    ) {
+//                        TextButton(onClick = { viewModel.decreaseAnimalCount() }) { Text("-") }
+//                        Text("${reservationState.animalCount} 마리")
+//                        TextButton(onClick = { viewModel.increaseAnimalCount() }) { Text("+") }
+//                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -218,13 +239,87 @@ fun HotelListScreen(
                 }
             }
 
-            // 🔹 호텔 리스트
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
             Text(
                 text = "예약 가능한 호텔 리스트",
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(vertical = 8.dp),
                 style = AppTypography.bodyLarge
             )
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                items(hotelList) { item ->
+                    RoomPriceCard(
+                        title = item.name,
+                        address = item.address,
+                        pricePerNight = item.pricePerNight,
+                        imageUrl = item.imageUrl,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            viewModel.selectHotel(item.id)
+                            navController.navigate("hotel/detail")
+                        }
+                    )
+                }
+
+
+            }
         }
     }
 }
+
+@Composable
+fun RoomPriceCard(
+    title: String,
+    address: String,
+    pricePerNight: Int,
+    imageUrl: String?,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(Modifier.padding(12.dp)) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                placeholder = painterResource(R.drawable.pp_logo),
+                error = painterResource(R.drawable.pp_logo),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = AppTypography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(4.dp))
+                Text(address, style = AppTypography.bodySmall, color = Color(0xFF8E8E8E), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth()) {
+                    Text(formatKrw(pricePerNight), style = AppTypography.titleSmall, color = PrimaryColor, modifier = Modifier.alignByBaseline())
+                    Spacer(Modifier.weight(1f))
+                    Text("/1박", style = AppTypography.bodySmall, color = Color(0xFF9DA3AE), modifier = Modifier.alignByBaseline())
+                }
+            }
+        }
+    }
+}
+
+private fun formatKrw(price: Int): String =
+    NumberFormat.getCurrencyInstance(Locale.KOREA).apply {
+        maximumFractionDigits = 0
+    }.format(price)

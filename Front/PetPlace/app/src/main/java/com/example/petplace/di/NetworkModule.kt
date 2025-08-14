@@ -4,14 +4,17 @@ import android.content.Context
 import android.util.Log
 import com.example.petplace.BuildConfig
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.remote.CaresApiService
 import com.example.petplace.data.remote.ChatApiService
 import com.example.petplace.data.remote.FeedApiService
+import com.example.petplace.data.remote.HotelApiService
 import com.example.petplace.data.remote.ImageApiService
 import com.example.petplace.data.remote.JoinApiService
 import com.example.petplace.data.remote.KakaoApiService
 import com.example.petplace.data.remote.LoginApiService
 import com.example.petplace.data.remote.MissingApiService
 import com.example.petplace.data.remote.MyPageApiService
+import com.example.petplace.data.remote.PaymentsApiService
 import com.example.petplace.data.remote.PetApiService
 import dagger.Module
 import dagger.Provides
@@ -34,8 +37,8 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val KAKAO_BASE_URL = "https://dapi.kakao.com/"
-    private const val SERVER_BASE_URL = "http://43.201.108.195:8081/"
-
+//    private const val SERVER_BASE_URL = "http://43.201.108.195:8081/"
+private const val SERVER_BASE_URL = "http://i13d104.p.ssafy.io:8081/"
     private fun loggingInterceptor() =
         HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
 
@@ -192,6 +195,12 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideHotelApi(
+        @Named("Server") retrofit: Retrofit
+    ): HotelApiService = retrofit.create(HotelApiService::class.java)
+
+    @Provides
+    @Singleton
     fun provideMyPageApi(
         @Named("Server") retrofit: Retrofit
     ): MyPageApiService = retrofit.create(MyPageApiService::class.java)
@@ -201,6 +210,19 @@ object NetworkModule {
     fun provideMissingApi(
         @Named("Server") retrofit: Retrofit
     ): MissingApiService = retrofit.create(MissingApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun providePyamentApi(
+        @Named("Server") retrofit: Retrofit
+    ): PaymentsApiService = retrofit.create(PaymentsApiService::class.java)
+
+
+    @Provides
+    @Singleton
+    fun provideCaresApi(
+        @Named("Server") retrofit: Retrofit
+    ): CaresApiService = retrofit.create(CaresApiService::class.java)
 
     @Provides
     @Singleton

@@ -2,8 +2,10 @@ package com.example.petplace.presentation.common.theme
 
 
 import androidx.compose.ui.graphics.Color
+import com.google.firebase.annotations.concurrent.Background
 
 val BackgroundColor = Color(0xFFFEF9F0)     // 배경
+val BackgroundWhite = Color.White
 val BackgroundSoft = Color(0xFFFFFDF9)      // 더 연한 배경
 val PrimarySoft = Color(0xFFFFE0B3)         // 포인트-배경 사이
 val PrimaryColor = Color(0xFFF79800)        // 포인트

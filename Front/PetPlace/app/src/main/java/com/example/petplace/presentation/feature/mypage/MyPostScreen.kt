@@ -27,6 +27,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import com.example.petplace.data.model.feed.FeedRecommendRes
+import com.example.petplace.data.model.feed.ImageRes
+import com.example.petplace.presentation.feature.feed.ProfileImage
+import com.example.petplace.presentation.feature.feed.categoryStyles
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import coil.compose.rememberAsyncImagePainter
+import androidx.compose.ui.layout.ContentScale
 
 // 메인 화면
 @Composable
@@ -47,7 +57,7 @@ fun MyPostScreen(
         topBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFFFAF4E6),
+                color = Color.White,
                 tonalElevation = 0.dp
             ) {
                 Box(
@@ -67,7 +77,7 @@ fun MyPostScreen(
                     }
 
                     Text(
-                        text = "내 게시글",
+                        text = "내 피드",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         color = Color(0xFF000000),
@@ -78,7 +88,11 @@ fun MyPostScreen(
             }
         },
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFFEF9F0))  // Feed와 동일한 배경색
+        ) {
             if (uiState.isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
@@ -87,144 +101,145 @@ fun MyPostScreen(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
-                        .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(innerPadding),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)  // Feed와 동일한 간격
                 ) {
-                    items(uiState.posts) { post ->  // 변경된 부분
-                        MyPostCard(
-                            post = post,
-                            onDeleteClick = { viewModel.deletePost(post.id) }
-                        )
+                    items(uiState.posts) { post ->
+                        MyPostFeedItem(feed = post)  // 새로운 컴포넌트 사용
                     }
                 }
             }
-
-            // Pull to refresh 추가 (선택사항)
-            if (uiState.isRefreshing) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.TopCenter)
-                )
-            }
         }
     }
 }
 
-// 게시글 카드 UI
 @Composable
-fun MyPostCard(post: Post,onDeleteClick: (() -> Unit)? = null) {
-    val style = categoryStyles[post.category] ?: Pair(Color.LightGray, Color.DarkGray)
+private fun MyPostFeedItem(feed: FeedRecommendRes) {
+    val hashtagColor = Color(0xFFF79800)
 
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(vertical = 16.dp)
     ) {
+        // 프로필 & 카테고리
         Row(
-            modifier = Modifier.padding(16.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            ProfileImage(feed.userImg)
+            Spacer(Modifier.width(8.dp))
+            Column {
+                val (bgCol, txtCol) = categoryStyles[feed.category]
+                    ?: (Color.LightGray to Color.DarkGray)
+
                 Text(
-                    text = "#${post.category}",
-                    color = style.second,
+                    feed.category,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
+                    color = txtCol,
                     modifier = Modifier
-                        .background(style.first, RoundedCornerShape(8.dp))
+                        .background(bgCol, RoundedCornerShape(4.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = post.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
-                    color = Color.Black
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = post.body,
-                    fontSize = 13.sp,
-                    color = Color(0xFF555555),
-                    maxLines = 1
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = post.meta,
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+                Spacer(Modifier.height(4.dp))
+                Text(feed.userNick, fontWeight = FontWeight.Bold)
             }
+        }
 
-            Spacer(modifier = Modifier.width(12.dp))
+        Spacer(Modifier.height(8.dp))
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Image(
-                    painter = painterResource(id = post.imageRes),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                )
+        // 본문
+        Text(feed.content, modifier = Modifier.padding(horizontal = 16.dp))
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_chat), // 댓글 아이콘
-                        contentDescription = "댓글",
-                        modifier = Modifier.size(14.dp),
-                        tint = Color.Gray
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+        // 태그
+        if (!feed.tags.isNullOrEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.padding(horizontal = 16.dp)) {
+                feed.tags.forEach { tag ->
                     Text(
-                        text = "${post.commentCount}",
+                        "#${tag.name}",
+                        color = hashtagColor,
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        modifier = Modifier.padding(end = 4.dp)
                     )
                 }
             }
         }
+        Spacer(Modifier.height(8.dp))
+
+        // 이미지 영역
+        if (feed.images.isNullOrEmpty()) {
+            Image(
+                painter = painterResource(R.drawable.pp_logo),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            val pagerState = rememberPagerState(pageCount = { feed.images!!.size })
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    val img: ImageRes = feed.images!![page]
+                    Image(
+                        painter = rememberAsyncImagePainter("http://i13d104.p.ssafy.io:8081" + img.src),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                Text(
+                    text = "${pagerState.currentPage + 1}/${feed.images!!.size}",
+                    fontSize = 12.sp,
+                    color = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .background(
+                            Color.Black.copy(alpha = 0.45f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+
+        // 좋아요 / 댓글
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 10.dp)
+        ) {
+            IconButton(onClick = { /* 내 게시글에서는 좋아요 기능 비활성화 */ }) {
+                Icon(
+                    imageVector = if (feed.liked == true) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "좋아요",
+                    tint = if (feed.liked == true) Color(0xFFF44336) else LocalContentColor.current,
+                    modifier = Modifier.size(25.dp)
+                )
+            }
+            Text(text = "${feed.likes}", fontSize = 15.sp)
+
+            Spacer(Modifier.width(15.dp))
+
+            IconButton(onClick = { /* 댓글 보기 기능 비활성화 */ }) {
+                Icon(
+                    painter = painterResource(R.drawable.outline_chat_bubble_24),
+                    contentDescription = "댓글",
+                    modifier = Modifier.size(25.dp)
+                )
+            }
+            Text(text = "${feed.commentCount}", fontSize = 15.sp)
+        }
     }
 }
-
-// 샘플 더미 데이터
-val samplePosts = listOf(
-    Post(
-        category = "잡담",
-        title = "오늘 날씨 너무 좋네요",
-        body = "하늘이 맑고 바람도 시원해서 산책하기 딱 좋은 날씨입니다.",
-        meta = "2025.08.10",
-        imageRes = R.drawable.pp_logo,
-        commentCount = 5
-    ),
-    Post(
-        category = "질문",
-        title = "Jetpack Compose 리스트 간격 조절 질문",
-        body = "LazyColumn에서 아이템 간 간격을 조절하는 방법을 알고 싶습니다.",
-        meta = "2025.08.09",
-        imageRes = R.drawable.pp_logo,
-        commentCount = 8
-    ),
-    Post(
-        category = "정보",
-        title = "안드로이드 스튜디오 최신 단축키 모음",
-        body = "효율적으로 개발할 수 있는 단축키 리스트를 정리했습니다.",
-        meta = "2025.08.08",
-        imageRes = R.drawable.pp_logo,
-        commentCount = 12
-    )
-)

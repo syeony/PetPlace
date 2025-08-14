@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <!-- HTTP 트래픽 허용 (개발/테스트용) -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -37,9 +38,12 @@
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <data android:scheme="iamportapp" />
+            </intent-filter>
+
         </activity>
         <activity
             android:name="com.canhub.cropper.CropImageActivity"
