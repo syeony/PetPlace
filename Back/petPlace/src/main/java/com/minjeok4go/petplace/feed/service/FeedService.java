@@ -5,7 +5,7 @@ import com.minjeok4go.petplace.comment.entity.Comment;
 import com.minjeok4go.petplace.comment.repository.CommentRepository;
 import com.minjeok4go.petplace.common.constant.ActivityType;
 import com.minjeok4go.petplace.common.constant.FeedCategory;
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.feed.dto.*;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.entity.FeedTag;
@@ -157,11 +157,11 @@ public class FeedService {
     private void syncImages(Long feedId, List<FeedImageRequest> requested) {
         if (requested == null) requested = List.of();
 
-        imageRepository.deleteAllByRef(ImageType.FEED, feedId);
+        imageRepository.deleteAllByRef(RefType.FEED, feedId);
 
         if (!requested.isEmpty()) {
             List<Image> toAdd = requested.stream()
-                    .map(ir -> new Image(feedId, ImageType.FEED, ir.getSrc(), ir.getSort()))
+                    .map(ir -> new Image(feedId, RefType.FEED, ir.getSrc(), ir.getSort()))
                     .toList();
             imageRepository.saveAll(toAdd);
         }
@@ -232,7 +232,7 @@ public class FeedService {
 
         // images
         List<ImageResponse> imageDtos = imageRepository
-                .findByRefTypeAndRefIdOrderBySortAsc(ImageType.FEED, feed.getId())
+                .findByRefTypeAndRefIdOrderBySortAsc(RefType.FEED, feed.getId())
                 .stream()
                 .map(img -> new ImageResponse(img.getId(), img.getSrc(), img.getSort()))
                 .toList();

@@ -691,6 +691,13 @@ INSERT IGNORE INTO `regions` (`id`, `name`, `parent_id`, `geometry`) VALUES
 (37050740, '공단동', 37050000, ST_GeomFromText('POINT(128.410274 36.168089)')),
 (37050750, '원평동', 37050000, ST_GeomFromText('POINT(128.347429 36.130805)'));
 
+-- ✅ 태그 & 해시태그 더미 데이터
+INSERT INTO `tags` (`name`) VALUES
+('산책'), ('목욕'), ('미용'), ('사료'), ('간식'),
+('놀이'), ('훈련'), ('건강관리'), ('동물병원'), ('호텔'),
+('유치원'), ('캣타워'), ('펫시터'), ('입양'), ('보험'),
+('장난감'), ('케어'), ('리드줄'), ('하네스'), ('이동장'), ('실종');
+
 -- 📊 소셜 로그인 테스트 데이터
 INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type) VALUES
 ('testuser', '$2a$10$N.zmdr9k7uOCQb0bKIppuetjm6P7eGdKz3u5ey.7BtGAO3t6xtxaG', '홍길동', '펫러버', 1100000000, 'TEST_CI_001', '01012345678', 'male', '1990-01-01', 'EMAIL');
@@ -893,7 +900,48 @@ CREATE TABLE `sighting_matches` (
     INDEX `idx_score` (`score`)
 ) COMMENT '목격-실종 자동 매칭 결과';
 
+-- 유저 디바이스 토큰 저장용 테이블
+CREATE TABLE `user_device_token` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT NOT NULL,
+  `token` VARCHAR(256) NOT NULL,
+  `app_version` VARCHAR(32) NULL,
+  `active` TINYINT NOT NULL DEFAULT 1, -- 비활성화 시 0
+  `created_at` DATETIME NOT NULL DEFAULT NOW(),
+  `updated_at` DATETIME NOT NULL DEFAULT NOW() ON UPDATE NOW(),
 
+  PRIMARY KEY (`id`),
 
+  CONSTRAINT `fk_udt_user`
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+
+  CONSTRAINT `uq_user_token`
+    UNIQUE KEY (`user_id`, `token`),
+
+  KEY `idx_udt_user_active` (`user_id`, `active`),
+  KEY `idx_udt_updated_at` (`updated_at`)
+);
+
+-- 알림 저장용 테이블
+CREATE TABLE `notification` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `target_user_id` BIGINT NOT NULL,
+  `type` ENUM('COMMENT','LIKE','CHAT') NOT NULL,
+  `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT',
+    'MISSING_REPORT', 'SIGHTING'
+    ) NOT NULL,
+  `ref_id` BIGINT NOT NULL,
+  `title` VARCHAR(120) NOT NULL,
+  `body` VARCHAR(300) NOT NULL,
+  `data_json` JSON NULL,
+  `created_at` DATETIME NOT NULL DEFAULT NOW(),
+
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_noti_user`
+    FOREIGN KEY (`target_user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+
+  KEY `idx_noti_target_created` (`target_user_id`, `created_at`),
+  KEY `idx_noti_type_target` (`type`, `target_user_id`)
+);
 
 COMMIT;

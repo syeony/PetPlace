@@ -53,6 +53,7 @@ import com.example.petplace.presentation.feature.mypage.PetProfileScreen
 import com.example.petplace.presentation.feature.mypage.ProfileCompleteScreen
 import com.example.petplace.presentation.feature.mypage.ProfileEditScreen
 import com.example.petplace.presentation.feature.splash.SplashScreen
+import com.example.petplace.presentation.feature.userprofile.UserProfileScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareWriteScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkPostDetailScreen
@@ -193,6 +194,19 @@ fun MainScaffold() {
             composable("my_post") { MyPostScreen(navController) }
             composable("my_comment") { MyCommentScreen(navController) }
             composable("my_likePost") { MyLikePostScreen(navController) }
+
+            composable(
+                route = "userProfile/{userId}",
+                arguments = listOf(
+                    navArgument("userId") { type = NavType.LongType }
+                )
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getLong("userId") ?: 0
+                UserProfileScreen(
+                    navController = navController,
+                    userId = userId
+                )
+            }
 
 
 //            composable("hotel"){AnimalSelectScreen(navController)}

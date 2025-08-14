@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.image.service;
 
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
@@ -20,7 +20,7 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ImageResponse> getImages(ImageType refType, Long refId) {
+    public List<ImageResponse> getImages(RefType refType, Long refId) {
         return imageRepository
                 .findByRefTypeAndRefIdOrderBySortAsc(refType, refId)
                 .stream()
