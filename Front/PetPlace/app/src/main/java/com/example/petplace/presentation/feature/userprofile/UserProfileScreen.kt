@@ -59,7 +59,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 
 // 데이터 클래스들
 data class UserProfileInfo(
-    val userId: Int,
+    val userId: Long,
     val nickname: String = "",
     val location: String = "",
     val level: Int = 1,
@@ -69,7 +69,7 @@ data class UserProfileInfo(
 )
 
 data class UserPetInfo(
-    val id: Int,
+    val id: Long,
     val name: String = "",
     val breed: String = "",
     val gender: String = "",
@@ -95,7 +95,7 @@ data class UserProfileUiState(
 @Composable
 fun UserProfileScreen(
     navController: NavController,
-    userId: Int,
+    userId: Long,
     modifier: Modifier = Modifier,
     viewModel: UserProfileViewModel = hiltViewModel()
 ) {
@@ -118,7 +118,7 @@ fun UserProfileScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "뒤로가기"
@@ -132,16 +132,16 @@ fun UserProfileScreen(
         }
     ) { paddingValues ->
 
-//        // Loading 처리
-//        if (uiState.isLoading) {
-//            Box(
-//                modifier = Modifier.fillMaxSize(),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                CircularProgressIndicator()
-//            }
-//            return@Scaffold
-//        }
+        // Loading 처리
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
 
         LazyColumn(
             modifier = modifier
@@ -261,7 +261,7 @@ fun UserProfileScreen(
                         // 채팅하기 버튼
                         Button(
                             onClick = {
-                                navController.navigate("chat/${uiState.userProfile.userId}")
+//                                navController.navigate("chat/${uiState.userProfile.userId}")
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
@@ -409,14 +409,14 @@ fun UserProfileScreen(
                                 icon = R.drawable.my_walk,
                                 title = "산책 후기",
                                 onClick = {
-                                    navController.navigate("walk_reviews/${uiState.userProfile.userId}")
+//                                    navController.navigate("walk_reviews/${uiState.userProfile.userId}")
                                 }
                             )
                             UserWalkCareMenuItem(
                                 icon = R.drawable.my_care,
                                 title = "돌봄 후기",
                                 onClick = {
-                                    navController.navigate("care_reviews/${uiState.userProfile.userId}")
+//                                    navController.navigate("care_reviews/${uiState.userProfile.userId}")
                                 }
                             )
                         }

@@ -10,11 +10,13 @@ import com.example.petplace.data.model.mypage.ProfileImageRequest
 import com.example.petplace.data.model.mypage.ProfileIntroductionRequest
 import com.example.petplace.data.model.mypage.ProfileIntroductionResponse
 import com.example.petplace.data.model.mypage.ProfileUpdateRequest
+import com.example.petplace.data.model.mypage.UserProfileResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Path
 
 interface MyPageApiService {
 
@@ -63,5 +65,10 @@ interface MyPageApiService {
     @GET("/api/likes/me")
     suspend fun getMyLikePosts(
     ): Response<List<FeedRecommendRes>>
+
+    @GET("/api/profiles/{id}")
+    suspend fun getUserProfile(
+        @Path("id") id: Long
+    ): Response<UserProfileResponse>
 
 }
