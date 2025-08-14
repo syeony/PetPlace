@@ -1,6 +1,7 @@
 package com.example.petplace.presentation.feature.mypage
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.data.repository.ImageRepository
@@ -59,8 +60,8 @@ class PetProfileViewModel @Inject constructor(
                             }
                         } else null
 
-                        val animalDisplay = mapApiAnimalToDisplay(pet.animal)
-                        val breedDisplay = mapApiBreedToDisplay(pet.breed)
+                        val animalDisplay = pet.animal
+                        val breedDisplay = pet.breed
 
                         _uiState.value = _uiState.value.copy(
                             petId = petId,
@@ -281,24 +282,24 @@ class PetProfileViewModel @Inject constructor(
 
     // 헬퍼 메서드들
     // Animal 관련 변환 함수들
-    private fun mapApiAnimalToDisplay(apiAnimal: String): String {
-        return when (apiAnimal) {
-            "DOG" -> "강아지"
-            "CAT" -> "고양이"
-            "RABBIT" -> "토끼"
-            "HAMSTER" -> "햄스터"
-            "GUINEA_PIG" -> "기니피그"
-            "HEDGEHOG" -> "고슴도치"
-            "FERRET" -> "앵무새"
-            "BIRD" -> "새"
-            "TURTLE" -> "거북이"
-            "FISH" -> "물고기"
-            "REPTILE" -> "파충류"
-            "AMPHIBIAN" -> "양서류"
-            "OTHER" -> "기타"
-            else -> "기타"
-        }
-    }
+//    private fun mapApiAnimalToDisplay(apiAnimal: String): String {
+//        return when (apiAnimal) {
+//            "DOG" -> "강아지"
+//            "CAT" -> "고양이"
+//            "RABBIT" -> "토끼"
+//            "HAMSTER" -> "햄스터"
+//            "GUINEA_PIG" -> "기니피그"
+//            "HEDGEHOG" -> "고슴도치"
+//            "FERRET" -> "앵무새"
+//            "BIRD" -> "새"
+//            "TURTLE" -> "거북이"
+//            "FISH" -> "물고기"
+//            "REPTILE" -> "파충류"
+//            "AMPHIBIAN" -> "양서류"
+//            "OTHER" -> "기타"
+//            else -> "기타"
+//        }
+//    }
 
     private fun mapAnimalToApiFormat(animal: String): String {
         return when (animal) {
@@ -562,42 +563,42 @@ class PetProfileViewModel @Inject constructor(
         }
     }
 
-    private fun mapApiBreedToDisplay(apiBreed: String): String {
-        return when (apiBreed) {
-            // DOG
-            "POMERANIAN" -> "포메라니안"
-            "STANDARD_POODLE", "TOY_POODLE", "MINIATURE_POODLE" -> "푸들"
-            "MALTESE_DOG" -> "말티즈"
-            "GOLDEN_RETRIEVER" -> "골든 리트리버"
-            "CHIHUAHUA" -> "치와와"
-            "BEAGLE" -> "비글"
-            "YORKSHIRE_TERRIER" -> "요크셔 테리어"
-            "SHIH_TZU" -> "시추"
-            "PUG" -> "퍼그"
-
-            // CAT
-            "KOREAN_SHORTHAIR" -> "코리안 숏헤어"
-            "RUSSIAN_BLUE" -> "러시안 블루"
-            "PERSIAN" -> "페르시안"
-            "SIAMESE" -> "샴"
-            "MUNCHKIN" -> "먼치킨"
-            "SCOTTISH_FOLD" -> "스코티시 폴드"
-            "RAGDOLL" -> "랙돌"
-
-            // RABBIT
-            "NETHERLAND_DWARF" -> "네덜란드 드워프"
-            "MINI_REX" -> "미니 렉스"
-            "LIONHEAD" -> "라이언헤드"
-
-            // HAMSTER
-            "GOLDEN_HAMSTER" -> "골든 햄스터"
-            "TEDDY_BEAR_HAMSTER" -> "테디베어 햄스터"
-            "CAMPBELL_DWARF" -> "캠벨 햄스터"
-
-            // 기타 등등... 필요한 매핑 추가
-            else -> "기타"
-        }
-    }
+//    private fun mapApiBreedToDisplay(apiBreed: String): String {
+//        return when (apiBreed) {
+//            // DOG
+//            "POMERANIAN" -> "포메라니안"
+//            "STANDARD_POODLE", "TOY_POODLE", "MINIATURE_POODLE" -> "푸들"
+//            "MALTESE_DOG" -> "말티즈"
+//            "GOLDEN_RETRIEVER" -> "골든 리트리버"
+//            "CHIHUAHUA" -> "치와와"
+//            "BEAGLE" -> "비글"
+//            "YORKSHIRE_TERRIER" -> "요크셔 테리어"
+//            "SHIH_TZU" -> "시추"
+//            "PUG" -> "퍼그"
+//
+//            // CAT
+//            "KOREAN_SHORTHAIR" -> "코리안 숏헤어"
+//            "RUSSIAN_BLUE" -> "러시안 블루"
+//            "PERSIAN" -> "페르시안"
+//            "SIAMESE" -> "샴"
+//            "MUNCHKIN" -> "먼치킨"
+//            "SCOTTISH_FOLD" -> "스코티시 폴드"
+//            "RAGDOLL" -> "랙돌"
+//
+//            // RABBIT
+//            "NETHERLAND_DWARF" -> "네덜란드 드워프"
+//            "MINI_REX" -> "미니 렉스"
+//            "LIONHEAD" -> "라이언헤드"
+//
+//            // HAMSTER
+//            "GOLDEN_HAMSTER" -> "골든 햄스터"
+//            "TEDDY_BEAR_HAMSTER" -> "테디베어 햄스터"
+//            "CAMPBELL_DWARF" -> "캠벨 햄스터"
+//
+//            // 기타 등등... 필요한 매핑 추가
+//            else -> "기타"
+//        }
+//    }
 
     private fun mapApiGenderToDisplay(apiGender: String): String {
         return when (apiGender) {
