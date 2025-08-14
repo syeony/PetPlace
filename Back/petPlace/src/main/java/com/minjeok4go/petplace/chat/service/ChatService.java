@@ -3,7 +3,7 @@ package com.minjeok4go.petplace.chat.service;
 import com.minjeok4go.petplace.chat.dto.ChatMessageDTO;
 import com.minjeok4go.petplace.chat.entity.Chat;
 import com.minjeok4go.petplace.chat.entity.ChatRoom;
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.chat.repository.ChatRepository;
 import com.minjeok4go.petplace.chat.repository.ChatRoomRepository;
@@ -48,7 +48,7 @@ public class ChatService {
             List<String> imageUrls = dto.getImageUrls() != null ? dto.getImageUrls() : List.of();
             if (!imageUrls.isEmpty()) {
                 List<Image> images = imageUrls.stream()
-                        .map(url -> new Image(saved.getId(), ImageType.CHAT, url, 0))
+                        .map(url -> new Image(saved.getId(), RefType.CHAT, url, 0))
                         .toList();
                 imageRepository.saveAll(images);
             }

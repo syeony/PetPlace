@@ -15,7 +15,3 @@ public enum FeedCategory {
         this.displayName = displayName;
     }
 }
-
-//public enum FeedCategory {
-//    MYPET, SHARE, INFO, ANY, REVIEW
-//}

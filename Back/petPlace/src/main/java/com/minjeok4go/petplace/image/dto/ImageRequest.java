@@ -1,7 +1,6 @@
 package com.minjeok4go.petplace.image.dto;
 
-import com.minjeok4go.petplace.common.constant.ImageType;
-import jakarta.persistence.Column;
+import com.minjeok4go.petplace.common.constant.RefType;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,7 +17,7 @@ public class ImageRequest {
     private Long refId;
 
     @NotNull
-    private ImageType refType;
+    private RefType refType;
 
     @NotNull
     private String src;

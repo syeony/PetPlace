@@ -1,12 +1,13 @@
 package com.example.petplace.data.model.cares
 
-import com.example.petplace.data.model.feed.ImageRes
 import com.example.petplace.data.model.mypage.MyPageInfoResponse
-import com.example.petplace.presentation.feature.hotel.ApiResponse
 import com.google.gson.annotations.SerializedName
-import retrofit2.http.GET
-import retrofit2.http.Query
 
+data class CreateImage(
+    val id: Int? = null,          // 신규 업로드는 서버에서 채우거나 무시
+    val src: String,              // 업로드 후 받은 URL
+    val sort: Int                 // 1,2,3... (피드 썸네일=1)
+)
 
 data class CareDetailDto(
     val id: Long,
@@ -30,7 +31,7 @@ data class CareDetailDto(
     val views: Int,
     val createdAt: String,
     val updatedAt: String,
-    val images: List<MyPageInfoResponse.ImageInfo>
+    val images: List<CreateImage> = emptyList()
 )
 
 enum class CareCategory {
@@ -67,7 +68,7 @@ data class CareSummary(
     val categoryDescription: String?,
     val status: CareStatus,
     val startDatetime: String?, // ISO-8601 string, e.g. 2025-08-12T14:30:00
-    val endDatetime: String?,
+    val endDatetime: String?
 )
 
 // 상세 응답 (필요 시 서버 스키마에 맞춰 확장)
@@ -91,7 +92,7 @@ data class CareDetail(
     val status: CareStatus,
     val startDatetime: String?,
     val endDatetime: String?,
-    val imageUrls: List<String> = emptyList()
+    val images: List<CreateImage> = emptyList()
 )
 
 // 생성 요청 — 스웨거 예시를 그대로 반영
@@ -106,7 +107,7 @@ data class CareCreateRequest(
     val endDate: String? = null,    // ← nullable
     val startTime: String? = null,  // ← nullable
     val endTime: String? = null,    // ← nullable
-    val imageUrls: List<String> = emptyList()
+    val images: List<MyPageInfoResponse.ImageInfo> = emptyList()
 )
 
 
@@ -142,6 +143,7 @@ data class PageResponse<T>(
     val last: Boolean,
     val empty: Boolean
 )
+
 data class Pageable(
     val paged: Boolean,
     val pageNumber: Int,
@@ -156,19 +158,11 @@ data class Sort(
     val empty: Boolean,
     val unsorted: Boolean
 )
-interface CaresApiService {
-    @GET("/api/cares")
-    suspend fun getCares(
-        @Query("page") page: Int = 0,
-        @Query("size") size: Int = 20,
-        @Query("regionId") regionId: Long? = null,
-        @Query("category") category: CareCategory? = null,
-        @Query("sort") sort: String? = "createdAt,desc"
-    ): retrofit2.Response<ApiResponse<PageResponse<CareItem>>> // ★ 여기!
-}
+
 data class CareItem(
     val id: Long,
     val title: String?,
+    val content: String?,
     val userId: Long?,
     val userNickname: String?,
     val userImg: String?,
@@ -183,5 +177,6 @@ data class CareItem(
     val startDatetime: String?,
     val endDatetime: String?,
     val views: Long?,
-    val createdAt: String?
+    val createdAt: String?,
+    val images: List<MyPageInfoResponse.ImageInfo>
 )

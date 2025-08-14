@@ -6,8 +6,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.remote.TokenApiService
 import com.example.petplace.data.repository.MyPageRepository
 import com.example.petplace.data.repository.ImageRepository
+import com.example.petplace.util.CommonUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,7 +57,8 @@ data class MyPageUiState(
 @HiltViewModel
 class MyPageViewModel @Inject constructor(
     private val myPageRepository: MyPageRepository,
-    private val imageRepository: ImageRepository // ImageRepository 추가
+    private val imageRepository: ImageRepository, // ImageRepository 추가
+    private val tokenApiService: TokenApiService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MyPageUiState())
@@ -161,6 +164,10 @@ class MyPageViewModel @Inject constructor(
             try {
                 val app = PetPlaceApp.getAppContext() as? PetPlaceApp
                 app?.clearLoginData()
+                val fcmToken = CommonUtils.getFcmToken()
+                if (fcmToken != null) {
+                    tokenApiService.deactivateFcmToken(fcmToken)
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
             }

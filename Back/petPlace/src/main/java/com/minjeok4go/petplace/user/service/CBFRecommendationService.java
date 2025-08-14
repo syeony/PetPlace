@@ -2,7 +2,7 @@ package com.minjeok4go.petplace.user.service;
 
 import com.minjeok4go.petplace.comment.repository.CommentRepository;
 import com.minjeok4go.petplace.common.constant.Animal;
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.feed.dto.FeedDetailResponse;
 import com.minjeok4go.petplace.feed.dto.FeedListResponse;
 import com.minjeok4go.petplace.feed.dto.FeedTagJoin;
@@ -460,7 +460,7 @@ public class CBFRecommendationService {
         List<Feed> feeds = feedRepository.findAllById(finalIds);
         Map<Long, Feed> feedById = feeds.stream().collect(Collectors.toMap(Feed::getId, Function.identity()));
 
-        List<Image> images = imageRepository.findAllByRefTypeAndRefIdInOrderBySortAsc(ImageType.FEED, finalIds);
+        List<Image> images = imageRepository.findAllByRefTypeAndRefIdInOrderBySortAsc(RefType.FEED, finalIds);
         Map<Long, List<ImageResponse>> imagesByFeed = images.stream()
                 .collect(Collectors.groupingBy(
                         Image::getRefId,

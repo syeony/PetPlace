@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.minjeok4go.petplace.hotel.entity.Reservation;
 import com.minjeok4go.petplace.hotel.service.ReservationService;
-import com.minjeok4go.petplace.notification.service.NotificationService;
+import com.minjeok4go.petplace.notification.service.FCMNotificationService;
 import com.minjeok4go.petplace.payment.dto.*; // 모든 DTO 임포트
 import com.minjeok4go.petplace.payment.entity.Payment;
 import com.minjeok4go.petplace.payment.repository.PaymentRepository;
@@ -18,14 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import java.util.Objects;
-import java.util.Optional;
 
 import static com.minjeok4go.petplace.common.util.PaymentUtil.generateMerchantUid;
 
@@ -36,7 +31,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final ReservationService reservationService;
-    private final NotificationService notificationService;
+    private final FCMNotificationService FCMNotificationService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper(); // ObjectMapper를 Bean으로 주입받거나 필드로 생성
 
@@ -181,7 +176,7 @@ public class PaymentService {
         reservationService.confirmReservation(payment.getReservationId());
 
         // 7. 알림 전송
-        notificationService.sendPaymentSuccessNotification(payment);
+        FCMNotificationService.sendPaymentSuccessNotification(payment);
 
         log.info("웹훅 결제 완료 처리 성공 - paymentId: {}, merchantUid: {}", paymentId, merchantUid);
     }
@@ -313,7 +308,7 @@ public class PaymentService {
         reservationService.confirmReservation(payment.getReservationId());
 
         // 5. 알림 전송
-        notificationService.sendPaymentSuccessNotification(payment);
+        FCMNotificationService.sendPaymentSuccessNotification(payment);
 
         log.info("V1 웹훅 결제 완료 처리 성공 - impUid: {}, merchantUid: {}", impUid, merchantUid);
     }
