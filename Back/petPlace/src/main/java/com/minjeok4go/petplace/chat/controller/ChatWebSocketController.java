@@ -2,7 +2,7 @@ package com.minjeok4go.petplace.chat.controller;
 
 import com.minjeok4go.petplace.chat.dto.ChatMessageDTO;
 import com.minjeok4go.petplace.chat.dto.ReadUpdateDTO;
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
 import com.minjeok4go.petplace.chat.service.ChatService;
@@ -36,7 +36,7 @@ public class ChatWebSocketController {
         if (dto.getImageUrls() != null && !dto.getImageUrls().isEmpty()) {
             List<String> imageUrls = dto.getImageUrls();
             List<Image> images = imageUrls.stream()
-                    .map(url -> new Image(resultDto.getChatId(), ImageType.CHAT, url, 0)) // 수정: saved → resultDto.getId()
+                    .map(url -> new Image(resultDto.getChatId(), RefType.CHAT, url, 0)) // 수정: saved → resultDto.getId()
                     .toList();
             imageRepository.saveAll(images);
         }

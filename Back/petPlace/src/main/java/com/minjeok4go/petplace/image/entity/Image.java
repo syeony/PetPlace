@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.image.entity;
 
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,7 +25,7 @@ public class Image {
 
     @Column(name = "ref_type", nullable = false)
     @Enumerated(EnumType.STRING)
-    private ImageType refType;
+    private RefType refType;
 
     @Column(name = "src", nullable = false)
     private String src;
@@ -37,7 +37,7 @@ public class Image {
     @CreatedDate
     private LocalDateTime createdAt;
 
-    public Image(Long refId, ImageType refType, String src, Integer sort) {
+    public Image(Long refId, RefType refType, String src, Integer sort) {
         this.refId = refId;
         this.refType = refType;
         this.src = src;

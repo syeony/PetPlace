@@ -7,6 +7,7 @@ import com.minjeok4go.petplace.comment.dto.MyComment;
 import com.minjeok4go.petplace.comment.entity.Comment;
 import com.minjeok4go.petplace.comment.repository.CommentRepository;
 import com.minjeok4go.petplace.common.constant.ActivityType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.service.FeedService;
 import com.minjeok4go.petplace.user.entity.User;
