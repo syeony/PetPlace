@@ -1,6 +1,8 @@
 package com.minjeok4go.petplace.user.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.minjeok4go.petplace.region.repository.RegionRepository;
+import com.minjeok4go.petplace.user.dto.DongAuthenticationResponse;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
@@ -9,10 +11,12 @@ import com.minjeok4go.petplace.user.repository.UserRepository;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Point;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.minjeok4go.petplace.region.entity.Region;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +31,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PortOneApiService portOneApiService;
+    private final RegionRepository regionRepository;
+    private final LocationService locationService;
+
 
     /**
      * 본인인증 + 회원가입 통합 처리
@@ -160,13 +167,21 @@ public class UserService {
 
     private User createUser(UserSignupRequestDto requestDto, VerificationData verificationData) {
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
+        // ✅ 1. DTO에서 regionId를 가져옵니다 (없으면 기본값 1L 사용).
+        Long regionId = requestDto.getRegionId() != null ? requestDto.getRegionId() : 1L;
+
+        // ✅ 2. regionId를 사용해 DB에서 실제 Region 엔티티를 조회합니다.
+        // 만약 해당 ID의 Region이 DB에 없으면 예외가 발생하여 회원가입이 중단됩니다.
+        Region region = regionRepository.findById(regionId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 지역 ID입니다: " + regionId));
+
 
         return User.builder()
                 .userName(requestDto.getUserName())
                 .password(encodedPassword)
                 .name(verificationData.getName())
                 .nickname(requestDto.getNickname())
-                .regionId(requestDto.getRegionId() != null ? requestDto.getRegionId() : 1L)
+                .region(region)
                 .ci(verificationData.getCi())
                 .phoneNumber(verificationData.getPhone())
                 .gender(verificationData.getGender())
@@ -185,4 +200,67 @@ public class UserService {
     public User updateUser(User user) {
         return userRepository.save(user);
     }
+
+    /**
+     * 동네 인증 기능
+     * 사용자의 현재 위치를 기반으로 행정동을 판별하고 사용자 정보를 업데이트합니다.
+     */
+    @Transactional
+    public DongAuthenticationResponse authenticateDong(Long userId, double lat, double lon) {
+        log.info("동네 인증 시작 - 사용자 ID: {}, 좌표: ({}, {})", userId, lat, lon);
+
+        // 1. 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 2. 좌표 유효성 검증
+        if (lat < 33.0 || lat > 43.0 || lon < 124.0 || lon > 132.0) {
+            throw new IllegalArgumentException("대한민국 영역 내의 좌표가 아닙니다.");
+        }
+
+        // 3. LocationService를 통해 지역 찾기
+        RegionData regionData = locationService.findRegionFromWgs84(lon, lat);
+        if (regionData == null) {
+            throw new IllegalArgumentException("해당 좌표에 해당하는 지역을 찾을 수 없습니다.");
+        }
+
+        // 4. Region 엔티티 조회 또는 생성
+        Region region = regionRepository.findById(regionData.getId())
+                .orElseGet(() -> {
+                    log.info("새로운 지역 생성 - ID: {}, 이름: {}", regionData.getId(), regionData.getName());
+                    // geometry 컬럼을 사용자의 현재 위치로 설정
+                    Point centerPoint = locationService.getPointFromWgs84(lon, lat);
+                    Region newRegion = Region.builder()
+                            .id(regionData.getId())
+                            .name(regionData.getName())
+                            .geometry(centerPoint)
+                            .build();
+                    return regionRepository.save(newRegion);
+                });
+
+        // 5. 사용자의 지역 정보 업데이트
+        user.updateRegion(region);
+        userRepository.save(user);
+
+        log.info("사용자 {}의 동네 인증 완료: {} ({})", userId, region.getName(), region.getId());
+
+        return DongAuthenticationResponse.of(region.getId(), region.getName());
+    }
+
+    /**
+     * 테스트용 메서드 - 좌표만으로 지역 확인 (DB 업데이트 없음)
+     */
+    public DongAuthenticationResponse findRegionByCoordinates(double lat, double lon) {
+        if (lat < 33.0 || lat > 43.0 || lon < 124.0 || lon > 132.0) {
+            throw new IllegalArgumentException("대한민국 영역 내의 좌표가 아닙니다.");
+        }
+
+        RegionData regionData = locationService.findRegionFromWgs84(lon, lat);
+        if (regionData == null) {
+            throw new IllegalArgumentException("해당 좌표에 해당하는 지역을 찾을 수 없습니다.");
+        }
+
+        return DongAuthenticationResponse.of(regionData.getId(), regionData.getName());
+    }
+
 }

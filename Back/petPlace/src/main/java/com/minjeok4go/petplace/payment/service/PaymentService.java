@@ -27,6 +27,8 @@ import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.minjeok4go.petplace.common.util.PaymentUtil.generateMerchantUid;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
