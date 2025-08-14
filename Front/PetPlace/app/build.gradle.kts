@@ -148,6 +148,11 @@ dependencies {
     implementation("com.github.CanHub:Android-Image-Cropper:4.3.2")
     implementation("com.github.yalantis:ucrop:2.2.8")
 
+    //TFLite
+    implementation ("org.tensorflow:tensorflow-lite:2.14.0")
+
+
+
     // 권한 요청
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")
 
