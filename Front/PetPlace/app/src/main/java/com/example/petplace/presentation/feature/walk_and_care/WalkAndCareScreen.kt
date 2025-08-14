@@ -3,6 +3,8 @@ package com.example.petplace.presentation.feature.walk_and_care
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -48,11 +50,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
@@ -68,29 +72,27 @@ fun WalkAndCareScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
     viewModel: WalkAndCareViewModel = hiltViewModel(),
-    // ✅ 현재 위치를 상위에서 주입받도록(이미 어플에 위치 모듈 있을 가능성 높음)
     currentLat: Double? = null,
     currentLon: Double? = null
 ) {
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val search = viewModel.searchText.collectAsState()
     val posts by viewModel.filteredPosts.collectAsState()
-    val regionName by viewModel.regionName.collectAsState() // ✅ 동네 상태
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val regionName by viewModel.regionName.collectAsState()
 
-    // 1) 권한 상태
-    // ✅ 올바른 코드
-    val permissionLauncher =
-        androidx.activity.compose.rememberLauncherForActivityResult(
-            contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-        ) { /* onResult */ }
+    val context = LocalContext.current
 
-    // 2) 최초 진입 시 권한 없으면 요청
+    // 위치 권한 런처
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { /* no-op */ }
+
+    // 최초 진입 시 권한 요청
     LaunchedEffect(Unit) {
         val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
         val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
-        val pm = androidx.core.content.ContextCompat.checkSelfPermission(context, fine)
-        val pm2 = androidx.core.content.ContextCompat.checkSelfPermission(context, coarse)
+        val pm = ContextCompat.checkSelfPermission(context, fine)
+        val pm2 = ContextCompat.checkSelfPermission(context, coarse)
         if (pm != android.content.pm.PackageManager.PERMISSION_GRANTED &&
             pm2 != android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
@@ -98,30 +100,28 @@ fun WalkAndCareScreen(
         }
     }
 
-    // 3) 권한이 있으면 실제 좌표 한 번 가져와서 호출
+    // 권한 있으면 현재 위치 가져와서 region 인증
     LaunchedEffect(regionName) {
-        // regionName이 아직 없을 때만 시도 (중복 호출 방지)
         if (regionName != null) return@LaunchedEffect
-
         val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
         val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
-        val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(context, fine) ==
+        val hasFine = ContextCompat.checkSelfPermission(context, fine) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
-        val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(context, coarse) ==
+        val hasCoarse = ContextCompat.checkSelfPermission(context, coarse) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
 
         if (hasFine || hasCoarse) {
             val loc = LocationProvider.getCurrentLocation(context)
             if (loc != null) {
-                android.util.Log.d("WalkAndCareScreen", "GPS lat=${loc.latitude}, lon=${loc.longitude}")
+                Log.d("WalkAndCareScreen", "GPS lat=${loc.latitude}, lon=${loc.longitude}")
                 viewModel.setRegionByLocation(loc.latitude, loc.longitude)
             } else {
-                android.util.Log.e("WalkAndCareScreen", "현재 위치를 가져오지 못했습니다 (null)")
+                Log.e("WalkAndCareScreen", "현재 위치를 가져오지 못했습니다 (null)")
             }
         }
     }
 
-    // ✅ 첫 진입 시 위치가 있으면 인증 호출
+    // 외부에서 좌표 주입 시
     LaunchedEffect(currentLat, currentLon) {
         if (currentLat != null && currentLon != null) {
             viewModel.setRegionByLocation(currentLat, currentLon)
@@ -130,15 +130,15 @@ fun WalkAndCareScreen(
 
     val hashtagColor = Color(0xFFFFE0B3)
 
-    // ✅ 작성 성공 신호 감지
+    // 작성 성공 감지 → 새로고침
     val handle = navController.currentBackStackEntry?.savedStateHandle
     val postCreated by remember(handle) {
         handle?.getStateFlow("walk_post_created", false)
-    }?.collectAsState() ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    }?.collectAsState() ?: remember { androidx.compose.runtime.mutableStateOf(false) }
 
     LaunchedEffect(postCreated) {
         if (postCreated) {
-            viewModel.fetchPosts()                       // ✅ 바로 새로고침
+            viewModel.fetchPosts()
             handle?.remove<Boolean>("walk_post_created")
             handle?.remove<Long>("walk_post_id")
         }
@@ -147,37 +147,32 @@ fun WalkAndCareScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { navController.navigate("walk_write") },   // ✅ 이동
+                onClick = { navController.navigate("walk_write") },
                 containerColor = Color(0xFFF79800),
-                contentColor   = Color.White,
+                contentColor = Color.White,
                 shape = CircleShape,
                 modifier = Modifier
-                    .padding(end = 16.dp, bottom = 0.dp) // ↓ 바닥 여백 줄이고
-                    .offset(y = 12.dp)                    // ↓ 화면 하단으로 더 내리기
+                    .padding(end = 16.dp, bottom = 0.dp)
+                    .offset(y = 12.dp)
             ) { Icon(Icons.Default.Add, contentDescription = "글쓰기") }
         }
     ) {
         Column(
             modifier = modifier
                 .fillMaxSize()
-//                .background(Color.White)
         ) {
             Column(
                 Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp, horizontal = 16.dp)
-            ){
-                Row(modifier = Modifier
-                    .padding(start = 8.dp)){
+            ) {
+                Row(modifier = Modifier.padding(start = 8.dp)) {
                     Icon(
                         painter = painterResource(id = R.drawable.location_marker),
                         contentDescription = "위치",
-                        modifier = Modifier
-                            .size(16.dp), // 원하는 크기로 조절
-                        tint = Color.Unspecified // 원본 이미지 색상 유지
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.Unspecified
                     )
-//                    Text(" 구미시 인의동", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    // ✅ regionName이 오면 "구미시 {regionName}" 형식으로 표기
                     Text(
                         text = regionName ?: " 동네 확인 중...",
                         fontSize = 16.sp,
@@ -194,22 +189,22 @@ fun WalkAndCareScreen(
                     textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp), // 높이 조정,
+                        .height(48.dp),
                     singleLine = true,
                     shape = RoundedCornerShape(20.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor   = hashtagColor,
+                        focusedBorderColor = hashtagColor,
                         unfocusedBorderColor = hashtagColor,
-                        cursorColor          = hashtagColor,
-                        focusedContainerColor   = Color.White,
+                        cursorColor = hashtagColor,
+                        focusedContainerColor = Color.White,
                         unfocusedContainerColor = Color.White
                     )
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                val columns = 4  // 한 줄에 2개 또는 3개 원하시는 개수 설정
-
+                // 카테고리 필터: enum 라벨 기준(산책구인/산책의뢰/돌봄구인/돌봄의뢰)
+                val columns = 4
                 Column(modifier = Modifier.fillMaxWidth()) {
                     viewModel.allCategories.chunked(columns).forEach { rowItems ->
                         Row(
@@ -217,8 +212,8 @@ fun WalkAndCareScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             rowItems.forEach { cat ->
-                                val picked   = selectedCategory == cat
-                                val bg       = if (picked) MaterialTheme.colorScheme.primary else Color(0xFFFFFDF9)
+                                val picked = selectedCategory == cat
+                                val bg = if (picked) MaterialTheme.colorScheme.primary else Color(0xFFFFFDF9)
                                 val txtColor = if (picked) Color.White else Color(0xFF374151)
 
                                 Button(
@@ -231,13 +226,11 @@ fun WalkAndCareScreen(
                                     contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(30.dp) // 버튼 높이 고정
+                                        .height(30.dp)
                                 ) {
                                     Text(cat, color = txtColor, fontSize = 12.sp)
                                 }
                             }
-
-                            // 빈 공간 채우기 (아이템 수가 columns보다 적을 경우)
                             repeat(columns - rowItems.size) {
                                 Spacer(modifier = Modifier.weight(1f))
                             }
@@ -264,7 +257,7 @@ fun WalkAndCareScreen(
 private fun String.e() = Uri.encode(this)
 
 fun NavController.navigateToWalkDetail(post: Post) {
-    navigate("walk_detail/${post.id}") // ✅ 오직 id만
+    navigate("walk_detail/${post.id}")
 }
 
 @Composable
@@ -272,7 +265,7 @@ fun PostCard(
     post: Post,
     onClick: () -> Unit
 ) {
-    val orange  = Color(0xFFF79800)
+    val orange = Color(0xFFF79800)
     Surface(
         color = Color(0xFFFFFCF9),
         tonalElevation = 1.dp,
@@ -285,7 +278,7 @@ fun PostCard(
                 val style = categoryStyles[post.category] ?: Pair(Color.LightGray, Color.DarkGray)
 
                 Text(
-                    post.category,
+                    post.category, // 이미 라벨형(산책구인/산책의뢰/돌봄구인/돌봄의뢰)
                     color = style.second,
                     fontSize = 12.sp,
                     modifier = Modifier
@@ -304,7 +297,7 @@ fun PostCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(5.dp))
-                Column() {
+                Column {
                     InfoRow(
                         icon = Icons.Default.DateRange,
                         iconTint = orange,
@@ -324,7 +317,6 @@ fun PostCard(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // PostCard의 이미지 렌더러 교체
             Image(
                 painter = rememberAsyncImagePainter(
                     fullUrl(post.imageUrl).also {
@@ -338,10 +330,6 @@ fun PostCard(
                     .clip(RoundedCornerShape(12.dp))
                     .align(Alignment.Bottom)
             )
-
-
-
-
         }
     }
 }
@@ -356,39 +344,30 @@ private fun InfoRow(
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text(label, color = Color.Gray, fontSize = 13.sp)   // 회색 라벨
+        Text(label, color = Color.Gray, fontSize = 13.sp)
         Spacer(Modifier.width(8.dp))
         Text(value, color = Color.Gray, fontSize = 13.5.sp)
     }
 }
 
-
 private fun resolveImageUrl(raw: String?): String? {
     if (raw == null) return null
-
-    // 1) 흔한 쓰레기 문자 정리
     var s = raw.trim()
-        .removePrefix("\"").removeSuffix("\"")     // 양끝 따옴표 제거
-        .removePrefix("[").removeSuffix("]")       // 배열 문자열로 올 때
+        .removePrefix("\"").removeSuffix("\"")
+        .removePrefix("[").removeSuffix("]")
     if (s.isBlank() || s.equals("null", true)) return null
-
-    // 2) 여러 개가 콤마/세미콜론으로 올 때 첫 것만
     s = s.split(',', ';').first().trim()
-
-    // 3) 이미 풀 URL이면 그대로
     if (s.startsWith("http://") || s.startsWith("https://")) return s
 
-    // 4) BASE + 경로를 안전하게 합치기 (인코딩 포함)
-    //    Uri.Builder가 경로 세그먼트를 알아서 인코딩해줌
     val base = android.net.Uri.parse(BASE)
-    val clean = s.removePrefix("/") // 절대경로면 슬래시 제거하고 세그먼트로 추가
+    val clean = s.removePrefix("/")
     val segments = clean.split('/').filter { it.isNotBlank() }
 
-    val builder = base.buildUpon().encodedPath(null) // 기존 path 초기화
-    segments.forEach { seg -> builder.appendPath(seg) } // 각 세그먼트 인코딩
+    val builder = base.buildUpon().encodedPath(null)
+    segments.forEach { seg -> builder.appendPath(seg) }
+    return builder.build().toString()
+}
 
-    return builder.build().toString() // 예: http://.../images/1755071....jpg
-}// 공용: null/빈값/슬래시 정리
 private fun fullUrl(path: String?): Any {
     val p = path?.trim().orEmpty()
     if (p.isBlank() || p.equals("null", true)) return R.drawable.pp_logo

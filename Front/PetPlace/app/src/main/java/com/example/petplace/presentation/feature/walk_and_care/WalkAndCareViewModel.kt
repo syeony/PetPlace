@@ -1,4 +1,3 @@
-// WalkAndCareViewModel.kt
 package com.example.petplace.presentation.feature.walk_and_care
 
 import android.util.Log
@@ -23,7 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class WalkAndCareViewModel @Inject constructor(
     private val caresRepository: CaresRepository,
-    private val userApi: UserApiService, // ✅ Repo 대신 ApiService 직접 주입
+    private val userApi: UserApiService,
 ) : ViewModel() {
 
     private val _regionName = MutableStateFlow<String?>(null)
@@ -55,15 +54,13 @@ class WalkAndCareViewModel @Inject constructor(
             _regionName.value = " $finalName"
             _regionId.value = finalId
 
-            // ✅ regionId가 생겼으니 바로 리스트 호출
             if (finalId != null) {
                 fetchPosts(page = 0, size = 20)
             }
         }
     }
 
-    // ───────── 아래는 기존 코드 그대로 ─────────
-
+    // ───────── 검색/필터 상태 ─────────
     private val _searchText = MutableStateFlow("")
     val searchText: StateFlow<String> = _searchText.asStateFlow()
 
@@ -72,14 +69,14 @@ class WalkAndCareViewModel @Inject constructor(
 
     private val _allPosts = MutableStateFlow<List<Post>>(emptyList())
 
-    val allCategories: List<String> = listOf("산책구인", "돌봄구인", "산책의뢰", "돌봄의뢰")
+    // UI 버튼용 고정 라벨 (enum → 라벨 매핑 결과)
+    val allCategories: List<String> = listOf("산책구인", "산책의뢰", "돌봄구인", "돌봄의뢰")
 
     val filteredPosts: StateFlow<List<Post>> =
         combine(_allPosts, _selectedCategory, _searchText) { list, selected, query ->
             val q = query.trim()
             list.filter { p ->
-                val matchesCategory = selected == null ||
-                        normalizeCategoryLabel(p.category) == normalizeCategoryLabel(selected)
+                val matchesCategory = selected == null || p.category == selected
                 val matchesQuery = q.isBlank() ||
                         p.title.contains(q, ignoreCase = true) ||
                         p.body.contains(q, ignoreCase = true)
@@ -88,8 +85,6 @@ class WalkAndCareViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {
-        // ❌ 기존에 fetchPosts()가 있었다면 제거
-        // ✅ regionId가 들어오면 자동으로 리스트 갱신
         viewModelScope.launch {
             regionId.collect { id ->
                 if (id != null) fetchPosts()
@@ -128,9 +123,8 @@ class WalkAndCareViewModel @Inject constructor(
 
                         Post(
                             id = care.id,
-                            category = normalizeCategoryLabel(
-                                care.categoryDescription ?: mapEnumToKoreanLabel(care.category)
-                            ),
+                            // ✅ enum 기준으로만 라벨 생성
+                            category = displayLabelFromCategoryEnum(care.category),
                             title = care.title.orEmpty(),
                             body = care.content.orEmpty(),
                             date = dateText,
@@ -147,26 +141,17 @@ class WalkAndCareViewModel @Inject constructor(
         }
     }
 
-    private fun normalizeCategoryLabel(src: String?): String {
-        val k = src?.trim()?.replace(" ", "")?.uppercase() ?: return "산책구인"
-        return when (k) {
-            "산책구인", "산책구해요", "WALK_WANT" -> "산책구인"
-            "돌봄구인", "돌봄구해요", "CARE_WANT" -> "돌봄구인"
-            "산책의뢰", "산책해줄게요", "WALK_OFFER" -> "산책의뢰"
-            "돌봄의뢰", "돌봄해줄게요", "CARE_OFFER", "CARE_REQ" -> "돌봄의뢰"
-            else -> "산책구인"
-        }
-    }
-
-    private fun mapEnumToKoreanLabel(enumName: String?): String =
+    // ---------- enum → 화면 라벨 ----------
+    private fun displayLabelFromCategoryEnum(enumName: String?): String =
         when (enumName?.uppercase()) {
-            "WALK_WANT"  -> "산책구인"
-            "CARE_WANT"  -> "돌봄구인"
-            "WALK_OFFER" -> "산책의뢰"
-            "CARE_OFFER", "CARE_REQ" -> "돌봄의뢰"
-            else -> "산책구인"
+            "WALK_WANT" -> "산책구인"
+            "WALK_REQ"  -> "산책의뢰"
+            "CARE_WANT" -> "돌봄구인"
+            "CARE_REQ"  -> "돌봄의뢰"
+            else        -> "산책구인"
         }
 
+    // ---------- 날짜/시간 포맷 ----------
     private fun formatDateRange(start: String?, end: String?): String {
         val s = start?.takeIf { it.length >= 10 }?.substring(5, 10)?.replace("-", ".")
         val e = end?.takeIf { it.length >= 10 }?.substring(5, 10)?.replace("-", ".")
@@ -197,7 +182,7 @@ class WalkAndCareViewModel @Inject constructor(
     }
 }
 
-// 카드 썸네일 선택 유틸
+// 카드 썸네일 선택
 private fun pickPreviewImage(care: CareItem): String {
     val primary = care.images.firstOrNull { it.sort == 0 }?.src
     if (!primary.isNullOrBlank()) return primary

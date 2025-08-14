@@ -117,13 +117,16 @@ fun WalkPostDetailScreen(
 
             ui.data != null -> {
                 val data = ui.data!!
-                val categoryKo = data.categoryDescription ?: mapEnumToKoreanLabel(data.category.name)
+
+                // ✅ categoryDescription 완전 무시, enum만 매핑
+                val categoryKo = displayLabelFromCategoryEnum(data.category?.name)
                 val avatar = fullUrlOrNull(data.userImg) ?: R.drawable.pp_logo
                 val images: List<Any> =
                     data.images
                         .sortedBy { it.sort }
-                        .map { img -> fullUrlOrNull(img.src) ?: R.drawable.pp_logo } // 개별 항목도 비어있으면 로고
-                        .ifEmpty { listOf(R.drawable.pp_logo) }                       // 전체가 비어있으면 로고 1장
+                        .map { img -> fullUrlOrNull(img.src) ?: R.drawable.pp_logo }
+                        .ifEmpty { listOf(R.drawable.pp_logo) }
+
                 val dateText = formatDateRange(data.startDatetime, data.endDatetime)
                 val timeText = formatTimeRange(data.startDatetime, data.endDatetime)
 
@@ -178,7 +181,7 @@ fun WalkPostDetailScreen(
                         )
                     }
 
-                    // 본문: 개별 item에만 좌우 패딩
+                    // 본문 (좌우 패딩)
                     item {
                         Spacer(Modifier.height(12.dp))
                         Text(
@@ -186,7 +189,7 @@ fun WalkPostDetailScreen(
                             fontSize = 14.sp,
                             color = Color(0xFF4B5563),
                             modifier = Modifier
-                                .padding(horizontal = 16.dp, vertical = 10.dp) // 이미지와 다르게 여기만 패딩
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
                         )
                     }
 
@@ -196,9 +199,9 @@ fun WalkPostDetailScreen(
 
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()     // 양옆 끝까지
-                                .aspectRatio(1f)    // 1:1 정방형
-                                .background(Color.Black) // 로딩 중 비는 느낌 방지(선택)
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .background(Color.Black)
                         ) {
                             HorizontalPager(
                                 state = pagerState,
@@ -213,7 +216,6 @@ fun WalkPostDetailScreen(
                                 )
                             }
 
-                            // 🔹 인디케이터는 이미지 박스 '안'에 오버레이 (다음 아이템과 안 부딪힘)
                             if (images.size > 1) {
                                 Row(
                                     modifier = Modifier
@@ -312,11 +314,12 @@ private fun formatTimeRange(start: String?, end: String?): String {
     }
 }
 
-private fun mapEnumToKoreanLabel(enumName: String?): String =
+// ✅ enum → 화면 라벨 (categoryDescription 무시)
+private fun displayLabelFromCategoryEnum(enumName: String?): String =
     when (enumName?.uppercase()) {
-        "WALK_WANT"  -> "산책구인"
-        "CARE_WANT"  -> "돌봄구인"
-        "WALK_REQ", "WALK_OFFER" -> "산책의뢰"
-        "CARE_REQ", "CARE_OFFER" -> "돌봄의뢰"
-        else -> "산책구인"
+        "WALK_WANT" -> "산책구인"
+        "WALK_REQ"  -> "산책의뢰"
+        "CARE_WANT" -> "돌봄구인"
+        "CARE_REQ"  -> "돌봄의뢰"
+        else        -> "산책구인"
     }
