@@ -890,6 +890,7 @@ CREATE TABLE `sighting_matches` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `sighting_id` BIGINT NOT NULL COMMENT '목격 제보 ID',
     `missing_report_id` BIGINT NOT NULL COMMENT '연결된 실종 신고 ID',
+	`image_id` BIGINT NULL COMMENT '매칭에 사용된 실종신고 이미지 ID(선택)',
     `score` DECIMAL(5, 4) NOT NULL COMMENT '모델이 계산한 유사도 점수 (0.0000 ~ 1.0000)',
     `status` ENUM('PENDING', 'CONFIRMED', 'REJECTED') NOT NULL DEFAULT 'PENDING' COMMENT '매칭 상태 (대기, 주인 확인, 관계 없음)',
     `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '매칭 생성일시',

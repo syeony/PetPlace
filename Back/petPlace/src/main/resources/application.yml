@@ -23,7 +23,9 @@ spring:
       max-request-size: 20MB
   web:
     resources:
-      static-locations: file:/home/ubuntu/upload/images/
+#      static-locations: file:/home/ubuntu/upload/images/
+      static-locations: file:/data/images/
+
       cache:
         cachecontrol:
           cache-public: true
@@ -74,3 +76,12 @@ ai:
     base-url: http://similarity:8083    # compose 서비스명:포트
     connect-timeout-ms: 3000
     read-timeout-ms: 15000
+
+app:
+  upload:
+    base: /data/images
+    lost-pets: ${app.upload.base}/lost_pets_images
+    sightings: ${app.upload.base}/sighting_images
+
+service:
+  internal-token: ${SERVICE_INTERNAL_TOKEN:}  # 내부 토큰

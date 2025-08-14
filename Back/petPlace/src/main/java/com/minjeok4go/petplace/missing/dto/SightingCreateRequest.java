@@ -42,4 +42,12 @@ public class SightingCreateRequest {
     @NotEmpty(message = "목격 사진은 최소 1개 이상 필수입니다")
     @Size(max = 5, message = "이미지는 최대 5개까지 등록 가능합니다")
     private List<MissingImageRequest> images;
+
+    // ↓↓↓ 선택/권장: 온디바이스 결과를 그대로 받기
+    private String species;   // "dog" | "cat" (optional, 없으면 서버 기본)
+    private Integer xmin;
+    private Integer ymin;
+    private Integer xmax;
+    private Integer ymax;
+    private Double wFace;     // optional
 }

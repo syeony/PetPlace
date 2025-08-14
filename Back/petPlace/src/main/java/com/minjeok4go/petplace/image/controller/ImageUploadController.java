@@ -19,7 +19,7 @@ public class ImageUploadController {
 
     private static final String UPLOAD_DIR = System.getProperty("os.name").toLowerCase().contains("win")
             ? "C:/Users/SSAFY/Desktop/test_folder/"
-            : "/home/ubuntu/upload/images/";
+            : "/data/images/";
 
     @Operation(
             summary = "여러 이미지 업로드",

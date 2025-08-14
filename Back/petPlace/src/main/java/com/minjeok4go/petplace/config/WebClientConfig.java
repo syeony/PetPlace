@@ -54,15 +54,12 @@ public class WebClientConfig {
     }
 
     @Bean
-    @Qualifier("aiWebClient")                 // ← 이름 구분용 Qualifier
-    public WebClient aiWebClient(AiProps props) {
-        HttpClient http = HttpClient.create()
-                .responseTimeout(Duration.ofMillis(props.getReadTimeoutMs()))
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, props.getConnectTimeoutMs());
-
+    @Qualifier("aiWebClient")
+    WebClient aiWebClient(@Value("${ai.similarity.base-url}") String baseUrl,
+                          @Value("${service.internal-token}") String token) {
         return WebClient.builder()
-                .baseUrl(props.getBaseUrl()) // http://similarity:8083
-                .clientConnector(new ReactorClientHttpConnector(http))
+                .baseUrl(baseUrl)
+                .defaultHeader("X-Service-Token", token)
                 .build();
     }
 }

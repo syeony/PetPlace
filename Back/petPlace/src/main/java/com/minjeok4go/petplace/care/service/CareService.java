@@ -189,7 +189,7 @@ public class CareService {
     public Page<CareListResponseDto> getCaresByRegion(Long regionId, Pageable pageable) {
         return careRepository.findByRegionIdAndNotDeleted(regionId, pageable)
                 .map(care -> {
-                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    List<ImageResponse> images = imageService.getImages(RefType.CARE, care.getId());
                     return CareListResponseDto.from(care, images);
                 });
     }
@@ -200,7 +200,7 @@ public class CareService {
     public Page<CareListResponseDto> getCaresByCategory(Long regionId, CareCategory category, Pageable pageable) {
         return careRepository.findByRegionIdAndCategoryAndNotDeleted(regionId, category, pageable)
                 .map(care -> {
-                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    List<ImageResponse> images = imageService.getImages(RefType.CARE, care.getId());
                     return CareListResponseDto.from(care, images);
                 });
     }
@@ -211,7 +211,7 @@ public class CareService {
     public Page<CareListResponseDto> getCaresByStatus(Long regionId, CareStatus status, Pageable pageable) {
         return careRepository.findByRegionIdAndStatusAndNotDeleted(regionId, status, pageable)
                 .map(care -> {
-                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    List<ImageResponse> images = imageService.getImages(RefType.CARE, care.getId());
                     return CareListResponseDto.from(care, images);
                 });
     }
@@ -222,7 +222,7 @@ public class CareService {
     public Page<CareListResponseDto> getCaresByUser(Long userId, Pageable pageable) {
         return careRepository.findByUserIdAndNotDeleted(userId, pageable)
                 .map(care -> {
-                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    List<ImageResponse> images = imageService.getImages(RefType.CARE, care.getId());
                     return CareListResponseDto.from(care, images);
                 });
     }
@@ -233,7 +233,7 @@ public class CareService {
     public Page<CareListResponseDto> searchCares(Long regionId, String keyword, Pageable pageable) {
         return careRepository.findByRegionIdAndKeywordAndNotDeleted(regionId, keyword, pageable)
                 .map(care -> {
-                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    List<ImageResponse> images = imageService.getImages(RefType.CARE, care.getId());
                     return CareListResponseDto.from(care, images);
                 });
     }
@@ -245,7 +245,7 @@ public class CareService {
                                                                CareStatus status, String keyword, Pageable pageable) {
         return careRepository.findByComplexConditionsAndNotDeleted(regionId, category, status, keyword, pageable)
                 .map(care -> {
-                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    List<ImageResponse> images = imageService.getImages(RefType.CARE, care.getId());
                     return CareListResponseDto.from(care, images);
                 });
     }

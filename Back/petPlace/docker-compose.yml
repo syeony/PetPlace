@@ -41,8 +41,10 @@ services:
       LOGGING_LEVEL_ORG_HIBERNATE_SQL: OFF
       LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL: OFF
 
-      SPRING_WEB_RESOURCES_STATIC_LOCATIONS: file:/home/ubuntu/upload/images/
+      SPRING_WEB_RESOURCES_STATIC_LOCATIONS: file:/data/images/
       SPRING_MVC_STATIC_PATH_PATTERN: /images/**
+      APP_UPLOAD_BASE: /data/images
+      SERVICE_INTERNAL_TOKEN: "8dc532ca613b8557aa910f724a13426068a43486b1510cac00ce28361d4930ac"
 
       # --- Redis (compose 네트워크 이름 'redis' 사용) ---
       SPRING_DATA_REDIS_HOST: redis
@@ -64,7 +66,7 @@ services:
 
 
     volumes:
-      - /home/ubuntu/upload/images:/home/ubuntu/upload/images
+      - /home/ubuntu/upload/images:/data/images:rw
     ports:
       - "8081:8081"
     restart: always
@@ -77,16 +79,22 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Asia/Seoul
-      - USE_SERVER_YOLO=1            # 테스트 단계: 서버에서 탐지까지 수행
+      - USE_SERVER_YOLO=0            # 테스트 단계: 서버에서 탐지까지 수행 현재는 끔
       - EMBED_BACKBONE=ViT-B-32
       - EMBED_PRETRAIN=openai
       - W_FACE=0.6
       - INDEX_DIR=/app/index_data
+      - SERVICE_INTERNAL_TOKEN=8dc532ca613b8557aa910f724a13426068a43486b1510cac00ce28361d4930ac
+
     volumes:
+      - /home/ubuntu/upload/images:/data/images:ro  # FastAPI: 읽기 전용
+
       - similarity_index:/app/index_data
     # 스프링(8080/8081)과 충돌 피하려고 외부포트 8083 사용
-    ports:
-      - "8083:8083"
+#    ports:
+#      - "8083:8083"
+    expose:
+      - "8083" #내부에서만 허용
 
 
 
