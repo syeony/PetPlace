@@ -10,38 +10,75 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.*
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallTopAppBar
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import com.example.petplace.R
 import com.example.petplace.data.local.Walk.WalkWriteForm
-import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareWriteViewModel
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -58,10 +95,7 @@ fun WalkAndCareWriteScreen(
     val outline = Color(0xFFE5E7EB)
     val hint    = Color(0xFF9CA3AF)
     val accent  = Color(0xFFF79800)
-    LaunchedEffect(Unit) {
-        if (viewModel.petId.value == null)    viewModel.setPetId(13L)          // 보유 펫 ID로 교체
-        if (viewModel.regionId.value == null) viewModel.setRegionId(4700000000) // 실제 지역 ID(Long)로 교체
-    }
+
     // === state ===
     val category     by viewModel.pickedCat.collectAsState()
     val title        by viewModel.title.collectAsState()
@@ -73,6 +107,63 @@ fun WalkAndCareWriteScreen(
     val imageUris    by viewModel.imageUris.collectAsState()
     val enableSubmit by viewModel.isValid.collectAsState()
     val isSubmitting by viewModel.isSubmitting.collectAsState()
+    val petName  by viewModel.petName.collectAsState()
+    val petBreed by viewModel.petBreed.collectAsState()
+    val petSex   by viewModel.petSex.collectAsState()
+    val petBirthday by viewModel.petBirthday.collectAsState()
+    val petImgSrc by viewModel.petImgSrc.collectAsState()
+
+    // ✅ FamilySelectScreen에서 되돌아올 때 전달된 값 수신
+    val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+
+    val selectedPetId by remember(savedStateHandle) {
+        savedStateHandle?.getStateFlow<Long?>("pet_id", null)
+    }?.collectAsState() ?: remember { mutableStateOf<Long?>(null) }
+
+    val selectedName by remember(savedStateHandle) {
+        savedStateHandle?.getStateFlow<String?>("pet_name", null)
+    }?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
+
+    val selectedBreed by remember(savedStateHandle) {
+        savedStateHandle?.getStateFlow<String?>("pet_breed", null)
+    }?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
+
+    val selectedSex by remember(savedStateHandle) {
+        savedStateHandle?.getStateFlow<String?>("pet_sex", null)
+    }?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
+
+    val selectedBirthday by remember(savedStateHandle) {
+        savedStateHandle?.getStateFlow<String?>("pet_birthday", null)
+    }?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
+
+    val selectedImg by remember(savedStateHandle) {
+        savedStateHandle?.getStateFlow<String?>("pet_img", null)
+    }?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
+
+    // ✅ 값이 들어오면 뷰모델로 반영하고, 키 제거(중복 반영 방지)
+    LaunchedEffect(selectedPetId, selectedName, selectedBreed, selectedSex, selectedBirthday, selectedImg) {
+        if (
+            selectedPetId != null || selectedName != null || selectedBreed != null ||
+            selectedSex != null || selectedBirthday != null || selectedImg != null
+        ) {
+            viewModel.setSelectedPet(
+                name     = selectedName,
+                breed    = selectedBreed,
+                sex      = selectedSex,
+                birthday = selectedBirthday,
+                imgSrc   = selectedImg,
+                id       = selectedPetId
+            )
+            savedStateHandle?.apply {
+                remove<Long>("pet_id")
+                remove<String>("pet_name")
+                remove<String>("pet_breed")
+                remove<String>("pet_sex")
+                remove<String>("pet_birthday")
+                remove<String>("pet_img")
+            }
+        }
+    }
 
     val mode = remember(category) {
         when (category) {
@@ -128,7 +219,15 @@ fun WalkAndCareWriteScreen(
                         )
                     )
                     viewModel.submit(
-                        onSuccess = { navController.popBackStack() },
+                        onSuccess = { newId ->
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.apply {
+                                    set("walk_post_created", true)     // ✅ 성공 신호
+                                    set("walk_post_id", newId)         // 선택: 새 글 ID
+                                }
+                            navController.popBackStack()
+                        },
                         onError = { /* TODO: snackbar */ }
                     )
                 },
@@ -200,6 +299,77 @@ fun WalkAndCareWriteScreen(
                     focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                 )
             )
+
+            /* ───── 반려동물 카드 ───── */
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp)
+                    .clickable { navController.navigate("family/select") },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(2.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 이미지
+                    val fullUrl = petImgSrc?.let {
+                        if (it.startsWith("http")) it else "http://i13d104.p.ssafy.io:8081$it"
+                    }
+                    if (fullUrl != null) {
+                        AsyncImage(
+                            model = fullUrl,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(R.drawable.pp_logo),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                        )
+                    }
+
+                    Spacer(Modifier.width(12.dp))
+
+                    // 텍스트
+                    Column(Modifier.weight(1f)) {
+                        val nameText  = petName ?: "내 펫 선택"
+                        val breedText = petBreed ?: "펫을 선택해주세요"
+
+                        val sexKo = when (petSex?.uppercase()) {
+                            "MALE"   -> "남아"
+                            "FEMALE" -> "여아"
+                            else     -> "성별미상"
+                        }
+
+                        val ageText = petBirthday?.let { b ->
+                            runCatching {
+                                val birth = java.time.LocalDate.parse(b)
+                                val years = java.time.Period.between(birth, java.time.LocalDate.now()).years
+                                "${years}살"
+                            }.getOrElse { "" }
+                        } ?: ""
+
+                        Text(nameText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(breedText, fontSize = 12.sp, color = Color.Gray)
+                        if (petName != null) {
+                            Text("$sexKo $ageText", fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                }
+            }
 
             // 3) 이미지 업로드 + 미리보기
             Spacer(Modifier.height(16.dp))

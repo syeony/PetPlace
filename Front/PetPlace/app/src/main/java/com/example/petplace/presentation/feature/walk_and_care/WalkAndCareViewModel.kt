@@ -17,6 +17,16 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private fun pickPreviewImage(care: CareItem): String {
+    // 1순위: sort == 1
+    val primary = care.images.firstOrNull { it.sort == 0 }?.src
+    if (!primary.isNullOrBlank()) return primary
+
+    // 2순위: sort가 가장 작은 이미지
+    val fallback = care.images.minByOrNull { it.sort }?.src
+    return fallback?.trim().orEmpty() // 없으면 빈 문자열 (카드에서 기본 이미지 처리)
+}
+
 @HiltViewModel
 class WalkAndCareViewModel @Inject constructor(
     private val caresRepository: CaresRepository
@@ -77,7 +87,6 @@ class WalkAndCareViewModel @Inject constructor(
         viewModelScope.launch {
             caresRepository.list(page, size)
                 .onSuccess { resp ->
-                    // resp: Response<ApiResponse<PageResponse<CareItem>>>
                     val body: ApiResponse<PageResponse<CareItem>>? = resp.body()
                     val pageData: PageResponse<CareItem>? = body?.data
                     val cares: List<CareItem> = pageData?.content ?: emptyList()
@@ -86,7 +95,13 @@ class WalkAndCareViewModel @Inject constructor(
                         val dateText = formatDateRange(care.startDatetime, care.endDatetime)
                         val timeText = formatTimeRange(care.startDatetime, care.endDatetime)
 
+                        val allImages: List<String> =
+                            care.images.sortedBy { it.sort }
+                                .mapNotNull { it.src?.trim() }
+                                .filter { it.isNotBlank() }
+
                         Post(
+                            id = care.id, // ✅ 추가
                             category = normalizeCategoryLabel(
                                 care.categoryDescription ?: mapEnumToKoreanLabel(care.category)
                             ),
@@ -97,9 +112,10 @@ class WalkAndCareViewModel @Inject constructor(
                             },
                             date = dateText,
                             time = timeText,
-                            imageUrl = care.petImg.orEmpty(),
+                            imageUrl = pickPreviewImage(care),
+                            images = allImages,
                             reporterName = care.userNickname.orEmpty(),
-                            reporterAvatarUrl = care.userImg.orEmpty()
+                            reporterAvatarUrl = care.userImg
                         )
                     }
 

@@ -40,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,18 +52,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.petplace.R
 import com.example.petplace.data.local.Walk.Post
 import com.example.petplace.presentation.feature.feed.categoryStyles
-import androidx.hilt.navigation.compose.hiltViewModel // ✅ 이거 추가
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import androidx.compose.ui.platform.LocalContext
 
 private const val BASE = "http://i13d104.p.ssafy.io:8081"
-
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -76,6 +73,20 @@ fun WalkAndCareScreen(
     val posts by viewModel.filteredPosts.collectAsState()
 
     val hashtagColor = Color(0xFFFFE0B3)
+
+    // ✅ 작성 성공 신호 감지
+    val handle = navController.currentBackStackEntry?.savedStateHandle
+    val postCreated by remember(handle) {
+        handle?.getStateFlow("walk_post_created", false)
+    }?.collectAsState() ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(postCreated) {
+        if (postCreated) {
+            viewModel.fetchPosts()                       // ✅ 바로 새로고침
+            handle?.remove<Boolean>("walk_post_created")
+            handle?.remove<Long>("walk_post_id")
+        }
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -191,18 +202,7 @@ fun WalkAndCareScreen(
 private fun String.e() = Uri.encode(this)
 
 fun NavController.navigateToWalkDetail(post: Post) {
-    val route =
-        "walk_detail?" +
-                "category=${post.category.e()}" +
-                "&title=${post.title.e()}" +
-                "&body=${post.body.e()}" +
-                "&date=${post.date.e()}" +
-                "&time=${post.time.e()}" +
-                "&imageUrl=${post.imageUrl.e()}" +
-                "&name=${post.reporterName.e()}" +
-                "&avatar=${(post.reporterAvatarUrl ?: "").e()}"
-
-    navigate(route)
+    navigate("walk_detail/${post.id}") // ✅ 오직 id만
 }
 
 @Composable
