@@ -16,7 +16,7 @@ private val LightColors = lightColorScheme(
     secondary = SecondaryColor,
     background = BackgroundWhite,
     onBackground = TextColor,
-    surface = BackgroundWhite,
+    surface = BackgroundSoft,
     onSurface = TextPrimary,
 
 )
