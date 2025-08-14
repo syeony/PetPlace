@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
+import com.example.petplace.presentation.feature.alarm.AlarmScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
 import com.example.petplace.presentation.feature.createfeed.CreateFeedScreen
@@ -144,7 +145,8 @@ fun MainScaffold() {
             composable("walk_write") {
                 WalkAndCareWriteScreen(navController = navController)
             }
-
+            composable("alarm") { AlarmScreen(navController = navController) }
+            composable("feed") { FeedScreen(navController = navController) }
 
 
 

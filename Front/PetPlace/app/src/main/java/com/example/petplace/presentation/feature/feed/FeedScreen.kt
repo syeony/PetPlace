@@ -298,7 +298,9 @@ fun FeedScreen(
                         )
                     }
 
-                    IconButton(onClick = { /* 알림 버튼 동작 추가 가능 */ }) {
+                    IconButton(onClick = {
+                        navController.navigate("alarm")
+                    }) {
                         Icon(
                             painter = painterResource(R.drawable.outline_notifications_24),
                             contentDescription = "알림",
