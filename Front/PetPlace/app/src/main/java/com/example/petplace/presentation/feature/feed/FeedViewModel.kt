@@ -89,6 +89,22 @@ class BoardViewModel @Inject constructor(
 
     private val baseUrl = "http://i13d104.p.ssafy.io:8081"
 
+    private suspend fun prefetchImages2(urls: List<String>) {
+        if (urls.isEmpty()) return
+        val loader = Coil.imageLoader(app)
+        withContext(Dispatchers.IO) {
+            urls.distinct().forEach { raw ->
+                val full = if (raw.startsWith("http")) raw else (baseUrl + raw)
+                val req = ImageRequest.Builder(app)
+                    .data(full)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .build()
+                loader.enqueue(req) // ✅ execute() → enqueue() (논블로킹)
+            }
+        }
+    }
+
     // 이미지들 캐시에 먼저 담아두기
     private suspend fun prefetchImages(urls: List<String>) {
         if (urls.isEmpty()) return
@@ -238,23 +254,26 @@ class BoardViewModel @Inject constructor(
             page = 0
             endReached = false
 
-            // 최초 로드
             val result = repo.fetchRecommendedFeeds2(page, size)
-            // 1) 이미지들 미리 캐시
-            prefetchImages(result.flatMap { it.images ?: emptyList() }.map { it.src })
-            // 2) 그 다음 화면 상태에 반영
-            _remoteFeeds.value = result
 
+            // ✅ 먼저 화면에 반영 (이미지 안 떠도 즉시 목록 표시)
+            _remoteFeeds.value = result
             _likedFeeds.value = result.filter { it.liked == true }.map { it.id }.toSet()
             endReached = result.size < size
-
             applyFilters()
         } catch (e: Exception) {
             _error.value = e.message ?: "알 수 없는 오류"
         } finally {
-            _loading.value = false
+            _loading.value = false // ✅ 프리패치와 무관하게 바로 off
+        }
+
+        // ✅ 프리패치는 뒤에서 조용히
+        val urls = _remoteFeeds.value.flatMap { it.images ?: emptyList() }.map { it.src }
+        viewModelScope.launch(Dispatchers.IO) {
+            prefetchImages2(urls)
         }
     }
+
 
     /** 다음 페이지 로드 (append) */
     fun loadNextPage() {
