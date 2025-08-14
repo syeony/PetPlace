@@ -23,12 +23,11 @@ import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,10 +88,10 @@ public class MissingService {
         log.info("실종 신고 저장 완료 - ID: {}", missingReport.getId());
 
         // 3. 이미지 저장 (기존 ImageService 활용)
-        saveImages(request.getImages(), missingReport.getId(), ImageType.MISSING_REPORT);
+        saveImages(request.getImages(), missingReport.getId(), RefType.MISSING_REPORT);
 
         // 4. 이미지 조회하여 Response 생성
-        List<ImageResponse> imageResponses = imageService.getImages(ImageType.MISSING_REPORT, missingReport.getId());
+        List<ImageResponse> imageResponses = imageService.getImages(RefType.MISSING_REPORT, missingReport.getId());
 
         return MissingReportResponse.from(missingReport, imageResponses);
     }
@@ -126,10 +125,10 @@ public class MissingService {
         log.info("목격 제보 저장 완료 - ID: {}", sighting.getId());
 
         // 3. 이미지 저장 (기존 ImageService 활용)
-        saveImages(request.getImages(), sighting.getId(), ImageType.SIGHTING);
+        saveImages(request.getImages(), sighting.getId(), RefType.SIGHTING);
 
         // 4. 이미지 조회하여 Response 생성
-        List<ImageResponse> imageResponses = imageService.getImages(ImageType.SIGHTING, sighting.getId());
+        List<ImageResponse> imageResponses = imageService.getImages(RefType.SIGHTING, sighting.getId());
 
 //        // 5. 비동기로 AI 품종 예측 및 자동 매칭 수행
 //        performAIProcessing(sighting, request.getImages());
@@ -177,7 +176,7 @@ public class MissingService {
         MissingReport missingReport = missingReportRepository.findByIdAndNotDeleted(id)
                 .orElseThrow(() -> new IllegalArgumentException("실종 신고를 찾을 수 없습니다: " + id));
 
-        List<ImageResponse> images = imageService.getImages(ImageType.MISSING_REPORT, id);
+        List<ImageResponse> images = imageService.getImages(RefType.MISSING_REPORT, id);
         return MissingReportResponse.from(missingReport, images);
     }
 
@@ -188,7 +187,7 @@ public class MissingService {
         Sighting sighting = sightingRepository.findByIdAndNotDeleted(id)
                 .orElseThrow(() -> new IllegalArgumentException("목격 제보를 찾을 수 없습니다: " + id));
 
-        List<ImageResponse> images = imageService.getImages(ImageType.SIGHTING, id);
+        List<ImageResponse> images = imageService.getImages(RefType.SIGHTING, id);
         return SightingResponse.from(sighting, images);
     }
 
@@ -200,7 +199,7 @@ public class MissingService {
 
         return missingReports.map(report -> {
             List<ImageResponse> images = imageService.getImages(
-                    ImageType.MISSING_REPORT, report.getId());
+                    RefType.MISSING_REPORT, report.getId());
             return MissingReportResponse.from(report, images);
         });
     }
@@ -213,7 +212,7 @@ public class MissingService {
 
         return sightings.map(sighting -> {
             List<ImageResponse> images = imageService.getImages(
-                    ImageType.SIGHTING, sighting.getId());
+                    RefType.SIGHTING, sighting.getId());
             return SightingResponse.from(sighting, images);
         });
     }
@@ -226,7 +225,7 @@ public class MissingService {
 
         return missingReports.map(report -> {
             List<ImageResponse> images = imageService.getImages(
-                    ImageType.MISSING_REPORT, report.getId());
+                    RefType.MISSING_REPORT, report.getId());
             return MissingReportResponse.from(report, images);
         });
     }
@@ -245,12 +244,12 @@ public class MissingService {
         return matches.map(match -> {
             // 목격 제보 이미지 조회
             List<ImageResponse> sightingImages = imageService.getImages(
-                     ImageType.SIGHTING, match.getSighting().getId());
+                     RefType.SIGHTING, match.getSighting().getId());
             SightingResponse sightingResponse = SightingResponse.from(match.getSighting(), sightingImages);
 
             // 실종 신고 이미지 조회
             List<ImageResponse> missingImages = imageService.getImages(
-                    ImageType.MISSING_REPORT, match.getMissingReport().getId());
+                    RefType.MISSING_REPORT, match.getMissingReport().getId());
             MissingReportResponse missingResponse = MissingReportResponse.from(match.getMissingReport(), missingImages);
 
             return SightingMatchResponse.from(match, sightingResponse, missingResponse);
@@ -273,7 +272,7 @@ public class MissingService {
         missingReport.updateStatus(status);
         missingReport = missingReportRepository.save(missingReport);
 
-        List<ImageResponse> images = imageService.getImages(ImageType.MISSING_REPORT, id);
+        List<ImageResponse> images = imageService.getImages(RefType.MISSING_REPORT, id);
         return MissingReportResponse.from(missingReport, images);
     }
 
@@ -295,11 +294,11 @@ public class MissingService {
 
         // Response DTO 생성
         List<ImageResponse> sightingImages = imageService.getImages(
-                ImageType.SIGHTING, match.getSighting().getId() );
+                RefType.SIGHTING, match.getSighting().getId() );
         SightingResponse sightingResponse = SightingResponse.from(match.getSighting(), sightingImages);
 
         List<ImageResponse> missingImages = imageService.getImages(
-                ImageType.MISSING_REPORT,match.getMissingReport().getId());
+                RefType.MISSING_REPORT,match.getMissingReport().getId());
         MissingReportResponse missingResponse = MissingReportResponse.from(match.getMissingReport(), missingImages);
 
         return SightingMatchResponse.from(match, sightingResponse, missingResponse);
@@ -317,11 +316,11 @@ public class MissingService {
 
         return matches.map(match -> {
             List<ImageResponse> sightingImages = imageService.getImages(
-                     ImageType.SIGHTING, match.getSighting().getId());
+                     RefType.SIGHTING, match.getSighting().getId());
             SightingResponse sightingResponse = SightingResponse.from(match.getSighting(), sightingImages);
 
             List<ImageResponse> missingImages = imageService.getImages(
-                     ImageType.MISSING_REPORT, match.getMissingReport().getId());
+                     RefType.MISSING_REPORT, match.getMissingReport().getId());
             MissingReportResponse missingResponse = MissingReportResponse.from(match.getMissingReport(), missingImages);
 
             return SightingMatchResponse.from(match, sightingResponse, missingResponse);
@@ -367,7 +366,7 @@ public class MissingService {
     /**
      * 이미지 저장 공통 메서드 (기존 ImageService 활용)
      */
-    private void saveImages(List<MissingImageRequest> imageRequests, Long refId, ImageType refType) {
+    private void saveImages(List<MissingImageRequest> imageRequests, Long refId, RefType refType) {
         if (imageRequests == null || imageRequests.isEmpty()) {
             return;
         }
@@ -425,10 +424,10 @@ public class MissingService {
         missingReport = missingReportRepository.save(missingReport);
 
         // 기존 이미지 삭제 후 새 이미지 저장
-        updateImages(missingReport.getId(), ImageType.MISSING_REPORT, request.getImages());
+        updateImages(missingReport.getId(), RefType.MISSING_REPORT, request.getImages());
 
         // 수정된 정보 조회하여 반환
-        List<ImageResponse> imageResponses = imageService.getImages(ImageType.MISSING_REPORT, missingReport.getId());
+        List<ImageResponse> imageResponses = imageService.getImages(RefType.MISSING_REPORT, missingReport.getId());
         return MissingReportResponse.from(missingReport, imageResponses);
     }
 
@@ -464,17 +463,17 @@ public class MissingService {
         sighting = sightingRepository.save(sighting);
 
         // 기존 이미지 삭제 후 새 이미지 저장
-        updateImages(sighting.getId(), ImageType.SIGHTING, request.getImages());
+        updateImages(sighting.getId(), RefType.SIGHTING, request.getImages());
 
         // 수정된 정보 조회하여 반환
-        List<ImageResponse> imageResponses = imageService.getImages(ImageType.SIGHTING, sighting.getId());
+        List<ImageResponse> imageResponses = imageService.getImages(RefType.SIGHTING, sighting.getId());
         return SightingResponse.from(sighting, imageResponses);
     }
 
     /**
      * 이미지 업데이트 (기존 이미지 삭제 후 새 이미지 저장)
      */
-    private void updateImages(Long refId, ImageType refType, List<MissingImageRequest> newImages) {
+    private void updateImages(Long refId, RefType refType, List<MissingImageRequest> newImages) {
         // 기존 이미지 조회
         List<Image> existingImages = imageRepository.findByRefTypeAndRefIdOrderBySortAsc(refType, refId);
         

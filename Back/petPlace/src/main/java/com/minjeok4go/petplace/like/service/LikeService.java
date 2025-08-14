@@ -8,10 +8,11 @@ import com.minjeok4go.petplace.feed.service.FeedService;
 import com.minjeok4go.petplace.like.dto.CreateLikeRequest;
 import com.minjeok4go.petplace.like.entity.Likes;
 import com.minjeok4go.petplace.like.repository.LikeRepository;
+import com.minjeok4go.petplace.notification.dto.CreateLikeNotificationRequest;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.service.UserExperienceService;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class LikeService {
 
+    private final ApplicationEventPublisher publisher;
     private final FeedRepository feedRepository;
     private final LikeRepository likeRepository;
     private final FeedService feedService;
@@ -64,6 +66,10 @@ public class LikeService {
         likeRepository.save(new Likes(feed, me));
 
         expService.applyActivity(me, ActivityType.LIKE_CREATE);
+
+        publisher.publishEvent(new CreateLikeNotificationRequest(
+                feed.getUserId(), feed.getId(), feed
+        ));
 
         return feedService.increaseLike(feed);   // ✅ 여기서 호출
     }

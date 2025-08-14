@@ -2,7 +2,7 @@ package com.minjeok4go.petplace.scheduler;
 
 import com.minjeok4go.petplace.hotel.entity.Reservation;
 import com.minjeok4go.petplace.hotel.service.ReservationService;
-import com.minjeok4go.petplace.notification.service.NotificationService;
+import com.minjeok4go.petplace.notification.service.FCMNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,7 +17,7 @@ import java.util.List;
 public class ReservationReminderScheduler {
     
     private final ReservationService reservationService;
-    private final NotificationService notificationService;
+    private final FCMNotificationService FCMNotificationService;
     
     @Scheduled(cron = "0 0 9 * * *") // 매일 오전 9시 실행
     public void sendReservationReminders() {
@@ -34,7 +34,7 @@ public class ReservationReminderScheduler {
             log.info("리마인더 대상 예약 수: {}", upcomingReservations.size());
             
             for (Reservation reservation : upcomingReservations) {
-                notificationService.sendReservationReminderNotification(reservation);
+                FCMNotificationService.sendReservationReminderNotification(reservation);
             }
             
             log.info("예약 리마인더 스케줄러 실행 완료");
