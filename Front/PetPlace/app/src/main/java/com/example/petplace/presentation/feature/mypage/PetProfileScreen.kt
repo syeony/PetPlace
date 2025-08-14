@@ -84,19 +84,9 @@ fun PetProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    var petName by remember { mutableStateOf("") }
-    var breed by remember { mutableStateOf("") }
     var showBreedMenu by remember { mutableStateOf(false) }
-    val breedOptions = listOf("푸들", "말티즈", "시바견", "골든 리트리버")
-
-    var gender by remember { mutableStateOf<String?>(null) }
-    var neutered by remember { mutableStateOf(false) }
-    var birthDate by remember { mutableStateOf("") }
-    var age by remember { mutableStateOf("") }
 
     val focusManager = LocalFocusManager.current
-
-    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val amber = Color(0xFFFFC981)
 
@@ -375,18 +365,23 @@ fun PetProfileScreen(
         // 나이
         OutlinedTextField(
             value = uiState.age,
-            onValueChange = { viewModel.updateAge(it) },
+            onValueChange = { }, // 빈 람다로 변경 (수정 불가)
             shape = RoundedCornerShape(8.dp),
             placeholder = { Text("나이") },
-            label = { Text("나이") },
+            label = { Text("나이") }, // 레이블 수정
+            readOnly = true, // 읽기 전용으로 설정
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
-                unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
-                cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
-            )
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = amber,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                disabledTextColor = Color.Black, // 비활성화 상태에서도 텍스트 보이게
+                disabledBorderColor = amber, // 비활성화 상태 테두리 색상
+                disabledLabelColor = Color.Gray // 비활성화 상태 레이블 색상
+            ),
+            enabled = false // 비활성화하여 클릭 불가
         )
 
         Spacer(Modifier.height(24.dp))

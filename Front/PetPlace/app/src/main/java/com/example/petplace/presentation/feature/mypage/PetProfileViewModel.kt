@@ -117,9 +117,16 @@ class PetProfileViewModel @Inject constructor(
     }
 
     fun updateBirthDate(date: String) {
+        val calculatedAge = if (date.isNotBlank()) {
+            calculateAgeFromBirthDate(date).toString()
+        } else {
+            ""
+        }
+
         _uiState.value = _uiState.value.copy(
             birthDate = date,
-            validationErrors = _uiState.value.validationErrors - "birthDate"
+            age = calculatedAge, // 나이 자동 설정
+            validationErrors = _uiState.value.validationErrors - "birthDate" - "age" // 나이 에러도 함께 제거
         )
     }
 
@@ -296,6 +303,37 @@ class PetProfileViewModel @Inject constructor(
         }
         return apiDate
     }
+
+    private fun calculateAgeFromBirthDate(birthDate: String): Int {
+        return try {
+            if (birthDate.isBlank()) return 0
+
+            val parts = birthDate.split("/")
+            if (parts.size == 3) {
+                val month = parts[0].toInt()
+                val day = parts[1].toInt()
+                val year = parts[2].toInt()
+
+                val calendar = java.util.Calendar.getInstance()
+                val currentYear = calendar.get(java.util.Calendar.YEAR)
+                val currentMonth = calendar.get(java.util.Calendar.MONTH) + 1 // Calendar.MONTH는 0부터 시작
+                val currentDay = calendar.get(java.util.Calendar.DAY_OF_MONTH)
+
+                var age = currentYear - year
+
+                // 생일이 아직 안 지났으면 나이에서 1을 뺌
+                if (currentMonth < month || (currentMonth == month && currentDay < day)) {
+                    age--
+                }
+
+                return if (age < 0) 0 else age
+            }
+            0
+        } catch (e: Exception) {
+            0
+        }
+    }
+
 
     private fun calculateAge(birthday: String): Int {
         return try {
