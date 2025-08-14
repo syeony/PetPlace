@@ -19,10 +19,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.example.petplace.presentation.feature.Neighborhood.NeighborhoodScreen
+import com.example.petplace.presentation.feature.alarm.AlarmScreen
 import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
+import com.example.petplace.presentation.feature.createfeed.CreateFeedScreen
 import com.example.petplace.presentation.feature.feed.BoardEditScreen
-import com.example.petplace.presentation.feature.feed.BoardWriteScreen
 import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.hotel.AnimalSelectScreen
 import com.example.petplace.presentation.feature.hotel.DateSelectionScreen
@@ -62,6 +63,7 @@ fun MainScaffold() {
     val bottomNavRoutes = listOf(
         BottomNavItem.Feed.route,
         BottomNavItem.Neighborhood.route,
+//        BottomNavItem.CreateFeed.route,
         BottomNavItem.Chat.route,
         BottomNavItem.MyPage.route
     )
@@ -83,6 +85,7 @@ fun MainScaffold() {
             composable("login") { LoginScreen(navController) }
 //            composable("join") { JoinScreen(navController, viewModel) }
             composable(BottomNavItem.Feed.route) { FeedScreen(navController = navController) }
+            composable(BottomNavItem.CreateFeed.route) {CreateFeedScreen(navController = navController)}
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
             composable(BottomNavItem.MyPage.route) { MyPageScreen(navController) }
             composable(
@@ -95,7 +98,7 @@ fun MainScaffold() {
                     navController = navController
                 )
             }
-            composable("board/write") { BoardWriteScreen(navController = navController) }
+//            composable("board/write") { BoardWriteScreen(navController = navController) }
             composable(
                 route = "${BottomNavItem.Neighborhood.route}?showDialog={showDialog}",
                 arguments = listOf(
@@ -142,7 +145,8 @@ fun MainScaffold() {
             composable("walk_write") {
                 WalkAndCareWriteScreen(navController = navController)
             }
-
+            composable("alarm") { AlarmScreen(navController = navController) }
+            composable("feed") { FeedScreen(navController = navController) }
 
 
 
