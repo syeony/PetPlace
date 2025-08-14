@@ -24,6 +24,12 @@ spring:
   web:
     resources:
       static-locations: file:/home/ubuntu/upload/images/
+      cache:
+        cachecontrol:
+          cache-public: true
+          max-age: 30d
+  mvc:
+    static-path-pattern: /images/**
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
     username: ${DB_USER}

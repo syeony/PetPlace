@@ -56,6 +56,7 @@ public class SecurityConfig {
                                 "/api/auth/social/**",
 
 
+
                                 // 추천 API
                                 "/api/recommend/group", "/api/recommend/batch",
 
