@@ -3,10 +3,12 @@ package com.minjeok4go.petplace.care.dto;
 import com.minjeok4go.petplace.care.entity.Cares;
 import com.minjeok4go.petplace.care.entity.Cares.CareCategory;
 import com.minjeok4go.petplace.care.entity.Cares.CareStatus;
+import com.minjeok4go.petplace.image.dto.ImageResponse;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Builder
@@ -41,7 +43,10 @@ public class CareListResponseDto {
     private Integer views;
     private LocalDateTime createdAt;
 
-    public static CareListResponseDto from(Cares care) {
+    // 이미지 정보
+    private List<ImageResponse> images;
+
+    public static CareListResponseDto from(Cares care, List<ImageResponse> images) {
         return CareListResponseDto.builder()
                 .id(care.getId())
                 .title(care.getTitle())
@@ -60,6 +65,7 @@ public class CareListResponseDto {
                 .endDatetime(care.getEndDatetime())
                 .views(care.getViews())
                 .createdAt(care.getCreatedAt())
+                .images(images)
                 .build();
     }
 }
