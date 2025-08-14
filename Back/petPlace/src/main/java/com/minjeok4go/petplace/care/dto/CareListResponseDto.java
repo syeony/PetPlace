@@ -15,6 +15,7 @@ import java.util.List;
 public class CareListResponseDto {
     private Long id;
     private String title;
+    private String content;
 
     // 사용자 정보 (간소화)
     private Long userId;
@@ -50,6 +51,7 @@ public class CareListResponseDto {
         return CareListResponseDto.builder()
                 .id(care.getId())
                 .title(care.getTitle())
+                .content(care.getContent())
                 .userId(care.getUser().getId())
                 .userNickname(care.getUser().getNickname())
                 .userImg(care.getUser().getUserImgSrc())

@@ -10,6 +10,7 @@ import com.example.petplace.data.model.mypage.ProfileImageRequest
 import com.example.petplace.data.model.mypage.ProfileIntroductionRequest
 import com.example.petplace.data.model.mypage.ProfileIntroductionResponse
 import com.example.petplace.data.model.mypage.ProfileUpdateRequest
+import com.example.petplace.data.model.mypage.UserProfileResponse
 import com.example.petplace.data.remote.MyPageApiService
 import com.example.petplace.presentation.feature.mypage.SupplyType
 import kotlinx.coroutines.Dispatchers
@@ -373,6 +374,44 @@ class MyPageRepository @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "찜한 게시글 목록 조회 중 네트워크 오류", e)
+                Result.failure(Exception("네트워크 오류: ${e.message}"))
+            }
+        }
+    }
+
+    suspend fun getUserProfile(userId: Long): Result<UserProfileResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "사용자 프로필 조회 요청 - userId: $userId")
+
+                val response = api.getUserProfile(userId)
+
+                if (response.isSuccessful) {
+                    val userProfile = response.body()
+                    if (userProfile != null) {
+                        Log.d(TAG, "사용자 프로필 조회 성공 - userId: $userId")
+                        Result.success(userProfile)
+                    } else {
+                        Log.e(TAG, "응답은 성공했지만 body가 null")
+                        Result.failure(Exception("서버 응답이 비어있습니다"))
+                    }
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "사용자 프로필 조회 실패: ${response.code()} ${response.message()}")
+                    Log.e(TAG, "에러 응답 본문: $errorBody")
+
+                    val errorMessage = when (response.code()) {
+                        401 -> "인증이 필요합니다. 다시 로그인해주세요."
+                        403 -> "권한이 없습니다."
+                        404 -> "사용자를 찾을 수 없습니다."
+                        500 -> "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+                        else -> "사용자 프로필 조회 중 오류가 발생했습니다 (${response.code()})"
+                    }
+
+                    Result.failure(Exception(errorMessage))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "사용자 프로필 조회 중 네트워크 오류", e)
                 Result.failure(Exception("네트워크 오류: ${e.message}"))
             }
         }

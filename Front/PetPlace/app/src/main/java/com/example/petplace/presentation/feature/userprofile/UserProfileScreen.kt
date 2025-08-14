@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,45 +61,11 @@ import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import androidx.hilt.navigation.compose.hiltViewModel
 
-// 데이터 클래스들
-data class UserProfileInfo(
-    val userId: Int,
-    val nickname: String = "",
-    val location: String = "",
-    val level: Int = 1,
-    val experienceProgress: Float = 0f,
-    val introduction: String = "",
-    val userImgSrc: String = ""
-)
-
-data class UserPetInfo(
-    val id: Int,
-    val name: String = "",
-    val breed: String = "",
-    val gender: String = "",
-    val age: Int = 0,
-    val imgSrc: String? = ""
-)
-
-data class UserPetSupplies(
-    val bathImageUrl: String? = null,
-    val foodImageUrl: String? = null,
-    val wasteImageUrl: String? = null
-)
-
-data class UserProfileUiState(
-    val userProfile: UserProfileInfo = UserProfileInfo(0),
-    val pets: List<UserPetInfo> = emptyList(),
-    val petSupplies: UserPetSupplies = UserPetSupplies(),
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserProfileScreen(
     navController: NavController,
-    userId: Int,
+    userId: Long,
     modifier: Modifier = Modifier,
     viewModel: UserProfileViewModel = hiltViewModel()
 ) {
@@ -106,42 +76,53 @@ fun UserProfileScreen(
         viewModel.loadUserProfile(userId)
     }
 
+    LaunchedEffect(uiState.createdChatRoomId) {
+        uiState.createdChatRoomId?.let { chatRoomId ->
+            navController.navigate("chatDetail/$chatRoomId")
+            viewModel.consumeCreatedChatRoomId()
+        }
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "프로필",
-                        style = AppTypography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "프로필",
+                            style = AppTypography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "뒤로가기"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "뒤로가기"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.White
+                    ),
+                    windowInsets = WindowInsets(0.dp)
                 )
-            )
+                Divider(color = dividerColor, thickness = 1.dp)
+            }
         }
     ) { paddingValues ->
 
-//        // Loading 처리
-//        if (uiState.isLoading) {
-//            Box(
-//                modifier = Modifier.fillMaxSize(),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                CircularProgressIndicator()
-//            }
-//            return@Scaffold
-//        }
+        // Loading 처리
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
 
         LazyColumn(
             modifier = modifier
@@ -176,13 +157,14 @@ fun UserProfileScreen(
                                         .size(60.dp)
                                         .clip(CircleShape)
                                 ) {
-                                    val profileImageUrl = if (!uiState.userProfile.userImgSrc.isNullOrEmpty()) {
-                                        if (uiState.userProfile.userImgSrc.startsWith("http")) {
-                                            uiState.userProfile.userImgSrc
-                                        } else {
-                                            "http://43.201.108.195:8081${uiState.userProfile.userImgSrc}"
-                                        }
-                                    } else null
+                                    val profileImageUrl =
+                                        if (!uiState.userProfile.userImgSrc.isNullOrEmpty()) {
+                                            if (uiState.userProfile.userImgSrc.startsWith("http")) {
+                                                uiState.userProfile.userImgSrc
+                                            } else {
+                                                "http://43.201.108.195:8081${uiState.userProfile.userImgSrc}"
+                                            }
+                                        } else null
 
                                     AsyncImage(
                                         model = profileImageUrl,
@@ -261,16 +243,24 @@ fun UserProfileScreen(
                         // 채팅하기 버튼
                         Button(
                             onClick = {
-                                navController.navigate("chat/${uiState.userProfile.userId}")
+                                viewModel.startChatWithUser(uiState.userProfile.userId)
                             },
+                            enabled = !uiState.isChatRoomCreating, // 생성 중일 때는 비활성화
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = PrimaryColor
                             ),
                             shape = RoundedCornerShape(12.dp)
                         ) {
+                            if (uiState.isChatRoomCreating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
                             Text(
-                                text = "채팅하기",
+                                text = if (uiState.isChatRoomCreating) "채팅방 생성 중..." else "채팅하기",
                                 style = AppTypography.labelLarge,
                                 color = Color.White,
                                 modifier = Modifier.padding(vertical = 8.dp)
@@ -296,7 +286,7 @@ fun UserProfileScreen(
                             style = AppTypography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
-                            modifier = Modifier.padding(bottom = 16.dp)
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -409,14 +399,14 @@ fun UserProfileScreen(
                                 icon = R.drawable.my_walk,
                                 title = "산책 후기",
                                 onClick = {
-                                    navController.navigate("walk_reviews/${uiState.userProfile.userId}")
+//                                    navController.navigate("walk_reviews/${uiState.userProfile.userId}")
                                 }
                             )
                             UserWalkCareMenuItem(
                                 icon = R.drawable.my_care,
                                 title = "돌봄 후기",
                                 onClick = {
-                                    navController.navigate("care_reviews/${uiState.userProfile.userId}")
+//                                    navController.navigate("care_reviews/${uiState.userProfile.userId}")
                                 }
                             )
                         }
@@ -453,7 +443,9 @@ fun UserPetInfoCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(50.dp)
+                    .fillMaxHeight()
+                    .aspectRatio(1f)
+                    .padding(8.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFE0E0E0))
             ) {
@@ -477,7 +469,10 @@ fun UserPetInfoCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column {
+            Column(
+                modifier = Modifier.fillMaxHeight(),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
                 Text(
                     text = pet.name,
                     style = AppTypography.bodyMedium.copy(
