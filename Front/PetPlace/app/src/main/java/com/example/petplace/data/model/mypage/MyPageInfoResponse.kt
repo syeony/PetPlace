@@ -61,7 +61,7 @@ data class MyPageInfoResponse(
     )
 
     data class ImageInfo(
-        val id: Int,
+        val id: Int?,
         val src: String,
         val sort: Int
     )
