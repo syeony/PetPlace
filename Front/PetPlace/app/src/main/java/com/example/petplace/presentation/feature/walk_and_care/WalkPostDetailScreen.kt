@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -177,55 +178,58 @@ fun WalkPostDetailScreen(
                         )
                     }
 
-                    // 본문
+                    // 본문: 개별 item에만 좌우 패딩
                     item {
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(12.dp))
                         Text(
                             text = data.content,
                             fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = Color(0xFF4B5563)
+                            color = Color(0xFF4B5563),
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 10.dp) // 이미지와 다르게 여기만 패딩
                         )
                     }
 
-                    // 이미지 슬라이드
-                    if (images.isNotEmpty()) {
-                        item {
-                            Spacer(Modifier.height(10.dp))
-                            val pagerState = rememberPagerState(initialPage = 0, pageCount = { max(images.size, 1) })
-                            Column {
-                                HorizontalPager(
-                                    state = pagerState,
+                    // 이미지 슬라이드: 풀블리드 + 정사각형 + 내부 오버레이
+                    item {
+                        val pagerState = rememberPagerState(initialPage = 0, pageCount = { max(images.size, 1) })
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()     // 양옆 끝까지
+                                .aspectRatio(1f)    // 1:1 정방형
+                                .background(Color.Black) // 로딩 중 비는 느낌 방지(선택)
+                        ) {
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier.fillMaxSize()
+                            ) { page ->
+                                AsyncImage(
+                                    model = images.getOrNull(page)
+                                        ?: "https://via.placeholder.com/800x800.png?text=No+Image",
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+
+                            // 🔹 인디케이터는 이미지 박스 '안'에 오버레이 (다음 아이템과 안 부딪힘)
+                            if (images.size > 1) {
+                                Row(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(280.dp)
-                                ) { page ->
-                                    AsyncImage(
-                                        model = images.getOrNull(page)
-                                            ?: "https://via.placeholder.com/800x600.png?text=No+Image",
-                                        contentDescription = null,
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                                if (images.size > 1) {
-                                    Spacer(Modifier.height(8.dp))
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp),
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        repeat(images.size) { idx ->
-                                            val selected = pagerState.currentPage == idx
-                                            Box(
-                                                modifier = Modifier
-                                                    .padding(3.dp)
-                                                    .size(if (selected) 8.dp else 6.dp)
-                                                    .clip(RoundedCornerShape(999.dp))
-                                                    .background(if (selected) Color(0xFFF79800) else Color(0xFFE5E7EB))
-                                            )
-                                        }
+                                        .align(Alignment.BottomCenter)
+                                        .padding(bottom = 12.dp),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    repeat(images.size) { idx ->
+                                        val selected = pagerState.currentPage == idx
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(3.dp)
+                                                .size(if (selected) 8.dp else 6.dp)
+                                                .clip(RoundedCornerShape(999.dp))
+                                                .background(if (selected) Color(0xFFF79800) else Color(0xFFE5E7EB))
+                                        )
                                     }
                                 }
                             }

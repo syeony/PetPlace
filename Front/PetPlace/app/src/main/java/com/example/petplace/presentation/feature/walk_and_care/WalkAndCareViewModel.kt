@@ -132,10 +132,7 @@ class WalkAndCareViewModel @Inject constructor(
                                 care.categoryDescription ?: mapEnumToKoreanLabel(care.category)
                             ),
                             title = care.title.orEmpty(),
-                            body = buildString {
-                                if (!care.regionName.isNullOrBlank()) append("[${care.regionName}] ")
-                                append(timeText.takeIf { it != "-" } ?: dateText)
-                            },
+                            body = care.content.orEmpty(),
                             date = dateText,
                             time = timeText,
                             imageUrl = pickPreviewImage(care),

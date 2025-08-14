@@ -36,7 +36,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -51,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SmallTopAppBar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -73,6 +73,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -485,7 +486,11 @@ fun WalkAndCareWriteScreen(
                             readOnly = true,
                             trailingIcon = {
                                 IconButton(onClick = { showStartPicker = true }) {
-                                    Icon(Icons.Default.Info, contentDescription = "시작")
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.baseline_access_time_24),
+                                        tint = accent,
+                                        contentDescription = "시작"
+                                    )
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -501,7 +506,11 @@ fun WalkAndCareWriteScreen(
                             readOnly = true,
                             trailingIcon = {
                                 IconButton(onClick = { showEndPicker = true }) {
-                                    Icon(Icons.Default.Info, contentDescription = "종료")
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.baseline_access_time_24),
+                                        tint = accent,
+                                        contentDescription = "종료"
+                                    )
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -527,7 +536,7 @@ fun WalkAndCareWriteScreen(
                         readOnly = true,
                         trailingIcon = {
                             IconButton(onClick = { showDateRange = true }) {
-                                Icon(Icons.Default.DateRange, contentDescription = "기간")
+                                Icon(Icons.Default.DateRange, tint = accent, contentDescription = "기간")
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -572,10 +581,24 @@ fun WalkAndCareWriteScreen(
             val zone = ZoneId.systemDefault()
             val s = startDate?.atStartOfDay(zone)?.toInstant()?.toEpochMilli()
             val e = endDate?.atStartOfDay(zone)?.toInstant()?.toEpochMilli()
+
+            // ✅ 오늘 포함 과거 불가
+            val onlyFuture = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val candidate = Instant.ofEpochMilli(utcTimeMillis).atZone(zone).toLocalDate()
+                    val today = java.time.LocalDate.now(zone)
+                    // 오늘 포함 과거 불가 → 내일부터 선택 가능
+                    return candidate.isAfter(today)
+                }
+                override fun isSelectableYear(year: Int): Boolean = true
+            }
+
             val rp = rememberDateRangePickerState(
                 initialSelectedStartDateMillis = s,
-                initialSelectedEndDateMillis = e
+                initialSelectedEndDateMillis = e,
+                selectableDates = onlyFuture
             )
+
             DatePickerDialog(
                 onDismissRequest = { showDateRange = false },
                 confirmButton = {
@@ -590,8 +613,24 @@ fun WalkAndCareWriteScreen(
                     }) { Text("확인") }
                 },
                 dismissButton = { TextButton(onClick = { showDateRange = false }) { Text("취소") } }
-            ) { DateRangePicker(state = rp) }
+            ) {
+                DateRangePicker(
+                    state = rp,
+                    title = {
+                        Text(
+                            text = "날짜 선택",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+                            textAlign = TextAlign.Center
+                        )
+                    },
+                    headline = null,
+                    showModeToggle = true // 연필 아이콘 유지
+                )
+            }
         }
+
     }
 }
 

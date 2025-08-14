@@ -162,6 +162,7 @@ data class Sort(
 data class CareItem(
     val id: Long,
     val title: String?,
+    val content: String?,
     val userId: Long?,
     val userNickname: String?,
     val userImg: String?,
