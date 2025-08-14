@@ -1,15 +1,21 @@
 package com.example.petplace.presentation.feature.userprofile
 
+import android.content.ContentValues.TAG
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.model.chat.ChatRoomResponse
+import com.example.petplace.data.model.chat.CreateChatRoomRequest
+import com.example.petplace.data.remote.ChatApiService
 import com.example.petplace.data.repository.MyPageRepository
-//import com.example.petplace.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class UserProfileInfo(
@@ -42,12 +48,15 @@ data class UserProfileUiState(
     val pets: List<UserPetInfo> = emptyList(),
     val petSupplies: UserPetSupplies = UserPetSupplies(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val createdChatRoomId: Long? = null,
+    val isChatRoomCreating: Boolean = false
 )
 
 @HiltViewModel
 class UserProfileViewModel @Inject constructor(
-    private val myPageRepository: MyPageRepository
+    private val myPageRepository: MyPageRepository,
+    private val chatApiService: ChatApiService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UserProfileUiState())
@@ -146,7 +155,72 @@ class UserProfileViewModel @Inject constructor(
         return when(apiGender) {
             "MALE" -> "남아"
             "FEMALE" -> "여아"
-            else -> "남아"
+            else -> apiGender
+        }
+    }
+
+    // 채팅방 생성을 위한 간단한 함수 추가
+    fun startChatWithUser(userId: Long) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isChatRoomCreating = true)
+
+                val result = createChatRoom(userId)
+                result.onSuccess { chatRoomResponse ->
+                    _uiState.value = _uiState.value.copy(
+                        createdChatRoomId = chatRoomResponse.chatRoomId,
+                        isChatRoomCreating = false
+                    )
+                }.onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        error = exception.message ?: "채팅방 생성에 실패했습니다.",
+                        isChatRoomCreating = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    error = e.message ?: "채팅방 생성 중 오류가 발생했습니다.",
+                    isChatRoomCreating = false
+                )
+            }
+        }
+    }
+
+    // 채팅방 ID 소비 후 초기화
+    fun consumeCreatedChatRoomId() {
+        _uiState.value = _uiState.value.copy(createdChatRoomId = null)
+    }
+
+    // 기존 createChatRoom 함수를 private로 변경
+    private suspend fun createChatRoom(userId: Long): Result<ChatRoomResponse> {
+        val app = PetPlaceApp.getAppContext() as PetPlaceApp
+        val userInfo = app.getUserInfo()
+        val myId = userInfo?.userId ?: 0
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "채팅방 생성: userId1=$myId, userId2=$userId")
+
+                val response = chatApiService.createChatRoom(
+                    CreateChatRoomRequest(userId1 = myId, userId2 = userId)
+                )
+
+                if (response.isSuccessful) {
+                    val chatRoom = response.body()
+                    if (chatRoom != null) {
+                        Log.d(TAG, "채팅방 생성 성공: chatRoomId=${chatRoom.chatRoomId}")
+                        Result.success(chatRoom)
+                    } else {
+                        Log.e(TAG, "채팅방 생성 응답이 null")
+                        Result.failure(Exception("채팅방 생성 응답이 null"))
+                    }
+                } else {
+                    Log.e(TAG, "채팅방 생성 실패: ${response.code()} ${response.message()}")
+                    Result.failure(Exception("채팅방 생성 실패: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "채팅방 생성 중 오류", e)
+                Result.failure(e)
+            }
         }
     }
 
