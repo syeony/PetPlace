@@ -4,25 +4,30 @@ import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.BackgroundColor
 import com.example.petplace.presentation.common.theme.PrimaryColor
@@ -33,26 +38,28 @@ import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
-import kotlin.math.log
 
-@SuppressLint("StateFlowValueCalledInComposition")
+@SuppressLint("StateFlowValueCalledInComposition", "UnusedMaterial3ScaffoldPaddingParameter")
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DateSelectionScreen(
     navController: NavController,
-    viewModel: HotelSharedViewModel
+    viewModel: HotelSharedViewModel = hiltViewModel()
 ) {
-
     val currentMonth = YearMonth.now()
     val startMonth = currentMonth
     val endMonth = currentMonth.plusMonths(6)
     val today = LocalDate.now()
 
     val reservationState by viewModel.reservationState.collectAsState()
-    var startDate by remember { mutableStateOf<LocalDate?>(null) }
-    var endDate by remember { mutableStateOf<LocalDate?>(null) }
-    Log.d("animal" , "고른 동물 :${reservationState.selectedAnimal}")
+
+    // null 허용: 날짜 범위 선택 UX를 위해
+    var startDate by remember { mutableStateOf<LocalDate?>(today) }
+    var endDate by remember { mutableStateOf<LocalDate?>(today.plusDays(1)) }
+
+    Log.d("animal", "고른 동물 :${reservationState.selectedAnimal}")
+
     // 날짜 변경될 때마다 ViewModel에 반영
     LaunchedEffect(startDate, endDate) {
         viewModel.selectDate(
@@ -61,6 +68,15 @@ fun DateSelectionScreen(
         )
     }
 
+    // 화면 진입 시 한 번 실행
+    LaunchedEffect(Unit) {
+        viewModel.getMyPets()
+    }
+
+    val petList by viewModel.myPetList.collectAsState()
+
+    var selectedPetId by remember { mutableStateOf<Int?>(null) }
+
     val calendarState = rememberCalendarState(
         startMonth = startMonth,
         endMonth = endMonth,
@@ -68,23 +84,39 @@ fun DateSelectionScreen(
         firstDayOfWeek = DayOfWeek.MONDAY
     )
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("날짜 선택") },
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "날짜 선택",
+                            style = AppTypography.titleMedium
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = BackgroundColor)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = BackgroundColor
+                ),
+                modifier = Modifier.height(48.dp),
+                windowInsets = WindowInsets(0.dp) // 상단 패딩 제거
             )
         }
-    ) { innerPadding ->
+    ) {
         Column(
             modifier = Modifier
-                .padding(innerPadding)
+                // .padding(innerPadding)  // 이거 쓰면 bottomnav만큼 여백생김
+                .padding(0.dp)
                 .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -107,7 +139,8 @@ fun DateSelectionScreen(
                 ) {
                     IconButton(
                         onClick = {
-                            val prevMonth = calendarState.firstVisibleMonth.yearMonth.minusMonths(1)
+                            val prevMonth =
+                                calendarState.firstVisibleMonth.yearMonth.minusMonths(1)
                             coroutineScope.launch { calendarState.animateScrollToMonth(prevMonth) }
                         }
                     ) {
@@ -121,7 +154,8 @@ fun DateSelectionScreen(
 
                     IconButton(
                         onClick = {
-                            val nextMonth = calendarState.firstVisibleMonth.yearMonth.plusMonths(1)
+                            val nextMonth =
+                                calendarState.firstVisibleMonth.yearMonth.plusMonths(1)
                             coroutineScope.launch { calendarState.animateScrollToMonth(nextMonth) }
                         }
                     ) {
@@ -138,7 +172,6 @@ fun DateSelectionScreen(
                         val inRange = startDate != null && endDate != null &&
                                 day.date.isAfter(startDate) && day.date.isBefore(endDate)
 
-                        // ✅ 선택 없으면 오늘 색칠
                         val isTodayHighlight =
                             startDate == null && endDate == null && day.date == today
 
@@ -153,9 +186,9 @@ fun DateSelectionScreen(
                                 .size(40.dp)
                                 .background(
                                     color = bgColor,
-                                    shape = if (isStart || isEnd || isTodayHighlight) RoundedCornerShape(
-                                        0.dp
-                                    ) else RoundedCornerShape(0.dp)
+                                    shape = if (isStart || isEnd || isTodayHighlight)
+                                        RoundedCornerShape(0.dp)
+                                    else RoundedCornerShape(0.dp)
                                 )
                                 .clickable(enabled = day.position == DayPosition.MonthDate) {
                                     if (startDate == null || (startDate != null && endDate != null)) {
@@ -186,6 +219,12 @@ fun DateSelectionScreen(
                 )
             }
 
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = Color(0xFFE0E0E0),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
+
             // 선택된 날짜 표시 카드
             Column(
                 modifier = Modifier
@@ -193,7 +232,7 @@ fun DateSelectionScreen(
                     .padding(8.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .padding(24.dp),
+                    .padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -202,7 +241,7 @@ fun DateSelectionScreen(
                     color = Color.Gray,
                     style = AppTypography.labelLarge
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 val displayText = when {
                     startDate != null && endDate != null -> "${startDate.toString()} ~ ${endDate.toString()}"
                     startDate != null -> startDate.toString()
@@ -213,106 +252,141 @@ fun DateSelectionScreen(
                         .fillMaxWidth()
                         .padding(0.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.LightGray)
+                        .background(Color.White)
                         .padding(24.dp),
-
-                    ) {
-
+                ) {
                     Text(
                         text = displayText,
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         color = Color.Black,
                         style = AppTypography.bodyLarge
                     )
                 }
             }
 
-            //마리수
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = Color(0xFFE0E0E0),
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+            )
+
+            // 내 펫 선택
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .padding(24.dp)
             ) {
                 Text(
-                    text = "댕/냥원(마릿수)",
+                    text = "내 펫 선택",
                     modifier = Modifier.fillMaxWidth(),
                     color = Color.LightGray,
                     style = AppTypography.labelLarge
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.LightGray)
-                        .padding(8.dp)
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // 감소 버튼
-                    IconButton(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White),
-                        onClick = {
-                            viewModel.decreaseAnimalCount()
-                        }
-                    ) {
-                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = "감소")
-                    }
 
-                    // 현재 마릿수
-                    Text(
-                        text = "${reservationState.animalCount} 마리",
-                        style = AppTypography.labelLarge
-                    )
-                    // 증가 버튼
-                    IconButton(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White),
-                        onClick = {
-                            viewModel.increaseAnimalCount()
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(petList) { pet ->
+                        val isSelected = pet.id == selectedPetId
+
+                        Card(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clickable {
+                                    selectedPetId = pet.id
+                                    viewModel.selecMyPet(pet.id, pet.animal) // ViewModel에 선택 반영
+                                },
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(
+                                2.dp,
+                                if (isSelected) Color(0xFFFF9800) else Color(0xFFE0E0E0)
+                            ),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) Color(0xFFFFF3E0) else Color.White
+                            ),
+                            elevation = CardDefaults.cardElevation(
+                                defaultElevation = if (isSelected) 6.dp else 2.dp
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+
+                                // === 이미지 붙이는 방식 (상대경로 → 절대경로 + Coil 옵션) ===
+                                val request = ImageRequest.Builder(context)
+                                    .data(pet.imgSrc.toFullImageUrl())
+                                    // .addHeader("Authorization", "Bearer $token") // 보호 리소스면 사용
+                                    .crossfade(true)
+                                    .placeholder(android.R.drawable.ic_menu_report_image)
+                                    .error(android.R.drawable.ic_menu_report_image)
+                                    .build()
+
+                                AsyncImage(
+                                    model = request,
+                                    contentDescription = pet.name,
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = pet.name,
+                                    style = AppTypography.bodySmall,
+                                    maxLines = 1
+                                )
+                            }
                         }
-                    ) {
-                        Icon(Icons.Default.KeyboardArrowUp, contentDescription = "증가")
                     }
                 }
-
-
             }
+
             Spacer(modifier = Modifier.weight(1f))
+
             Button(
                 onClick = {
-                    if (startDate == null) {
-                        startDate = today
-                    }
-                    if (endDate == null) {
-                        endDate = startDate
-                    }
+                    if (startDate == null) startDate = today
+                    if (endDate == null) endDate = startDate!!.plusDays(1)
+
                     viewModel.selectDate(
                         startDate?.toString().orEmpty(),
                         endDate?.toString().orEmpty()
                     )
-                    Log.d("당시","${startDate}  ${endDate}")
-                    navController.navigate("hotel/list")
+                    Log.d("당시", "$startDate  $endDate")
+
+                    if (viewModel.reservationState.value.selectedPetId != null) {
+                        navController.navigate("hotel/list")
+                    } else {
+                        // TODO: 펫 선택 안내 (Snackbar/Toast)
+                    }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp),
-                shape = RoundedCornerShape(12.dp), // 원래 이미지가 둥글다면 그대로
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
             ) {
-                Text("검색하기", color = Color.White)
+                Text("검색하기", color = Color.Black)
             }
         }
+    }
+}
+
+
+private const val IMAGE_BASE_URL = "http://i13d104.p.ssafy.io:8081"
+
+private fun String?.toFullImageUrl(): String? {
+    val raw = this ?: return null
+    return if (raw.startsWith("http", ignoreCase = true)) {
+        raw
+    } else {
+        IMAGE_BASE_URL.trimEnd('/') + "/" + raw.trimStart('/')
     }
 }

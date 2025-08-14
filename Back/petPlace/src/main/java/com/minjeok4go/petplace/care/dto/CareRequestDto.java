@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -50,7 +51,7 @@ public class CareRequestDto {
 
     // 이미지 URL 리스트 (선택사항, 최대 5개)
     @Size(max = 5, message = "이미지는 최대 5개까지 등록 가능합니다")
-    private List<String> imageUrls;
+    private List<CareImageRequest> images = new ArrayList<>();
 
     /**
      * 유효성 검증 메서드

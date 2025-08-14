@@ -658,16 +658,38 @@ CREATE INDEX `idx_users_login_type` ON `users`(`login_type`);
 CREATE INDEX `idx_users_social_id` ON `users`(`social_id`);
 CREATE INDEX `idx_users_login_type_social_id` ON `users`(`login_type`, `social_id`);
 
--- 📊 지역 테스트 데이터 (원본 유지)
-INSERT IGNORE INTO regions (id, name, parent_id, geometry) VALUES
-(1100000000, '서울특별시', NULL, ST_GeomFromText('POINT(126.9784 37.5667)')),
-(4100000000, '경기도', NULL, ST_GeomFromText('POINT(127.5183 37.2741)')),
-(4700000000, '경상북도', NULL, ST_GeomFromText('POINT(128.9056 36.4919)'));
+-- 경상북도 및 구미시 대표 데이터
+INSERT IGNORE INTO `regions` (`id`, `name`, `parent_id`, `geometry`) VALUES
+(37000000, '경상북도', NULL, ST_GeomFromText('POINT(128.876379 36.433979)')),
+(37050000, '구미시', 37000000, ST_GeomFromText('POINT(128.362699 36.212292)'));
 
-INSERT IGNORE INTO regions (id, name, parent_id, geometry) VALUES
-(1111000000, '종로구', 1100000000, ST_GeomFromText('POINT(126.9792 37.5730)')),
-(4111000000, '수원시', 4100000000, ST_GeomFromText('POINT(127.0286 37.2636)')),
-(4719000000, '구미시', 4700000000, ST_GeomFromText('POINT(128.3445 36.1190)'));
+-- 구미시 하위 지역 데이터 (로그 기반 ID)
+INSERT IGNORE INTO `regions` (`id`, `name`, `parent_id`, `geometry`) VALUES
+(37050110, '선산읍', 37050000, ST_GeomFromText('POINT(128.283580 36.246959)')),
+(37050120, '고아읍', 37050000, ST_GeomFromText('POINT(128.327688 36.183645)')),
+(37050130, '산동읍', 37050000, ST_GeomFromText('POINT(128.462296 36.181061)')),
+(37050310, '무을면', 37050000, ST_GeomFromText('POINT(128.187926 36.265641)')),
+(37050320, '옥성면', 37050000, ST_GeomFromText('POINT(128.265567 36.304640)')),
+(37050330, '도개면', 37050000, ST_GeomFromText('POINT(128.353137 36.304457)')),
+(37050340, '해평면', 37050000, ST_GeomFromText('POINT(128.408992 36.219688)')),
+(37050360, '장천면', 37050000, ST_GeomFromText('POINT(128.511828 36.150167)')),
+(37050510, '송정동', 37050000, ST_GeomFromText('POINT(128.353882 36.121199)')),
+(37050550, '도량동', 37050000, ST_GeomFromText('POINT(128.337561 36.145738)')),
+(37050560, '지산동', 37050000, ST_GeomFromText('POINT(128.357704 36.139665)')),
+(37050570, '선주원남동', 37050000, ST_GeomFromText('POINT(128.319947 36.131881)')),
+(37050590, '형곡1동', 37050000, ST_GeomFromText('POINT(128.336033 36.118847)')),
+(37050600, '형곡2동', 37050000, ST_GeomFromText('POINT(128.336888 36.107089)')),
+(37050610, '신평1동', 37050000, ST_GeomFromText('POINT(128.362825 36.121911)')),
+(37050620, '신평2동', 37050000, ST_GeomFromText('POINT(128.366608 36.127303)')),
+(37050660, '광평동', 37050000, ST_GeomFromText('POINT(128.360467 36.108405)')),
+(37050670, '상모사곡동', 37050000, ST_GeomFromText('POINT(128.352855 36.094567)')),
+(37050690, '임오동', 37050000, ST_GeomFromText('POINT(128.366007 36.078246)')),
+(37050700, '인동동', 37050000, ST_GeomFromText('POINT(128.454495 36.102718)')),
+(37050710, '진미동', 37050000, ST_GeomFromText('POINT(128.410431 36.109180)')),
+(37050720, '양포동', 37050000, ST_GeomFromText('POINT(128.413260 36.140688)')),
+(37050730, '비산동', 37050000, ST_GeomFromText('POINT(128.377883 36.125332)')),
+(37050740, '공단동', 37050000, ST_GeomFromText('POINT(128.410274 36.168089)')),
+(37050750, '원평동', 37050000, ST_GeomFromText('POINT(128.347429 36.130805)'));
 
 -- 📊 소셜 로그인 테스트 데이터
 INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type) VALUES

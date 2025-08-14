@@ -3,8 +3,11 @@ package com.minjeok4go.petplace.user.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.minjeok4go.petplace.common.dto.ApiResponse;
 import com.minjeok4go.petplace.user.dto.CheckDuplicateResponseDto;
+import com.minjeok4go.petplace.user.dto.DongAuthenticationResponse;
 import com.minjeok4go.petplace.user.dto.UserSignupRequestDto;
+import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.service.PortOneApiService;
+import com.minjeok4go.petplace.user.service.RegionData;
 import com.minjeok4go.petplace.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -212,6 +216,135 @@ public class UserController {
             return ResponseEntity.ok(ApiResponse.success("포트원 인증 정보 조회 성공! 응답: " + result.toPrettyString()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(ApiResponse.failure("포트원 인증 정보 조회 실패: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 동네 인증 API
+     * 현재 로그인한 사용자의 위치를 기반으로 동네를 인증합니다.
+     */
+    @Operation(
+            summary = "🏠 동네 인증",
+            description = """
+        사용자의 현재 위치 좌표를 받아 해당하는 행정동을 판별하고 사용자 정보를 업데이트합니다.
+        
+        ### 사용법
+        1. GPS를 통해 사용자의 현재 위치 (위도, 경도)를 획득합니다.
+        2. 이 API를 호출하여 동네 인증을 진행합니다.
+        3. 성공 시 사용자의 지역 정보가 업데이트됩니다.
+        
+        ### 좌표계
+        - **WGS84** 좌표계를 사용합니다.
+        - 위도(lat): 33.0 ~ 43.0 (대한민국 영역)
+        - 경도(lon): 124.0 ~ 132.0 (대한민국 영역)
+        """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200", description = "동네 인증 성공",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                        {
+                          "success": true,
+                          "message": "동네 인증이 완료되었습니다.",
+                          "data": {
+                            "regionId": 4719000000,
+                            "regionName": "진미동"
+                          }
+                        }
+                        """))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400", description = "잘못된 요청 (좌표 범위 초과, 지역 찾을 수 없음 등)",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                        {
+                          "success": false,
+                          "message": "대한민국 영역 내의 좌표가 아닙니다.",
+                          "data": null
+                        }
+                        """))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401", description = "인증되지 않은 사용자",
+                    content = @Content(mediaType = "application/json",
+                            examples = @ExampleObject(value = """
+                        {
+                          "success": false,
+                          "message": "로그인이 필요합니다.",
+                          "data": null
+                        }
+                        """))
+            )
+    })
+    @PostMapping("/me/dong-authentication")
+    public ResponseEntity<ApiResponse<DongAuthenticationResponse>> authenticateDong(
+            @Parameter(description = "위도 (WGS84)", example = "37.5665", required = true)
+            @RequestParam("lat") Double lat,
+            @Parameter(description = "경도 (WGS84)", example = "126.9780", required = true)
+            @RequestParam("lon") Double lon) {
+
+        // 파라미터 유효성 검증
+        if (lat == null || lon == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("위도(lat)와 경도(lon) 파라미터가 필요합니다."));
+        }
+
+        try {
+            // 기존 프로젝트 방식: SecurityContext에서 현재 사용자 ID 추출
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.failure("로그인이 필요합니다."));
+            }
+            
+            Long userId = Long.parseLong(authentication.getName());
+            log.info("동네 인증 요청 - 사용자: {}, 좌표: ({}, {})", userId, lat, lon);
+            
+            DongAuthenticationResponse response = userService.authenticateDong(userId, lat, lon);
+            return ResponseEntity.ok(ApiResponse.success("동네 인증이 완료되었습니다.", response));
+
+        } catch (IllegalArgumentException e) {
+            log.warn("동네 인증 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+
+        } catch (Exception e) {
+            log.error("동네 인증 중 예상치 못한 오류 발생", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.failure("동네 인증 처리 중 오류가 발생했습니다."));
+        }
+    }
+
+    /**
+     * 테스트용 API - 좌표로 지역 확인 (로그인 불필요, DB 업데이트 없음)
+     */
+    @Operation(
+            summary = "🧪 좌표 지역 확인 (테스트용)",
+            description = "로그인 없이 좌표만으로 해당 지역을 확인할 수 있는 테스트용 API입니다. 사용자 정보는 업데이트되지 않습니다."
+    )
+    @GetMapping("/test/region-by-coordinates")
+    public ResponseEntity<ApiResponse<DongAuthenticationResponse>> testRegionByCoordinates(
+            @Parameter(description = "위도 (WGS84)", example = "37.5665", required = true)
+            @RequestParam("lat") Double lat,
+            @Parameter(description = "경도 (WGS84)", example = "126.9780", required = true)
+            @RequestParam("lon") Double lon) {
+
+        if (lat == null || lon == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure("위도(lat)와 경도(lon) 파라미터가 필요합니다."));
+        }
+
+        try {
+            DongAuthenticationResponse response = userService.findRegionByCoordinates(lat, lon);
+            return ResponseEntity.ok(ApiResponse.success("지역 조회 성공", response));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+
+        } catch (Exception e) {
+            log.error("지역 조회 중 오류 발생", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.failure("지역 조회 중 오류가 발생했습니다."));
         }
     }
 }

@@ -40,9 +40,9 @@ data class TokenRefreshResponse(
         val userImgSrc: String?,
         val level: Int,
         val defaultPetId: Int?,
-        val regionId: Long
+        val regionId: Long,
+        val phoneNumber: String
     )
-
 
     @POST("api/auth/login") // 실제 서버 경로로 수정
     suspend fun login(
