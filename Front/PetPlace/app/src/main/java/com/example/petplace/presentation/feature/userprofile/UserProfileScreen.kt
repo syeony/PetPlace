@@ -57,40 +57,6 @@ import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import androidx.hilt.navigation.compose.hiltViewModel
 
-// 데이터 클래스들
-data class UserProfileInfo(
-    val userId: Long,
-    val nickname: String = "",
-    val location: String = "",
-    val level: Int = 1,
-    val experienceProgress: Float = 0f,
-    val introduction: String = "",
-    val userImgSrc: String = ""
-)
-
-data class UserPetInfo(
-    val id: Long,
-    val name: String = "",
-    val breed: String = "",
-    val gender: String = "",
-    val age: Int = 0,
-    val imgSrc: String? = ""
-)
-
-data class UserPetSupplies(
-    val bathImageUrl: String? = null,
-    val foodImageUrl: String? = null,
-    val wasteImageUrl: String? = null
-)
-
-data class UserProfileUiState(
-    val userProfile: UserProfileInfo = UserProfileInfo(0),
-    val pets: List<UserPetInfo> = emptyList(),
-    val petSupplies: UserPetSupplies = UserPetSupplies(),
-    val isLoading: Boolean = false,
-    val error: String? = null
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserProfileScreen(
