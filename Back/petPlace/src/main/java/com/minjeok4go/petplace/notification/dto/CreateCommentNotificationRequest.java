@@ -1,28 +1,28 @@
-package com.minjeok4go.petplace.image.dto;
+package com.minjeok4go.petplace.notification.dto;
 
 import com.minjeok4go.petplace.common.constant.RefType;
 import jakarta.validation.constraints.NotNull;
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class ImageRequest {
+public class CreateCommentNotificationRequest {
 
     @NotNull
-    private Long refId;
+    private Long targetUserId;
 
     @NotNull
     private RefType refType;
 
     @NotNull
-    private String src;
+    private Long refId;
 
     @NotNull
-    private Integer sort;
+    private Long commentId;
 
+    @NotNull
+    private String preview;
 }

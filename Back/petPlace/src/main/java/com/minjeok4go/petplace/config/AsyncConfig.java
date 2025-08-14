@@ -26,4 +26,15 @@ public class AsyncConfig {
         ex.initialize();
         return ex;
     }
+
+    @Bean
+    public Executor taskExecutor() {
+        var ex = new org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(4);
+        ex.setMaxPoolSize(16);
+        ex.setQueueCapacity(500);
+        ex.setThreadNamePrefix("notification-");
+        ex.initialize();
+        return ex;
+    }
 }

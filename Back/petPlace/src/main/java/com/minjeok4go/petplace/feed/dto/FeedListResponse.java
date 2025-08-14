@@ -1,17 +1,9 @@
 
 package com.minjeok4go.petplace.feed.dto;
-import com.minjeok4go.petplace.comment.dto.FeedComment;
-import com.minjeok4go.petplace.common.constant.FeedCategory;
-import com.minjeok4go.petplace.common.constant.ImageType;
 import com.minjeok4go.petplace.feed.entity.Feed;
-import com.minjeok4go.petplace.image.dto.ImageResponse;
-import com.minjeok4go.petplace.image.repository.ImageRepository;
-import com.minjeok4go.petplace.like.repository.LikeRepository;
-import com.minjeok4go.petplace.user.entity.User;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import java.time.LocalDateTime;
-import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor

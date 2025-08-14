@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.image.repository;
 
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.image.entity.Image;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -15,11 +15,11 @@ public interface ImageRepository extends JpaRepository<Image, Long> {
 
 
     // ✅ 추가: 다건 배치 로딩 (정렬 포함)
-    List<Image> findAllByRefTypeAndRefIdInOrderBySortAsc(ImageType refType, List<Long> refIds);
-    List<Image> findByRefTypeAndRefIdOrderBySortAsc(ImageType refType, Long refId);
-    Optional<Image> findByRefTypeAndRefIdAndSort(ImageType refType, Long refId, Integer sort);
+    List<Image> findAllByRefTypeAndRefIdInOrderBySortAsc(RefType refType, List<Long> refIds);
+    List<Image> findByRefTypeAndRefIdOrderBySortAsc(RefType refType, Long refId);
+    Optional<Image> findByRefTypeAndRefIdAndSort(RefType refType, Long refId, Integer sort);
 
     @Modifying
     @Query("delete from Image i where i.refType = :type and i.refId = :refId")
-    void deleteAllByRef(@Param("type") ImageType type, @Param("refId") Long refId);
+    void deleteAllByRef(@Param("type") RefType type, @Param("refId") Long refId);
 }
