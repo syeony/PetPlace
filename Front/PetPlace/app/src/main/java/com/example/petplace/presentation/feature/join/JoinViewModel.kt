@@ -36,6 +36,9 @@ class JoinViewModel @Inject constructor(
     var nicknameChecked = mutableStateOf(false)
         private set
 
+    private val _regionId = MutableStateFlow<Long>(37050700L)
+    val regionId: StateFlow<Long> = _regionId
+
     fun onUserIdChange(newId: String) { userId.value = newId }
     fun onPasswordChange(newPw: String) { password.value = newPw }
     fun onNicknameChange(newName: String) { nickname.value = newName }
@@ -69,6 +72,14 @@ class JoinViewModel @Inject constructor(
 
     fun fetchRegionByCoord(lat: Double, lng: Double) {
         viewModelScope.launch {
+            val response = joinRepo.verifyUserNeighborhood(lat, lng)
+            if (response.isSuccessful) {
+                response.body()?.data?.let { data ->
+                    _regionId.value = data.regionId
+                }
+            } else {
+                Log.e("JoinViewModel", "동네 인증 실패: ${response.code()} ${response.message()}")
+            }
             _regionName.value = repo.getRegionByCoord(lat, lng)
         }
     }
@@ -106,7 +117,7 @@ class JoinViewModel @Inject constructor(
 
     suspend fun signUp(): Boolean {
         return try {
-            val request = JoinRequest(userId.value,password.value,nickname.value,4700000000,impUid.value!!)
+            val request = JoinRequest(userId.value,password.value,nickname.value,regionId.value,impUid.value!!)
             val response = joinRepo.signUp(request)
             response.isSuccessful
         } catch (e: Exception) {
