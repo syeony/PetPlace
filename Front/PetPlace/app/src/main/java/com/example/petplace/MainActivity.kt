@@ -31,7 +31,6 @@ import kotlinx.coroutines.tasks.await
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (!granted) {
@@ -59,16 +58,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             PetPlaceTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    // 기존 메인 UI + 토큰 확인용 얇은 테스트 버튼
-                    Column {
-                        MainScaffold()
-
-                        // --- 테스트 영역: 토큰 표시/복사 ---
-                        Divider()
-                        TokenTestBar(onGetToken = { token ->
-                            // 필요시 추가 처리
-                        })
-                    }
+                    MainScaffold()
                 }
             }
         }

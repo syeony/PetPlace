@@ -3,6 +3,7 @@
     <!--    <string name="home">홈</string>-->
     <string name="chat">채팅</string>
     <string name="feed">피드</string>
+    <string name="createfeed">글쓰기</string>
     <string name="mypage">마이페이지</string>
     <string name="neighborhood">우리 동네</string>
     <string name="title_activity_hotel_list_screen">HotelListScreen</string>

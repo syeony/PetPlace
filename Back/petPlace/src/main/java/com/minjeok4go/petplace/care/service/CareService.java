@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.care.service;
 
+import com.minjeok4go.petplace.care.dto.CareImageRequest;
 import com.minjeok4go.petplace.care.dto.CareRequestDto;
 import com.minjeok4go.petplace.care.dto.CareResponseDto;
 import com.minjeok4go.petplace.care.dto.CareListResponseDto;
@@ -40,7 +41,7 @@ public class CareService {
     private final PetRepository petRepository;
     private final RegionRepository regionRepository;
     private final ImageService imageService;
-    private final ImageRepository imageRepository;
+    private final ImageRepository imageRepository; // 이미지 업데이트용
 
     /**
      * 돌봄/산책 요청 등록
@@ -83,7 +84,7 @@ public class CareService {
         Cares savedCare = careRepository.save(care);
 
         // 이미지 저장 (기존 ImageService 활용)
-        saveImages(requestDto.getImageUrls(), savedCare.getId(), ImageType.CARE);
+        saveImages(requestDto.getImages(), savedCare.getId(), ImageType.CARE);
 
         log.info("돌봄/산책 요청 등록 완료 - ID: {}", savedCare.getId());
 
@@ -141,7 +142,7 @@ public class CareService {
                 requestDto.getCategory(), startDatetime, endDatetime);
 
         // 기존 이미지 삭제 후 새 이미지 저장
-        updateImages(careId, ImageType.CARE, requestDto.getImageUrls());
+        updateImages(careId, ImageType.CARE, requestDto.getImages());
 
         log.info("돌봄/산책 요청 수정 완료 - ID: {}", careId);
 
@@ -292,39 +293,39 @@ public class CareService {
     }
 
     /**
-     * 이미지 저장 공통 메서드 (기존 ImageService 활용)
+     * 이미지 저장 공통 메서드 (Feed 패키지와 동일한 방식)
      */
-    private void saveImages(List<String> imageUrls, Long refId, ImageType refType) {
-        if (imageUrls == null || imageUrls.isEmpty()) {
+    private void saveImages(List<CareImageRequest> imageRequests, Long refId, ImageType refType) {
+        if (imageRequests == null || imageRequests.isEmpty()) {
             return;
         }
 
-        for (int i = 0; i < imageUrls.size(); i++) {
+        for (CareImageRequest imgReq : imageRequests) {
             ImageRequest imageRequest = ImageRequest.builder()
                     .refId(refId)
                     .refType(refType)
-                    .src(imageUrls.get(i))
-                    .sort(i + 1) // 1부터 시작하는 정렬 순서
+                    .src(imgReq.getSrc())
+                    .sort(imgReq.getSort())
                     .build();
 
             imageService.createImages(imageRequest);
-            log.debug("이미지 저장 완료 - refId: {}, refType: {}, src: {}", refId, refType, imageUrls.get(i));
+            log.debug("이미지 저장 완료 - refId: {}, refType: {}, src: {}", refId, refType, imgReq.getSrc());
         }
     }
 
     /**
-     * 이미지 업데이트 (기존 이미지 삭제 후 새 이미지 저장)
+     * 이미지 업데이트 (Feed 패키지와 동일한 방식)
      */
-    private void updateImages(Long refId, ImageType refType, List<String> newImageUrls) {
-        // 기존 이미지 조회
-        List<Image> existingImages = imageRepository.findByRefTypeAndRefIdOrderBySortAsc(refType, refId);
-
-        // 기존 이미지 삭제
-        if (!existingImages.isEmpty()) {
-            imageRepository.deleteAll(existingImages);
-        }
+    private void updateImages(Long refId, ImageType refType, List<CareImageRequest> newImages) {
+        // 기존 이미지 모두 삭제
+        imageRepository.deleteAllByRef(refType, refId);
 
         // 새 이미지 저장
-        saveImages(newImageUrls, refId, refType);
+        if (newImages != null && !newImages.isEmpty()) {
+            List<Image> toAdd = newImages.stream()
+                    .map(ir -> new Image(refId, refType, ir.getSrc(), ir.getSort()))
+                    .toList();
+            imageRepository.saveAll(toAdd);
+        }
     }
 }
