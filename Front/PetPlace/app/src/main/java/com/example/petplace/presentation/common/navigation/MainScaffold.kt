@@ -27,8 +27,11 @@ import com.example.petplace.presentation.feature.feed.BoardEditScreen
 import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.hotel.AnimalSelectScreen
 import com.example.petplace.presentation.feature.hotel.DateSelectionScreen
+import com.example.petplace.presentation.feature.hotel.HotelDetailScreen
 import com.example.petplace.presentation.feature.hotel.HotelListScreen
 import com.example.petplace.presentation.feature.hotel.HotelSharedViewModel
+import com.example.petplace.presentation.feature.hotel.ReservationCheckoutScreen
+import com.example.petplace.presentation.feature.hotel.ReservationSuccessScreen
 import com.example.petplace.presentation.feature.join.CertificationScreen
 import com.example.petplace.presentation.feature.join.JoinScreen
 import com.example.petplace.presentation.feature.join.JoinViewModel
@@ -38,22 +41,20 @@ import com.example.petplace.presentation.feature.join.KakaoJoinScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
 import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.missing_list.MissingListScreen
+import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
+import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyCommentScreen
 import com.example.petplace.presentation.feature.mypage.MyLikePostScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
-import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
-import com.example.petplace.presentation.feature.hotel.HotelDetailScreen
-import com.example.petplace.presentation.feature.hotel.ReservationCheckoutScreen
-import com.example.petplace.presentation.feature.hotel.ReservationSuccessScreen
-import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
-import com.example.petplace.presentation.feature.missing_register.RegisterScreen
-import com.example.petplace.presentation.feature.splash.SplashScreen
 import com.example.petplace.presentation.feature.mypage.MyPostScreen
 import com.example.petplace.presentation.feature.mypage.PetProfileScreen
 import com.example.petplace.presentation.feature.mypage.ProfileCompleteScreen
 import com.example.petplace.presentation.feature.mypage.ProfileEditScreen
+import com.example.petplace.presentation.feature.splash.SplashScreen
+import com.example.petplace.presentation.feature.userprofile.UserProfileScreen
+import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareWriteScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkPostDetailScreen
 
@@ -118,34 +119,11 @@ fun MainScaffold() {
             }
             //api연동 전 임시
             composable(
-                route = "walk_detail?" +
-                        "category={category}&title={title}&body={body}&date={date}&time={time}&imageUrl={imageUrl}" +
-                        "&name={name}&avatar={avatar}",
-                arguments = listOf(
-                    navArgument("category") { type = NavType.StringType; defaultValue = "" },
-                    navArgument("title")    { type = NavType.StringType; defaultValue = "" },
-                    navArgument("body")     { type = NavType.StringType; defaultValue = "" },
-                    navArgument("date")     { type = NavType.StringType; defaultValue = "" },
-                    navArgument("time")     { type = NavType.StringType; defaultValue = "" },
-                    navArgument("imageUrl") { type = NavType.StringType; defaultValue = "" },
-                    navArgument("name")     { type = NavType.StringType; defaultValue = "" },      // ⬅️ 프로필 이름
-                    navArgument("avatar")   { type = NavType.StringType; defaultValue = "" },      // ⬅️ 프로필 이미지
-                )
+                route = "walk_detail/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.LongType })
             ) { backStackEntry ->
-                val avatar: String? =
-                    backStackEntry.arguments?.getString("avatar").takeUnless { it.isNullOrBlank() }
-
-                WalkPostDetailScreen(
-                    navController = navController,
-                    category = backStackEntry.arguments?.getString("category") ?: "",
-                    title    = backStackEntry.arguments?.getString("title")    ?: "",
-                    body     = backStackEntry.arguments?.getString("body")     ?: "",
-                    date     = backStackEntry.arguments?.getString("date")     ?: "",
-                    time     = backStackEntry.arguments?.getString("time")     ?: "",
-                    imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: "",
-                    reporterName      = backStackEntry.arguments?.getString("name") ?: "",
-                    reporterAvatarUrl = avatar
-                )
+                val id = backStackEntry.arguments?.getLong("id") ?: 0L
+                WalkPostDetailScreen(navController = navController, postId = id) // ✅ 변경된 시그니처
             }
             composable("walk_write") {
                 WalkAndCareWriteScreen(navController = navController)
@@ -216,6 +194,19 @@ fun MainScaffold() {
             composable("my_post") { MyPostScreen(navController) }
             composable("my_comment") { MyCommentScreen(navController) }
             composable("my_likePost") { MyLikePostScreen(navController) }
+
+            composable(
+                route = "userProfile/{userId}",
+                arguments = listOf(
+                    navArgument("userId") { type = NavType.LongType }
+                )
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getLong("userId") ?: 0
+                UserProfileScreen(
+                    navController = navController,
+                    userId = userId
+                )
+            }
 
 
 //            composable("hotel"){AnimalSelectScreen(navController)}

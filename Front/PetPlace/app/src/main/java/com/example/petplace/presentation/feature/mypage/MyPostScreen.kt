@@ -77,7 +77,7 @@ fun MyPostScreen(
                     }
 
                     Text(
-                        text = "내 게시글",
+                        text = "내 피드",
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         color = Color(0xFF000000),

@@ -417,7 +417,7 @@ fun MyPageScreen(
                         // MY 메뉴들
                         MyMenuItem(
                             icon = R.drawable.my_post,
-                            title = "내 게시글",
+                            title = "내 피드",
                             onClick = { navController.navigate("my_post") }
                         )
                         MyMenuItem(

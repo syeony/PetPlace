@@ -19,7 +19,7 @@ import com.minjeok4go.petplace.image.dto.ImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -84,12 +84,12 @@ public class CareService {
         Cares savedCare = careRepository.save(care);
 
         // 이미지 저장 (기존 ImageService 활용)
-        saveImages(requestDto.getImages(), savedCare.getId(), ImageType.CARE);
+        saveImages(requestDto.getImages(), savedCare.getId(), RefType.CARE);
 
         log.info("돌봄/산책 요청 등록 완료 - ID: {}", savedCare.getId());
 
         // 이미지 정보 포함해서 응답
-        List<ImageResponse> images = imageService.getImages(ImageType.CARE, savedCare.getId());
+        List<ImageResponse> images = imageService.getImages(RefType.CARE, savedCare.getId());
         return CareResponseDto.from(savedCare, images);
     }
 
@@ -104,7 +104,7 @@ public class CareService {
         care.increaseViews();
 
         // 이미지 정보 조회
-        List<ImageResponse> images = imageService.getImages(ImageType.CARE, careId);
+        List<ImageResponse> images = imageService.getImages(RefType.CARE, careId);
 
         return CareResponseDto.from(care, images);
     }
@@ -142,12 +142,12 @@ public class CareService {
                 requestDto.getCategory(), startDatetime, endDatetime);
 
         // 기존 이미지 삭제 후 새 이미지 저장
-        updateImages(careId, ImageType.CARE, requestDto.getImages());
+        updateImages(careId, RefType.CARE, requestDto.getImages());
 
         log.info("돌봄/산책 요청 수정 완료 - ID: {}", careId);
 
         // 이미지 정보 포함해서 응답
-        List<ImageResponse> images = imageService.getImages(ImageType.CARE, careId);
+        List<ImageResponse> images = imageService.getImages(RefType.CARE, careId);
         return CareResponseDto.from(care, images);
     }
 
@@ -179,7 +179,7 @@ public class CareService {
         care.updateStatus(status);
 
         // 이미지 정보 포함해서 응답
-        List<ImageResponse> images = imageService.getImages(ImageType.CARE, careId);
+        List<ImageResponse> images = imageService.getImages(RefType.CARE, careId);
         return CareResponseDto.from(care, images);
     }
 
@@ -188,7 +188,10 @@ public class CareService {
      */
     public Page<CareListResponseDto> getCaresByRegion(Long regionId, Pageable pageable) {
         return careRepository.findByRegionIdAndNotDeleted(regionId, pageable)
-                .map(CareListResponseDto::from);
+                .map(care -> {
+                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    return CareListResponseDto.from(care, images);
+                });
     }
 
     /**
@@ -196,7 +199,10 @@ public class CareService {
      */
     public Page<CareListResponseDto> getCaresByCategory(Long regionId, CareCategory category, Pageable pageable) {
         return careRepository.findByRegionIdAndCategoryAndNotDeleted(regionId, category, pageable)
-                .map(CareListResponseDto::from);
+                .map(care -> {
+                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    return CareListResponseDto.from(care, images);
+                });
     }
 
     /**
@@ -204,7 +210,10 @@ public class CareService {
      */
     public Page<CareListResponseDto> getCaresByStatus(Long regionId, CareStatus status, Pageable pageable) {
         return careRepository.findByRegionIdAndStatusAndNotDeleted(regionId, status, pageable)
-                .map(CareListResponseDto::from);
+                .map(care -> {
+                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    return CareListResponseDto.from(care, images);
+                });
     }
 
     /**
@@ -212,7 +221,10 @@ public class CareService {
      */
     public Page<CareListResponseDto> getCaresByUser(Long userId, Pageable pageable) {
         return careRepository.findByUserIdAndNotDeleted(userId, pageable)
-                .map(CareListResponseDto::from);
+                .map(care -> {
+                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    return CareListResponseDto.from(care, images);
+                });
     }
 
     /**
@@ -220,7 +232,10 @@ public class CareService {
      */
     public Page<CareListResponseDto> searchCares(Long regionId, String keyword, Pageable pageable) {
         return careRepository.findByRegionIdAndKeywordAndNotDeleted(regionId, keyword, pageable)
-                .map(CareListResponseDto::from);
+                .map(care -> {
+                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    return CareListResponseDto.from(care, images);
+                });
     }
 
     /**
@@ -229,7 +244,10 @@ public class CareService {
     public Page<CareListResponseDto> searchCaresWithConditions(Long regionId, CareCategory category,
                                                                CareStatus status, String keyword, Pageable pageable) {
         return careRepository.findByComplexConditionsAndNotDeleted(regionId, category, status, keyword, pageable)
-                .map(CareListResponseDto::from);
+                .map(care -> {
+                    List<ImageResponse> images = imageService.getImages(ImageType.CARE, care.getId());
+                    return CareListResponseDto.from(care, images);
+                });
     }
 
     // ===== 헬퍼 메서드들 =====
@@ -295,7 +313,7 @@ public class CareService {
     /**
      * 이미지 저장 공통 메서드 (Feed 패키지와 동일한 방식)
      */
-    private void saveImages(List<CareImageRequest> imageRequests, Long refId, ImageType refType) {
+    private void saveImages(List<CareImageRequest> imageRequests, Long refId, RefType refType) {
         if (imageRequests == null || imageRequests.isEmpty()) {
             return;
         }
@@ -316,7 +334,7 @@ public class CareService {
     /**
      * 이미지 업데이트 (Feed 패키지와 동일한 방식)
      */
-    private void updateImages(Long refId, ImageType refType, List<CareImageRequest> newImages) {
+    private void updateImages(Long refId, RefType refType, List<CareImageRequest> newImages) {
         // 기존 이미지 모두 삭제
         imageRepository.deleteAllByRef(refType, refId);
 

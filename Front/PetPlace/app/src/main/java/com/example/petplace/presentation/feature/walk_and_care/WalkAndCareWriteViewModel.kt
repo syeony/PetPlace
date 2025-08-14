@@ -1,19 +1,31 @@
 // presentation/feature/walk_and_care/WalkAndCareWriteViewModel.kt
 package com.example.petplace.presentation.feature.walk_and_care
 
+import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.model.cares.CareCategory
 import com.example.petplace.data.model.cares.CareCreateRequest
+import com.example.petplace.data.model.mypage.MyPageInfoResponse
+import com.example.petplace.data.remote.UserApiService
 import com.example.petplace.data.repository.CaresRepository
 import com.example.petplace.data.repository.ImageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
@@ -23,13 +35,66 @@ import javax.inject.Inject
 @HiltViewModel
 class WalkAndCareWriteViewModel @Inject constructor(
     private val caresRepository: CaresRepository,
-    private val imageRepository: ImageRepository
+    private val imageRepository: ImageRepository,
+    private val userApi: UserApiService, // ✅ Repo 대신 ApiService 직접 주입
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    fun updateRegionByLocation(context: Context) {
+        viewModelScope.launch {
+            val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
+            val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
+            val hasFine = androidx.core.content.ContextCompat.checkSelfPermission(context, fine) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+            val hasCoarse = androidx.core.content.ContextCompat.checkSelfPermission(context, coarse) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+
+            if (hasFine || hasCoarse) {
+                val loc = LocationProvider.getCurrentLocation(context)
+                if (loc != null) {
+                    Log.d(TAG, "GPS lat=${loc.latitude}, lon=${loc.longitude}")
+                    try {
+                        val res = userApi.authenticateDong(loc.latitude, loc.longitude)
+                        if (res.success && res.data != null) {
+                            _regionId.value = res.data.regionId
+                            Log.d(TAG, "regionId 업데이트 성공: ${res.data.regionId}, name=${res.data.regionName}")
+                        } else {
+                            Log.e(TAG, "동네 인증 실패: ${res.message}")
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "동네 인증 API 오류", e)
+                    }
+                } else {
+                    Log.e(TAG, "현재 위치를 가져오지 못했습니다 (null)")
+                }
+            }
+        }
+    }
+
+    val app = context as PetPlaceApp
+    val user = app.getUserInfo() ?: throw IllegalStateException("로그인 필요")
 
     private val TAG = "WalkAndCareWrite"
 
     // UI 표시용 라벨(탭 순서)
     val categories = listOf("산책구인", "산책의뢰", "돌봄구인", "돌봄의뢰")
+
+    // ── 선택된 펫(필수) ──
+    private val _petId = MutableStateFlow<Long?>(null)
+    val petId = _petId.asStateFlow()
+    fun setPetId(id: Long) { _petId.value = id }
+
+    // ── 선택된 펫 상태(이미 표시용으로 쓰던 부분 유지) ──
+    private val _petName     = MutableStateFlow<String?>(null); val petName = _petName.asStateFlow()
+    private val _petBreed    = MutableStateFlow<String?>(null); val petBreed = _petBreed.asStateFlow()
+    private val _petSex      = MutableStateFlow<String?>(null); val petSex = _petSex.asStateFlow()
+    private val _petBirthday = MutableStateFlow<String?>(null); val petBirthday = _petBirthday.asStateFlow()
+    private val _petImgSrc   = MutableStateFlow<String?>(null); val petImgSrc = _petImgSrc.asStateFlow()
+    fun setSelectedPet(name:String?, breed:String?, sex:String?, birthday:String?, imgSrc:String?, id:Long?=null) {
+        _petName.value=name; _petBreed.value=breed; _petSex.value=sex
+        _petBirthday.value=birthday; _petImgSrc.value=imgSrc
+        id?.let { _petId.value = it }
+    }
 
     // ---------- 입력 상태 ----------
     private val _pickedCat    = MutableStateFlow(categories.first())
@@ -46,8 +111,13 @@ class WalkAndCareWriteViewModel @Inject constructor(
     private val _imageUris    = MutableStateFlow<List<Uri>>(emptyList())
 
     // 서버 필수값
-    private val _petId        = MutableStateFlow<Long?>(null)
+//    private val _petId        = MutableStateFlow<Long?>(null)
     private val _regionId     = MutableStateFlow<Long?>(null)
+
+    init {
+        // ✅ 로그인 유저의 regionId를 초기값으로 세팅
+        _regionId.value = user.regionId
+    }
 
     // ---------- 공개 State ----------
     val pickedCat : StateFlow<String>      = _pickedCat.asStateFlow()
@@ -58,7 +128,7 @@ class WalkAndCareWriteViewModel @Inject constructor(
     val startDate : StateFlow<LocalDate?>  = _startDate.asStateFlow()
     val endDate   : StateFlow<LocalDate?>  = _endDate.asStateFlow()
     val imageUris : StateFlow<List<Uri>>   = _imageUris.asStateFlow()
-    val petId     : StateFlow<Long?>       = _petId.asStateFlow()
+//    val petId     : StateFlow<Long?>       = _petId.asStateFlow()
     val regionId  : StateFlow<Long?>       = _regionId.asStateFlow()
 
     // ---------- 모드 파생 ----------
@@ -118,7 +188,7 @@ class WalkAndCareWriteViewModel @Inject constructor(
     fun setStartDate(v: LocalDate?) { _startDate.value = v }
     fun setEndDate(v: LocalDate?)   { _endDate.value = v }
 
-    fun setPetId(id: Long)     { _petId.value = id }
+//    fun setPetId(id: Long)     { _petId.value = id }
     fun setRegionId(id: Long)  { _regionId.value = id }
 
     fun addImages(uris: List<Uri>) {
@@ -163,7 +233,7 @@ class WalkAndCareWriteViewModel @Inject constructor(
 
         val currentMode = mode.value
         val pid = _petId.value
-        val rid = _regionId.value
+        val rid = _regionId.value ?: user.regionId
         val t = _title.value.trim()
         val c = _details.value.trim()
 
@@ -185,10 +255,21 @@ class WalkAndCareWriteViewModel @Inject constructor(
                 Log.d(TAG, "업로드 시작: 로컬 URI ${localUris.size}개")
                 localUris.forEachIndexed { i, u -> Log.d(TAG, "  [업로드 대상 $i] $u") }
 
+                // 1) 이미지 업로드
                 val uploadedUrls =
                     if (localUris.isNotEmpty())
                         imageRepository.uploadImages(localUris)
                     else emptyList()
+
+                // 2) ImageInfo 리스트로 변환
+                val imageInfos = uploadedUrls.mapIndexed { index, url ->
+                    MyPageInfoResponse.ImageInfo(
+                        id = null,   // 새 업로드는 id 없음
+                        src = url,   // 업로드된 서버 URL
+                        sort = index // 업로드 순서
+                    )
+                }
+
 
                 Log.d(TAG, "업로드 완료: 서버 URL ${uploadedUrls.size}개 (distinct=${uploadedUrls.toSet().size})")
                 uploadedUrls.forEachIndexed { i, u -> Log.d(TAG, "  [서버 URL $i] $u") }
@@ -232,7 +313,7 @@ class WalkAndCareWriteViewModel @Inject constructor(
                             endDate   = null,
                             startTime = st.format(timeFmt),
                             endTime   = et.format(timeFmt),
-                            imageUrls = uploadedUrls
+                            images = imageInfos
                         ).also { Log.d(TAG, "요청 바디(산책): $it") }
                     }
                     Mode.CARE -> {
@@ -256,7 +337,7 @@ class WalkAndCareWriteViewModel @Inject constructor(
                             endDate   = ed.format(dateFmt),
                             startTime = null,
                             endTime   = null,
-                            imageUrls = uploadedUrls
+                            images = imageInfos
                         ).also { Log.d(TAG, "요청 바디(돌봄): $it") }
                     }
                     else -> {

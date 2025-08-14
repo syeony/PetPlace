@@ -1,6 +1,6 @@
 package com.minjeok4go.petplace.profile.service;
 
-import com.minjeok4go.petplace.common.constant.ImageType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.image.dto.FeedImageRequest;
 import com.minjeok4go.petplace.image.dto.ImageResponse;
 import com.minjeok4go.petplace.image.entity.Image;
@@ -47,7 +47,7 @@ public class ProfileService {
                 .map(PetResponse::new).toList();
 
         List<ImageResponse> imgList = imageRepository
-                .findByRefTypeAndRefIdOrderBySortAsc(ImageType.USER, user.getId())
+                .findByRefTypeAndRefIdOrderBySortAsc(RefType.USER, user.getId())
                 .stream()
                 .map(img -> new ImageResponse(img.getId(), img.getSrc(), img.getSort()))
                 .toList();
@@ -88,7 +88,7 @@ public class ProfileService {
 
     @Transactional
     public ImageResponse createUserImage(FeedImageRequest req, User user) {
-        Image image = new Image(user.getId(), ImageType.USER, req.getSrc(), req.getSort());
+        Image image = new Image(user.getId(), RefType.USER, req.getSrc(), req.getSort());
 
         Image saved = imageRepository.save(image);
 
@@ -97,7 +97,7 @@ public class ProfileService {
 
     @Transactional
     public ImageResponse updateUserImage(FeedImageRequest req, User user) {
-        Image image = imageRepository.findByRefTypeAndRefIdAndSort(ImageType.USER, user.getId(), req.getSort())
+        Image image = imageRepository.findByRefTypeAndRefIdAndSort(RefType.USER, user.getId(), req.getSort())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Image not found with id " + user.getId() + ", sort " + req.getSort())
                 );
@@ -111,7 +111,7 @@ public class ProfileService {
 
     @Transactional
     public ImageResponse deleteUserImage(Integer sort, User user) {
-        Image image = imageRepository.findByRefTypeAndRefIdAndSort(ImageType.USER, user.getId(), sort)
+        Image image = imageRepository.findByRefTypeAndRefIdAndSort(RefType.USER, user.getId(), sort)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Image not found with id " + user.getId() + ", sort " + sort)
                 );

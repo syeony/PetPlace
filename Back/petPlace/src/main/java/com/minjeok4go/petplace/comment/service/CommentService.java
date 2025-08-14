@@ -7,12 +7,15 @@ import com.minjeok4go.petplace.comment.dto.MyComment;
 import com.minjeok4go.petplace.comment.entity.Comment;
 import com.minjeok4go.petplace.comment.repository.CommentRepository;
 import com.minjeok4go.petplace.common.constant.ActivityType;
+import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.service.FeedService;
+import com.minjeok4go.petplace.notification.dto.CreateCommentNotificationRequest;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.service.UserExperienceService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +27,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CommentService {
 
+    private final ApplicationEventPublisher publisher;
     private final CommentRepository commentRepository;
     private final FeedService feedService;
     private final UserExperienceService expService;
@@ -92,6 +96,10 @@ public class CommentService {
         Comment saved = commentRepository.save(comment);
 
         expService.applyActivity(me, ActivityType.COMMENT_CREATE);
+
+        publisher.publishEvent(new CreateCommentNotificationRequest(
+            feed.getUserId(), RefType.FEED, feed.getId(), saved.getId(), saved.getContent()
+        ));
 
         return mapComment(saved);
     }

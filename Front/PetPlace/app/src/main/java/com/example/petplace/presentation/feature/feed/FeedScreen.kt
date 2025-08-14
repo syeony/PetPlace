@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -225,7 +226,10 @@ fun FeedScreen(
                     onCommentTap = { showCommentsForFeedId = feed.id },
                     viewModel = viewModel,
                     onEditFeed = { feedId, regionId -> moveToEditFeed(feedId, regionId) },
-                    onDeleteFeed = { deleteFeed(it) }
+                    onDeleteFeed = { deleteFeed(it) },
+                    onProfileClick = { userId ->  // 프로필 클릭 핸들러 추가
+                        navController.navigate("userProfile/$userId")
+                    }
                 )
                 Spacer(Modifier.height(6.dp))
             }
@@ -403,7 +407,8 @@ private fun FeedItem(
     onCommentTap:  () -> Unit,
     viewModel: BoardViewModel,
     onEditFeed: (Long, Long) -> Unit,
-    onDeleteFeed: (Long) -> Unit
+    onDeleteFeed: (Long) -> Unit,
+    onProfileClick: (Long) -> Unit
 ) {
     val likedSet by viewModel.likedFeeds.collectAsState()
     val liked = likedSet.contains(feed.id) || (feed.liked == true)
@@ -420,6 +425,7 @@ private fun FeedItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
+                    .clickable { onProfileClick(feed.userId) }
             ) {
                 ProfileImage(feed.userImg)
                 Spacer(Modifier.width(8.dp))

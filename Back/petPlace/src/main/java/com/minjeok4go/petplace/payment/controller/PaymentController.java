@@ -1,7 +1,7 @@
 package com.minjeok4go.petplace.payment.controller;
 
 import com.minjeok4go.petplace.common.dto.ApiResponse;
-import com.minjeok4go.petplace.notification.service.NotificationService;
+import com.minjeok4go.petplace.notification.service.FCMNotificationService;
 import com.minjeok4go.petplace.payment.dto.PaymentPrepareRequest;
 import com.minjeok4go.petplace.payment.dto.PaymentPrepareResponse;
 import com.minjeok4go.petplace.payment.dto.PaymentResponse;
@@ -33,7 +33,7 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentService paymentService;
-    private final NotificationService notificationService;
+    private final FCMNotificationService FCMNotificationService;
 
     @Operation(
             summary = "결제 정보 사전 등록 (결제 준비)",
