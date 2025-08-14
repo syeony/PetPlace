@@ -11,7 +11,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil.Coil
 import coil.compose.rememberAsyncImagePainter
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
 import com.example.petplace.data.model.feed.CommentReq
@@ -19,10 +22,12 @@ import com.example.petplace.data.model.feed.CommentRes
 import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.repository.FeedRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -37,9 +42,12 @@ class BoardViewModel @Inject constructor(
     private val USER_ID = userInfo         // ← 로그인 완료되면 Token or DataStore 에서 꺼내 쓰면 됨
     // 페이지네이션 상태
     private var page = 0
-    private val size = 20
+    private val size = 5
     private var isPaging = false
     private var endReached = false
+
+    private val _appending = MutableStateFlow(false)          // 👈 추가
+    val appending: StateFlow<Boolean> = _appending            // 👈 추가
 
     /* ─── UI State ─── */
     val allCategories = listOf("내새꾸자랑", "정보", "나눔", "후기", "자유")
@@ -77,6 +85,25 @@ class BoardViewModel @Inject constructor(
     private inline fun updateFeed(feedId: Long, crossinline transform: (FeedRecommendRes) -> FeedRecommendRes) {
         _remoteFeeds.update { list -> list.map { if (it.id == feedId) transform(it) else it } }
         applyFilters()
+    }
+
+    private val baseUrl = "http://i13d104.p.ssafy.io:8081"
+
+    // 이미지들 캐시에 먼저 담아두기
+    private suspend fun prefetchImages(urls: List<String>) {
+        if (urls.isEmpty()) return
+        val loader = Coil.imageLoader(app)
+        withContext(Dispatchers.IO) {
+            urls.distinct().forEach { raw ->
+                val full = if (raw.startsWith("http")) raw else (baseUrl + raw)
+                val req = ImageRequest.Builder(app)
+                    .data(full)
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .build()
+                loader.execute(req)                              // 동기 실행: 캐시될 때까지 대기
+            }
+        }
     }
 
     // ✅ null 방지용 확장 함수(필요한 필드만 넣어도 됨)
@@ -211,9 +238,13 @@ class BoardViewModel @Inject constructor(
             page = 0
             endReached = false
 
+            // 최초 로드
             val result = repo.fetchRecommendedFeeds2(page, size)
-
+            // 1) 이미지들 미리 캐시
+            prefetchImages(result.flatMap { it.images ?: emptyList() }.map { it.src })
+            // 2) 그 다음 화면 상태에 반영
             _remoteFeeds.value = result
+
             _likedFeeds.value = result.filter { it.liked == true }.map { it.id }.toSet()
             endReached = result.size < size
 
@@ -229,16 +260,22 @@ class BoardViewModel @Inject constructor(
     fun loadNextPage() {
         if (isPaging || endReached) return
         isPaging = true
+        _appending.value = true                // 👈 추가 (리스트 하단 로더 on)
 
         viewModelScope.launch {
             try {
                 val next = page + 1
+                // 다음 페이지 로드
                 val result = repo.fetchRecommendedFeeds2(next, size)
-
-                // 중복 제거하며 "append" (서버 순서 보존)
+// 1) 중복 제거된 신규만 뽑기
                 val existing = _remoteFeeds.value
                 val existIds = existing.asSequence().map { it.id }.toHashSet()
                 val onlyNew  = result.filter { it.id !in existIds }
+
+// 2) 신규 이미지 먼저 캐시
+                prefetchImages(onlyNew.flatMap { it.images ?: emptyList() }.map { it.src })
+
+// 3) 그 다음 append
                 _remoteFeeds.value = existing + onlyNew
 
                 // liked 세트 갱신
@@ -254,6 +291,7 @@ class BoardViewModel @Inject constructor(
                 _error.value = e.message ?: "알 수 없는 오류"
             } finally {
                 isPaging = false
+                _appending.value = false       // 👈 추가 (리스트 하단 로더 off)
             }
         }
     }

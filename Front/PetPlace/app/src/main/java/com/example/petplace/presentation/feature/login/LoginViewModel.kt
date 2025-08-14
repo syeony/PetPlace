@@ -35,7 +35,6 @@ class LoginViewModel @Inject constructor(
 
     private val _tempToken = MutableStateFlow("")
     val tempToken: StateFlow<String> = _tempToken
-
     fun login(id: String, pw: String) {
         viewModelScope.launch {
             _loginState.value = LoginState(isLoading = true)

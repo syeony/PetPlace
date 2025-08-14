@@ -4,6 +4,8 @@ plugins {
     id("com.google.dagger.hilt.android") version "2.48"
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.21"
     kotlin("kapt")
+    id("com.google.gms.google-services")
+
 }
 
 android {
@@ -62,6 +64,21 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
     }
+
+    packaging {
+        resources {
+            // 같은 경로의 파일이 여러 JAR에 있을 때 첫 번째 것을 선택
+            pickFirsts += setOf(
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+            )
+
+            // (선택) 자주 충돌나는 라이선스/공지 파일도 무시하고 싶다면:
+            // excludes += setOf(
+            //     "META-INF/LICENSE*", "META-INF/NOTICE*",
+            //     "META-INF/AL2.0", "META-INF/LGPL2.1"
+            // )
+        }
+    }
 }
 
 dependencies {
@@ -80,6 +97,11 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.navigation.runtime.android)
+
+    implementation(libs.generativeai)
+    implementation(libs.media3.common.ktx)
+    implementation(libs.androidx.compose.testing)
+
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.0")
@@ -107,7 +129,8 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
     // Firebase Cloud Messaging
-    implementation("com.google.firebase:firebase-messaging:23.4.0")
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-messaging")
 
     // 위치
     implementation("com.google.android.gms:play-services-location:21.0.1")
