@@ -38,17 +38,20 @@ import com.example.petplace.presentation.feature.join.KakaoJoinScreen
 import com.example.petplace.presentation.feature.join.KakaoJoinViewModel
 import com.example.petplace.presentation.feature.login.LoginScreen
 import com.example.petplace.presentation.feature.missing_list.MissingListScreen
-import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
-import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
+import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
+import com.example.petplace.presentation.feature.hotel.HotelDetailScreen
+import com.example.petplace.presentation.feature.hotel.ReservationCheckoutScreen
+import com.example.petplace.presentation.feature.hotel.ReservationSuccessScreen
+import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
+import com.example.petplace.presentation.feature.missing_register.RegisterScreen
+import com.example.petplace.presentation.feature.splash.SplashScreen
 import com.example.petplace.presentation.feature.mypage.MyPostScreen
 import com.example.petplace.presentation.feature.mypage.PetProfileScreen
 import com.example.petplace.presentation.feature.mypage.ProfileCompleteScreen
 import com.example.petplace.presentation.feature.mypage.ProfileEditScreen
-import com.example.petplace.presentation.feature.splash.SplashScreen
-import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareWriteScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkPostDetailScreen
 
@@ -148,8 +151,6 @@ fun MainScaffold() {
             composable("alarm") { AlarmScreen(navController = navController) }
             composable("feed") { FeedScreen(navController = navController) }
 
-
-
             composable("missing_report") { ReportScreen(navController) }
             composable("missing_map") { MissingMapScreen(navController) }
             composable("missing_register") { RegisterScreen(navController) }
@@ -216,7 +217,7 @@ fun MainScaffold() {
 //            composable("hotel"){AnimalSelectScreen(navController)}
 //            composable("DateSelectionScreen"){DateSelectionScreen(navController)}
 //            composable("HotelListScreen"){ HotelListScreen(navController) }
-            navigation(startDestination = "hotel/animal", route = "hotel_graph") {
+            navigation(startDestination = "hotel/date", route = "hotel_graph") {
                 composable("hotel/animal") { backStackEntry ->
                     val parentEntry = remember(backStackEntry) {
                         navController.getBackStackEntry("hotel_graph")
@@ -238,6 +239,48 @@ fun MainScaffold() {
                     val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
                     HotelListScreen(navController, viewModel)
                 }
+                composable("hotel/detail") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                    HotelDetailScreen(navController, viewModel)
+                }
+
+                composable("hotel/checkout") { backStackEntry ->
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                    ReservationCheckoutScreen(navController, viewModel)
+                }
+                 composable(
+                            route = "hotel/success/{merchantUid}?rid={reservationId}",
+                            arguments = listOf(
+                                navArgument("merchantUid") { type = NavType.StringType },
+                                navArgument("reservationId") { type = NavType.LongType; defaultValue = -1L } // 쿼리로 받음
+                            )
+                        ) { backStackEntry ->
+                            // 그래프 스코프의 ViewModel 유지
+                            val parentEntry = remember(backStackEntry) {
+                                navController.getBackStackEntry("hotel_graph")
+                            }
+                            val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+
+                            val merchantUid = backStackEntry.arguments!!.getString("merchantUid")!!
+                            val reservationId = backStackEntry.arguments!!.getLong("reservationId")
+
+                            ReservationSuccessScreen(
+                                navController = navController,
+                                viewModel = viewModel,
+                                merchantUid = merchantUid,
+                                reservationId = reservationId
+                            )
+                        }
+
+
+
+
             }
 
 
