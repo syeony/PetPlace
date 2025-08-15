@@ -28,6 +28,7 @@ import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
 import com.example.petplace.presentation.feature.createfeed.CreateFeedScreen
 import com.example.petplace.presentation.feature.feed.BoardEditScreen
+import com.example.petplace.presentation.feature.feed.FeedDetailScreen
 import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.hotel.AnimalSelectScreen
 import com.example.petplace.presentation.feature.hotel.DateSelectionScreen
@@ -111,6 +112,16 @@ fun MainScaffold(navController: NavHostController = rememberNavController()) {
                 val chatRoomId = backStackEntry.arguments?.getLong("chatRoomId") ?: 0
                 SingleChatScreen(
                     chatRoomId = chatRoomId,
+                    navController = navController
+                )
+            }
+            composable(
+                route = "feedDetail/{feedId}",
+                arguments = listOf(navArgument("feedId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val feedId = backStackEntry.arguments?.getLong("feedId") ?: 0
+                FeedDetailScreen(
+                    feedId = feedId,
                     navController = navController
                 )
             }
@@ -407,8 +418,13 @@ private fun handleFCMNavigation(context: Context, navController: NavHostControll
                 }
             }
             "feed" -> {
-                Log.d("FCM_NAV", "Navigating to feed")
-                navController.navigate(BottomNavItem.Feed.route)
+                idToUse?.toLongOrNull()?.let { id ->
+                    Log.d("FCM_NAV", "Navigating to feed: $id")
+                    navController.navigate("feedDetail/$id")
+                } ?: run {
+                    Log.d("FCM_NAV", "Feed ID is null, navigating to feed list")
+                    navController.navigate(BottomNavItem.Feed.route)
+                }
             }
             "alarm", "notification" -> {
                 Log.d("FCM_NAV", "Navigating to alarm")

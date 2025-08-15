@@ -147,6 +147,12 @@ class MainActivity : ComponentActivity() {
                             navController.navigate("chatDetail/$id")
                         }
                     }
+                    "FEED" -> {
+                        refId?.toLongOrNull()?.let { id ->
+                            Log.d("FCM_NAV_DIRECT", "Navigating to chat: $id")
+                            navController.navigate("feedDetail/$id")
+                        }
+                    }
                 }
             }
         }
