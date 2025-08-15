@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -40,13 +41,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.petplace.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -204,19 +204,22 @@ fun CreateFeedScreen(
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(100.dp)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(10.dp)),
+                                contentScale = ContentScale.Crop // ✅ 정방형 크롭
                             )
-                            IconButton(
-                                onClick = { viewModel.removeImageUri(uri) },
+                            Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .size(24.dp)
-                                    .background(Color(0x66000000), RoundedCornerShape(12.dp))
+                                    .size(20.dp) // ✅ 전체 크기
+                                    .background(Color(0x66000000), RoundedCornerShape(20.dp))
+                                    .clickable { viewModel.removeImageUri(uri) },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Clear,
                                     contentDescription = "삭제",
-                                    tint = Color.White
+                                    tint = Color.White,
+                                    modifier = Modifier.size(12.dp) // 아이콘 크기
                                 )
                             }
                         }
@@ -230,13 +233,11 @@ fun CreateFeedScreen(
                 modifier = Modifier.align(Alignment.Start)
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.outline_photo_camera_24),
+                    imageVector = Icons.Outlined.CameraAlt,
                     contentDescription = "사진 선택",
                     modifier = Modifier.size(28.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
@@ -255,6 +256,7 @@ fun CreateFeedScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(bottom = 30.dp)
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF79800))
             ) {

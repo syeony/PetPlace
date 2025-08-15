@@ -7,13 +7,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,7 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -70,6 +70,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -82,7 +83,7 @@ import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.model.feed.TagRes
 import kotlinx.coroutines.flow.collectLatest
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun FeedScreen(
@@ -338,34 +339,45 @@ fun FeedScreen(
             }
 
             /* 카테고리 선택 바 */
+            val categories = viewModel.allCategories // ["내새꾸자랑","정보","나눔","후기","자유"]
+            val pickedCat = selectedCategory
+
+            val firstWeight = 1.5f
+            val othersWeight = 1f
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                viewModel.allCategories.forEach { cat ->
-                    val picked = selectedCategory == cat
-                    val bg =
-                        if (picked) MaterialTheme.colorScheme.primary else Color(0xFFFFFDF9)
+                categories.forEachIndexed { index, cat ->
+                    val picked = pickedCat == cat
+                    val bg = if (picked) MaterialTheme.colorScheme.primary else Color(0xFFFFFDF9)
                     val txtColor = if (picked) Color.White else Color(0xFF374151)
+                    val border = if (picked) null else ButtonDefaults.outlinedButtonBorder.copy(
+                        brush = Brush.linearGradient(
+                            listOf(Color(0xFFFFE0B3), Color(0xFFFFE0B3))
+                        )
+                    )
 
                     Button(
                         onClick = { viewModel.toggleCategory(cat) },
                         colors = ButtonDefaults.buttonColors(containerColor = bg),
-                        border = if (picked) null else ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = Brush.linearGradient(
-                                listOf(
-                                    Color(0xFFFFE0B3),
-                                    Color(0xFFFFE0B3)
-                                )
-                            )
-                        ),
+                        border = border,
                         shape = RoundedCornerShape(14.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier.padding(end = 6.dp)
+                        modifier = Modifier
+                            .weight(if (index == 0) firstWeight else othersWeight) // ✅ 첫 번째만 1.5배
+                            .height(36.dp)
                     ) {
-                        Text(cat, color = txtColor, fontSize = 12.sp)
+                        Text(
+                            cat,
+                            color = txtColor,
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
@@ -508,14 +520,23 @@ private fun FeedItem(
             Image(
                 painter = painterResource(R.drawable.pp_logo),
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth().height(300.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f), // ✅ 가로세로 1:1
                 contentScale = ContentScale.Crop
             )
         } else {
             val pagerState = rememberPagerState(pageCount = { feed.images!!.size })
 
-            Box(modifier = Modifier.fillMaxWidth().height(300.dp)) {
-                HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f) // ✅ 정방형 유지
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
                     val img = feed.images!![page]
                     val url = "http://i13d104.p.ssafy.io:8081${img.src}"
 
@@ -530,18 +551,17 @@ private fun FeedItem(
                     ) {
                         when (painter.state) {
                             is coil.compose.AsyncImagePainter.State.Success -> {
-                                // 성공 시에만 실제 이미지 그리기
                                 SubcomposeAsyncImageContent()
                             }
                             is coil.compose.AsyncImagePainter.State.Loading,
                             is coil.compose.AsyncImagePainter.State.Empty -> {
-                                // 로딩 중: 고정 높이의 미색 박스(또는 Shimmer 가능)
                                 Box(
-                                    Modifier.fillMaxSize().background(Color(0xFFF6F6F6))
+                                    Modifier
+                                        .fillMaxSize()
+                                        .background(Color(0xFFF6F6F6))
                                 )
                             }
                             is coil.compose.AsyncImagePainter.State.Error -> {
-                                // 에러: 로고/에러 이미지
                                 Image(
                                     painter = painterResource(R.drawable.pp_logo),
                                     contentDescription = null,
