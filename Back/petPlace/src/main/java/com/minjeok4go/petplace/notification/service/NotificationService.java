@@ -6,6 +6,7 @@ import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.minjeok4go.petplace.common.constant.NotificationType;
 import com.minjeok4go.petplace.common.constant.RefType;
+import com.minjeok4go.petplace.notification.dto.CreateChatNotificationRequest;
 import com.minjeok4go.petplace.notification.dto.CreateCommentNotificationRequest;
 import com.minjeok4go.petplace.notification.dto.CreateLikeNotificationRequest;
 import com.minjeok4go.petplace.notification.entity.Notification;
@@ -63,6 +64,25 @@ public class NotificationService {
                 body,
                 Map.of("refType","FEED",
                         "refId", String.valueOf(req.getRefId()))
+        );
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handle(CreateChatNotificationRequest req) {
+        String title = "새 채팅 메세지가 왔어요";
+        String body  = req.getSenderNickname() + ": " + req.getPreview();
+
+        sendAndStore(
+                req.getTargetUserId(),
+                NotificationType.CHAT,
+                RefType.CHAT,
+                req.getRoomId(),
+                title,
+                body,
+                Map.of("refType", RefType.CHAT.name(),
+                        "refId", String.valueOf(req.getRoomId()),
+                        "chatId", String.valueOf(req.getChatId()))
         );
     }
 
