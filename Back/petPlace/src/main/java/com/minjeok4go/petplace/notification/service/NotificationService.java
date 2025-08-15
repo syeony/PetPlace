@@ -4,18 +4,26 @@ package com.minjeok4go.petplace.notification.service;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
+import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.common.constant.NotificationType;
 import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.notification.dto.CreateChatNotificationRequest;
 import com.minjeok4go.petplace.notification.dto.CreateCommentNotificationRequest;
 import com.minjeok4go.petplace.notification.dto.CreateLikeNotificationRequest;
+import com.minjeok4go.petplace.notification.dto.NotificationResponse;
 import com.minjeok4go.petplace.notification.entity.Notification;
 import com.minjeok4go.petplace.notification.repository.NotificationRepository;
 import com.minjeok4go.petplace.push.entity.UserDeviceToken;
 import com.minjeok4go.petplace.push.repository.UserDeviceTokenRepository;
+import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -29,6 +37,23 @@ public class NotificationService {
     private final FirebaseMessaging firebase;
     private final UserDeviceTokenRepository userDeviceTokenRepository;
     private final NotificationRepository notificationRepository;
+    private final AuthService authService;
+
+    @Transactional(readOnly = true)
+    public Slice<NotificationResponse> getMyNotifications(String tokenUserId, int page, int size) {
+
+        User me = authService.getUserFromToken(tokenUserId);
+
+        // createdAt DESC 고정
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Slice<Notification> slice = notificationRepository
+                .findByTargetUserIdAndTypeNotOrderByCreatedAtDesc(
+                        me.getId(), NotificationType.CHAT, pageable
+                );
+
+        return slice.map(NotificationResponse::new);
+    }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
