@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.nio.FloatBuffer
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -30,13 +29,9 @@ import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import ai.onnxruntime.NodeInfo
-import ai.onnxruntime.TensorInfo
-// ONNX Runtime (breed classification)
-import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtSession
-import ai.onnxruntime.OnnxTensor
-import android.content.ContentValues.TAG
+import ai.onnxruntime.*
+
+private const val TAG = "ReportVM"
 
 // ===== UI STATE =====
 data class ReportUiState(
@@ -57,30 +52,29 @@ data class ReportUiState(
     val detectionMessage: String = "",
     val annotatedBitmap: Bitmap? = null,
     val dogResults: List<DogResult> = emptyList(),
-    val catResults: List<CatResult> = emptyList(),          // ✅ 추가
+    val catResults: List<CatResult> = emptyList(),
 
-    // PATCH: tunables
+    // Tunables
     val scoreThreshold: Float = 0.35f,
     val iouThreshold: Float = 0.45f,
     val minBoxPx: Float = 12f,
     val labelFilter: Set<String> = setOf("cat", "dog"),
 
-    // PATCH: metrics
+    // Metrics
     val lastAnalyzeMs: Long = 0L
 )
 
 // 품종 분류 결과
 data class DogResult(
     val box: RectF,
-    val detScore: Float,
+    val detScore: Float?,
     val breedLabel: String,
     val breedProb: Float
 )
 
-// ✅ 고양이 품종 결과 추가
 data class CatResult(
     val box: RectF,
-    val detScore: Float,
+    val detScore: Float?,
     val breedLabel: String,
     val breedProb: Float
 )
@@ -98,14 +92,15 @@ class ReportViewModel @Inject constructor(
     private val app = context as PetPlaceApp
     private val user = app.getUserInfo() ?: throw IllegalStateException("로그인 필요")
 
-    // NOTE: 프로젝트 내 TFLite 감지기 래퍼 (이미 보유)
+    // YOLO 감지기 (TFLite)
     private val detector by lazy { Yolo11nTFLite(context) }
 
     // ===== ONNX (품종 분류) =====
     private val ortEnv: OrtEnvironment by lazy { OrtEnvironment.getEnvironment() }
 
-    // ✅ 개 품종 모델 (기존)
+    // Dog
     private val dogBreedSession: OrtSession by lazy {
+        Log.d(TAG, "Loading dogBreedModel.onnx from assets")
         val so = OrtSession.SessionOptions().apply {
             setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
             setIntraOpNumThreads(4)
@@ -114,29 +109,32 @@ class ReportViewModel @Inject constructor(
         ortEnv.createSession(bytes, so)
     }
     private val dogLabels: List<String> by lazy {
-        context.assets.open("dogLabels.txt").bufferedReader().readLines()
+        context.assets.open("dogLabels.txt").bufferedReader().readLines().also {
+            Log.d(TAG, "dogLabels loaded: ${it.size}")
+        }
     }
 
-    // ✅ 고양이 품종 모델 (새로 추가)
+    // Cat
     private val catBreedSession: OrtSession by lazy {
+        Log.d(TAG, "Loading catBreedModel.onnx from assets")
         val so = OrtSession.SessionOptions().apply {
             setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
             setIntraOpNumThreads(4)
         }
-        // 파일명: catBreedModel.onnx
         val bytes = context.assets.open("catBreedModel.onnx").use { it.readBytes() }
         ortEnv.createSession(bytes, so)
     }
     private val catLabels: List<String> by lazy {
-        // 레이블 파일명: catLabels.txt (class_names 순서와 동일)
-        context.assets.open("catLabels.txt").bufferedReader().readLines()
+        context.assets.open("catLabels.txt").bufferedReader().readLines().also {
+            Log.d(TAG, "catLabels loaded: ${it.size}")
+        }
     }
 
-    // PATCH: throttle
+    // throttle
     private var lastAnalyzeWallTime = 0L
     private val analyzeCooldownMs = 350L
 
-    // ===== Public setters =====
+    // ===== setters =====
     fun updateDescription(text: String) { _uiState.value = _uiState.value.copy(description = text) }
     fun setDate(date: LocalDate) { _uiState.value = _uiState.value.copy(selectedDate = date) }
     fun setTime(time: LocalTime) { _uiState.value = _uiState.value.copy(selectedTime = time) }
@@ -156,7 +154,6 @@ class ReportViewModel @Inject constructor(
         )
     }
 
-    // PATCH: tunables
     fun setScoreThreshold(th: Float) { _uiState.value = _uiState.value.copy(scoreThreshold = th.coerceIn(0f, 1f)) }
     fun setIouThreshold(v: Float) { _uiState.value = _uiState.value.copy(iouThreshold = v.coerceIn(0f, 1f)) }
     fun setMinBox(px: Float) { _uiState.value = _uiState.value.copy(minBoxPx = max(0f, px)) }
@@ -166,14 +163,16 @@ class ReportViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(labelFilter = cur)
     }
 
-    /** 갤러리 Uri들을 순차 감지 → 첫 성공시 반환. NMS/필터/워터마크까지 적용 (PATCH). */
+    /** 갤러리 Uri들을 순차 감지 → 첫 성공 시 반환 */
     fun analyzeImagesForPet(imageUris: List<Uri>) {
         viewModelScope.launch {
             val now = SystemClock.elapsedRealtime()
-            if (now - lastAnalyzeWallTime < analyzeCooldownMs) return@launch
+            if (now - lastAnalyzeWallTime < analyzeCooldownMs) {
+                Log.d(TAG, "analyzeImagesForPet: throttled")
+                return@launch
+            }
             lastAnalyzeWallTime = now
 
-            Log.d("YOLO11N", "analyzeImagesForPet(): start, count=${imageUris.size}")
             if (imageUris.isEmpty()) {
                 _uiState.value = _uiState.value.copy(
                     detectionChecked = true,
@@ -198,18 +197,16 @@ class ReportViewModel @Inject constructor(
                 val bmp = withContext(Dispatchers.IO) { detector.decodeBitmapFromUri(uri) }
                 val tDec = SystemClock.elapsedRealtime() - tDec0
                 if (bmp == null) {
-                    Log.w("YOLO11N", "image[$idx]: decode FAILED (t=${tDec}ms)")
+                    Log.w(TAG, "image[$idx]: decode FAILED (t=${tDec}ms)")
                     continue
-                } else {
-                    Log.d("YOLO11N", "image[$idx]: decode OK ${bmp.width}x${bmp.height} (t=${tDec}ms)")
                 }
 
                 val tInf0 = SystemClock.elapsedRealtime()
                 val raw = withContext(Dispatchers.Default) { detector.detect(bmp) }
                 val tInf = SystemClock.elapsedRealtime() - tInf0
-                Log.d("YOLO11N", "image[$idx]: inference done, raw=${raw.size} (t=${tInf}ms)")
+                Log.d(TAG, "image[$idx]: inference done, raw=${raw.size} (t=${tInf}ms)")
 
-                // PATCH: filter + NMS
+                // 1차 필터
                 val filtered = raw.filter { d ->
                     val okScore = (d.score ?: 0f) >= params.scoreThreshold
                     val okLabel = params.labelFilter.isEmpty() || (d.label?.lowercase() in params.labelFilter)
@@ -219,22 +216,13 @@ class ReportViewModel @Inject constructor(
                 val dets = nonMaxSuppression(filtered, params.iouThreshold)
 
                 if (dets.isNotEmpty()) {
-                    dets.forEachIndexed { i, d ->
-                        val xmin = d.left.coerceIn(0f, (bmp.width - 1).toFloat()).roundToInt()
-                        val ymin = d.top.coerceIn(0f, (bmp.height - 1).toFloat()).roundToInt()
-                        val xmax = d.right.coerceIn(0f, (bmp.width - 1).toFloat()).roundToInt()
-                        val ymax = d.bottom.coerceIn(0f, (bmp.height - 1).toFloat()).roundToInt()
-                        Log.d("YOLO11N", "[$i] label=${d.label}, conf=${"%.3f".format(d.score)}, box=($xmin,$ymin,$xmax,$ymax)")
-                    }
-
-                    // ✅ 품종 분류 (dog & cat 각각)
+                    // 품종 분류 (개/고양이)
                     val (dogResults, catResults) = withContext(Dispatchers.Default) {
                         val dogs = asyncClassifyDogs(bmp, dets, minProb = 0.30f, inputSize = 456)
                         val cats = asyncClassifyCats(bmp, dets, minProb = 0.30f, inputSize = 224)
                         Pair(dogs, cats)
                     }
 
-                    // 라벨/스코어/품종 + 둥근배경 (PATCH)
                     val annotated = withContext(Dispatchers.Default) {
                         val base = drawDetectionsOnBitmapWithBreedRounded(bmp, dets, dogResults, catResults)
                         addWatermarkBottomRight(base, tInf + tDec)
@@ -243,7 +231,7 @@ class ReportViewModel @Inject constructor(
 
                     detectedMsg = buildString {
                         append("감지됨: ")
-                        append(dets.joinToString { "${it.label} ${"%.2f".format(it.score)}" })
+                        append(dets.joinToString { "${it.label} ${"%.2f".format(it.score ?: 0f)}" })
                         if (dogResults.isNotEmpty()) {
                             append(" | 개 품종: ")
                             append(dogResults.joinToString { "${it.breedLabel} ${"%.2f".format(it.breedProb)}" })
@@ -260,25 +248,25 @@ class ReportViewModel @Inject constructor(
                         detectionChecked = true,
                         detectionMessage = detectedMsg,
                         annotatedBitmap = annotated,
-                        dogResults = dogResults,                // ✅ 저장
-                        catResults = catResults,                // ✅ 저장
+                        dogResults = dogResults,
+                        catResults = catResults,
                         lastAnalyzeMs = elapsed
                     )
+                    Log.d(TAG, "Result: $detectedMsg")
                     return@launch
                 } else {
-                    Log.d("YOLO11N", "image[$idx]: NO DETECTION")
+                    Log.d(TAG, "image[$idx]: no valid dets after filter/NMS")
                 }
             }
 
             val tAll = SystemClock.elapsedRealtime() - tAll0
-            Log.d("YOLO11N", "analyzeImagesForPet(): end, total=${tAll}ms, success=false, message=$detectedMsg")
-
             _uiState.value = _uiState.value.copy(
                 detectionChecked = true,
                 detectionMessage = detectedMsg,
                 annotatedBitmap = null,
                 lastAnalyzeMs = tAll
             )
+            Log.d(TAG, "No pet found across ${imageUris.size} images. elapsed=${tAll}ms")
         }
     }
 
@@ -351,12 +339,12 @@ class ReportViewModel @Inject constructor(
         }
     }
 
-    // ===== Overlay (PATCH: rounded bg, bold, anti alias) =====
+    // ===== Overlay =====
     private fun drawDetectionsOnBitmapWithBreedRounded(
         src: Bitmap,
         dets: List<Detection>,
         dogResults: List<DogResult>,
-        catResults: List<CatResult>              // ✅ 추가
+        catResults: List<CatResult>
     ): Bitmap {
         val out = src.copy(Bitmap.Config.ARGB_8888, true)
         val c = Canvas(out)
@@ -400,18 +388,17 @@ class ReportViewModel @Inject constructor(
             c.drawRoundRect(r, corner, corner, boxFill)
             c.drawRoundRect(r, corner, corner, boxStroke)
 
-            var label = "${d.label} ${(d.score * 100).roundToInt()}%"
+            var label = "${d.label ?: "?"} ${(((d.score ?: 0f) * 100)).roundToInt()}%"
 
             if (d.label.equals("dog", true) && dogResults.isNotEmpty()) {
                 val best = dogResults.maxByOrNull { iou(r, it.box) }
-                if (best != null && iou(r, best.box) > 0.3f) {
+                if (best != null && iou(r, best.box) >= 0.30f) {
                     label += " · ${best.breedLabel} ${(best.breedProb * 100).roundToInt()}%"
                 }
             }
-            // ✅ 고양이일 때 품종 표시
             if (d.label.equals("cat", true) && catResults.isNotEmpty()) {
                 val best = catResults.maxByOrNull { iou(r, it.box) }
-                if (best != null && iou(r, best.box) > 0.3f) {
+                if (best != null && iou(r, best.box) >= 0.30f) {
                     label += " · ${best.breedLabel} ${(best.breedProb * 100).roundToInt()}%"
                 }
             }
@@ -429,10 +416,10 @@ class ReportViewModel @Inject constructor(
         return out
     }
 
-    // PATCH: watermark bottom-right
     private fun addWatermarkBottomRight(bitmap: Bitmap, elapsedMs: Long) {
         val c = Canvas(bitmap)
-        val text = "Detected in ${elapsedMs}ms • ${LocalDateTime.now(ZoneId.of("Asia/Seoul"))}"
+        val nowText = LocalDateTime.now(ZoneId.of("Asia/Seoul")).toString()
+        val text = "Detected in ${elapsedMs}ms • $nowText"
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textSize = max(20f, bitmap.width * 0.025f)
@@ -484,88 +471,43 @@ class ReportViewModel @Inject constructor(
         return picked
     }
 
-    // ===== 품종 분류: 개 =====
-    private suspend fun asyncClassifyDogs(
-        bitmap: Bitmap,
-        dets: List<Detection>,
-        minProb: Float = 0.30f,
-        inputSize: Int = 456
-    ): List<DogResult> = withContext(Dispatchers.Default) {
-        val dogs = dets.filter { (it.label ?: "").equals("dog", ignoreCase = true) }
-        val results = mutableListOf<DogResult>()
-        for (d in dogs) {
-            runCatching {
-                val bodyCrop = cropFromOriginal(bitmap, RectF(d.left, d.top, d.right, d.bottom), 0.15f)
-                val tensor = preprocessLikeServer(bodyCrop, inputSize)  // FloatBuffer (NCHW)
-                val shape = longArrayOf(1, 3, inputSize.toLong(), inputSize.toLong())
-                OnnxTensor.createTensor(ortEnv, tensor, shape).use { input ->
-                    dogBreedSession.run(mapOf(dogBreedSession.inputNames.first() to input)).use { out ->
-                        val logits = (out[0].value as Array<FloatArray>)[0]
-                        val probs = softmaxStable(logits)
-                        val topIdx = topKIndices(probs, k = 5)
-                        val bestIdx = topIdx.first()
-                        val bestProb = probs[bestIdx]
-                        if (bestProb >= minProb) {
-                            val bestLabel = dogLabels.getOrNull(bestIdx) ?: "UNKNOWN"
-                            results += DogResult(
-                                box = RectF(d.left, d.top, d.right, d.bottom),
-                                detScore = d.score,
-                                breedLabel = bestLabel,
-                                breedProb = bestProb
-                            )
-                        }
-                    }
-                }
-            }.onFailure { e -> Log.i("$TAG-DOG-BREED", "classify failed: ${e.message}") }
+    // ===== 전처리: 강아지 — [0..1] CHW (정규화 X) =====
+    private fun preprocessDog01CHW(
+        src: Bitmap,
+        shortSide: Int = 512,
+        cropSize: Int = 456
+    ): java.nio.FloatBuffer {
+        val resized = resizeShorterSide(src, shortSide)
+        val cropped = centerCrop(resized, cropSize, cropSize)
+
+        val w = cropped.width
+        val h = cropped.height
+        val pixels = IntArray(w * h)
+        cropped.getPixels(pixels, 0, w, 0, 0, w, h)
+
+        val buf = java.nio.FloatBuffer.allocate(1 * 3 * h * w)
+        for (c in 0..2) for (y in 0 until h) for (x in 0 until w) {
+            val p = pixels[y * w + x]
+            val v01 = when (c) {
+                0 -> ((p ushr 16) and 0xFF) / 255f // R
+                1 -> ((p ushr 8) and 0xFF) / 255f  // G
+                else -> (p and 0xFF) / 255f        // B
+            }
+            buf.put(v01)
         }
-        results
+        buf.rewind()
+        return buf
     }
 
-    // ===== 품종 분류: 고양이 =====
-    private suspend fun asyncClassifyCats(
-        bitmap: Bitmap,
-        dets: List<Detection>,
-        minProb: Float = 0.30f,
-        inputSize: Int = 224        // ✅ catBreedModel 기본 224
-    ): List<CatResult> = withContext(Dispatchers.Default) {
-        val cats = dets.filter { (it.label ?: "").equals("cat", ignoreCase = true) }
-        val results = mutableListOf<CatResult>()
-        for (d in cats) {
-            runCatching {
-                val bodyCrop = cropFromOriginal(bitmap, RectF(d.left, d.top, d.right, d.bottom), 0.15f)
-                // 고양이 모델 전처리: ImageNet mean/std + NCHW. Resize(shorter=SIZE+32)→CenterCrop(SIZE)
-                val tensor = preprocessLikeServer(bodyCrop, inputSize)
-                val shape = longArrayOf(1, 3, inputSize.toLong(), inputSize.toLong())
-                OnnxTensor.createTensor(ortEnv, tensor, shape).use { input ->
-                    catBreedSession.run(mapOf(catBreedSession.inputNames.first() to input)).use { out ->
-                        val logits = (out[0].value as Array<FloatArray>)[0]
-                        val probs = softmaxStable(logits)
-                        val topIdx = topKIndices(probs, k = 5)
-                        val bestIdx = topIdx.first()
-                        val bestProb = probs[bestIdx]
-                        if (bestProb >= minProb) {
-                            val bestLabel = catLabels.getOrNull(bestIdx) ?: "UNKNOWN"
-                            results += CatResult(
-                                box = RectF(d.left, d.top, d.right, d.bottom),
-                                detScore = d.score,
-                                breedLabel = bestLabel,
-                                breedProb = bestProb
-                            )
-                        }
-                    }
-                }
-            }.onFailure { e -> Log.i("$TAG-CAT-BREED", "classify failed: ${e.message}") }
-        }
-        results
-    }
+    // ===== 전처리: 고양이 — 기존(ImageNet mean/std 정규화) =====
+    private fun preprocessCatNormCHW(
+        src: Bitmap,
+        shortSide: Int = 256,
+        cropSize: Int = 224
+    ): java.nio.FloatBuffer {
+        val resized = resizeShorterSide(src, shortSide)
+        val cropped = centerCrop(resized, cropSize, cropSize)
 
-    private fun preprocessLikeServer(src: Bitmap, size: Int): java.nio.FloatBuffer {
-        // torchvision.Resize(size+32): 짧은 변을 size+32로 리사이즈(종횡비 유지)
-        val resized = resizeShorterSide(src, size + 32)
-        // CenterCrop(size)
-        val cropped = centerCrop(resized, size, size)
-
-        // ToTensor (0~1), Normalize(mean,std) with ImageNet stats, NCHW
         val mean = floatArrayOf(0.485f, 0.456f, 0.406f)
         val std  = floatArrayOf(0.229f, 0.224f, 0.225f)
 
@@ -575,59 +517,21 @@ class ReportViewModel @Inject constructor(
         cropped.getPixels(pixels, 0, w, 0, 0, w, h)
 
         val buf = java.nio.FloatBuffer.allocate(1 * 3 * h * w)
-        // 채널별로 NCHW 쓰기 (C 먼저)
-        // C=0(R),1(G),2(B)
-        for (c in 0..2) {
-            for (y in 0 until h) {
-                for (x in 0 until w) {
-                    val p = pixels[y * w + x]
-                    val v = when (c) {
-                        0 -> ((p ushr 16) and 0xFF) / 255f
-                        1 -> ((p ushr 8) and 0xFF) / 255f
-                        else -> (p and 0xFF) / 255f
-                    }
-                    val norm = (v - mean[c]) / std[c]
-                    buf.put(norm)
-                }
+        for (c in 0..2) for (y in 0 until h) for (x in 0 until w) {
+            val p = pixels[y * w + x]
+            val v01 = when (c) {
+                0 -> ((p ushr 16) and 0xFF) / 255f
+                1 -> ((p ushr 8) and 0xFF) / 255f
+                else -> (p and 0xFF) / 255f
             }
+            val norm = (v01 - mean[c]) / std[c]
+            buf.put(norm)
         }
         buf.rewind()
         return buf
     }
 
-    private fun preprocessClsToNCHW(src: Bitmap, size: Int): FloatBuffer {
-        val bmp = Bitmap.createScaledBitmap(src, size, size, true)
-        val buf = FloatBuffer.allocate(1 * 3 * size * size)
-        val px = IntArray(size * size)
-        bmp.getPixels(px, 0, size, 0, 0, size, size)
-        var idx = 0
-        for (c in 0 until 3) {
-            for (y in 0 until size) for (x in 0 until size) {
-                val p = px[y * size + x]
-                val v = when (c) {
-                    0 -> (p ushr 16) and 0xFF
-                    1 -> (p ushr 8) and 0xFF
-                    else -> p and 0xFF
-                }
-                buf.put(idx++, v / 255f)
-            }
-        }
-        buf.rewind()
-        return buf
-    }
-
-    private fun argmaxSoftmax(logits: FloatArray): Pair<Int, Float> {
-        // stable softmax using max logit
-        var idx = 0
-        var maxV = logits[0]
-        for (i in 1 until logits.size) if (logits[i] > maxV) { maxV = logits[i]; idx = i }
-        var sum = 0.0
-        for (v in logits) sum += kotlin.math.exp((v - maxV).toDouble())
-        val prob = kotlin.math.exp((logits[idx] - maxV).toDouble()) / sum
-        return idx to prob.toFloat()
-    }
-
-    private fun cropFromOriginal(src: Bitmap, box: RectF, marginRatio: Float = 0.1f): Bitmap {
+    private fun cropFromOriginal(src: Bitmap, box: RectF, marginRatio: Float = 0.15f): Bitmap {
         val w = src.width.toFloat(); val h = src.height.toFloat()
         val bw = box.width(); val bh = box.height()
         val mx = bw * marginRatio; val my = bh * marginRatio
@@ -640,20 +544,10 @@ class ReportViewModel @Inject constructor(
         return Bitmap.createBitmap(src, x1.toInt(), y1.toInt(), cw, ch)
     }
 
-    override fun onCleared() {
-        try {
-            dogBreedSession.close()
-            catBreedSession.close()     // ✅ 추가
-            ortEnv.close()
-        } catch (_: Throwable) { }
-        super.onCleared()
-    }
-
     private fun resizeShorterSide(src: Bitmap, shortSize: Int): Bitmap {
         val w = src.width
         val h = src.height
         if (w == 0 || h == 0) return src
-
         val scale = if (w < h) shortSize / w.toFloat() else shortSize / h.toFloat()
         val newW = (w * scale).toInt().coerceAtLeast(1)
         val newH = (h * scale).toInt().coerceAtLeast(1)
@@ -668,6 +562,26 @@ class ReportViewModel @Inject constructor(
         val cw = min(cropW, w)
         val ch = min(cropH, h)
         return Bitmap.createBitmap(src, x, y, cw, ch)
+    }
+
+    // onnxruntime-java: 출력 텐서 모양 방어적 파싱
+    private fun extract1D(value: Any): FloatArray = when (value) {
+        is FloatArray -> value
+        is Array<*> -> {
+            val first = value.firstOrNull()
+            when (first) {
+                is FloatArray -> first
+                is Array<*> -> {
+                    val inner = first.firstOrNull()
+                    when (inner) {
+                        is FloatArray -> inner
+                        else -> error("Unsupported ONNX output nesting: ${value::class.java.name}")
+                    }
+                }
+                else -> error("Unsupported ONNX output element: ${first?.let { it::class.java?.name }}")
+            }
+        }
+        else -> error("Unsupported ONNX output type: ${value::class.java.name}")
     }
 
     private fun softmaxStable(logits: FloatArray): FloatArray {
@@ -685,42 +599,131 @@ class ReportViewModel @Inject constructor(
         return out
     }
 
-    private fun topKIndices(arr: FloatArray, k: Int): IntArray {
-        val idx = arr.indices.toList().sortedByDescending { arr[it] }
-        val kk = minOf(k, idx.size)
-        return idx.take(kk).toIntArray()
+    // ===== 품종 분류: 개 — [0..1]만 사용(정규화 X) + 디버그 로그 =====
+    private suspend fun asyncClassifyDogs(
+        bitmap: Bitmap,
+        dets: List<Detection>,
+        minProb: Float = 0.30f,
+        inputSize: Int = 456
+    ): List<DogResult> = withContext(Dispatchers.Default) {
+        val dogs = dets.filter { (it.label ?: "").equals("dog", ignoreCase = true) }
+        val results = mutableListOf<DogResult>()
+        for (d in dogs) {
+            runCatching {
+                val bodyCrop = cropFromOriginal(bitmap, RectF(d.left, d.top, d.right, d.bottom), 0.15f)
+                val tensor = preprocessDog01CHW(bodyCrop, 512, inputSize) // [0..1], 정규화 X
+                val shape = longArrayOf(1, 3, inputSize.toLong(), inputSize.toLong())
+                OnnxTensor.createTensor(ortEnv, tensor, shape).use { input ->
+                    val inputName = dogBreedSession.inputNames.first()
+                    dogBreedSession.run(mapOf(inputName to input)).use { out ->
+                        val logits = extract1D(out[0].value)
+                        val probs = softmaxStable(logits)
+
+                        // --- 디버그: Top-1, Top-5 인덱스/라벨 로그 ---
+                        val top1 = probs.indices.maxBy { probs[it] }
+                        val top1Label = dogLabels.getOrNull(top1)
+                        Log.i("$TAG-DEBUG", "DOG top1_idx=$top1 label=$top1Label conf=${String.format("%.2f", probs[top1])}")
+
+                        val top5 = probs.indices.sortedByDescending { probs[it] }.take(5)
+                        Log.i("$TAG-DEBUG", "DOG top5=" + top5.joinToString { i ->
+                            "${dogLabels.getOrNull(i)}(${String.format("%.2f", probs[i])})"
+                        })
+                        // --------------------------------------------
+
+                        val bestIdx = top1
+                        val bestProb = probs[bestIdx]
+                        if (bestProb >= minProb) {
+                            val bestLabel = dogLabels.getOrNull(bestIdx) ?: "UNKNOWN"
+                            results += DogResult(
+                                box = RectF(d.left, d.top, d.right, d.bottom),
+                                detScore = d.score,
+                                breedLabel = bestLabel,
+                                breedProb = bestProb
+                            )
+                        }
+                        Log.d(TAG, "DOG best=${dogLabels.getOrNull(bestIdx)} p=${"%.3f".format(bestProb)}")
+                    }
+                }
+            }.onFailure { e -> Log.e(TAG, "DOG classify failed: ${e.message}", e) }
+        }
+        results
     }
 
-    // ✅ ONNX 출력 차원 점검: 개/고양이 각각
+    // ===== 품종 분류: 고양이 — 기존 형식(정규화 유지) =====
+    private suspend fun asyncClassifyCats(
+        bitmap: Bitmap,
+        dets: List<Detection>,
+        minProb: Float = 0.30f,
+        inputSize: Int = 224
+    ): List<CatResult> = withContext(Dispatchers.Default) {
+        val cats = dets.filter { (it.label ?: "").equals("cat", ignoreCase = true) }
+        val results = mutableListOf<CatResult>()
+        for (d in cats) {
+            runCatching {
+                val bodyCrop = cropFromOriginal(bitmap, RectF(d.left, d.top, d.right, d.bottom), 0.15f)
+                val tensor = preprocessCatNormCHW(bodyCrop, 256, inputSize) // mean/std 정규화 O
+                val shape = longArrayOf(1, 3, inputSize.toLong(), inputSize.toLong())
+                OnnxTensor.createTensor(ortEnv, tensor, shape).use { input ->
+                    val inputName = catBreedSession.inputNames.first()
+                    catBreedSession.run(mapOf(inputName to input)).use { out ->
+                        val logits = extract1D(out[0].value)
+                        val probs = softmaxStable(logits)
+                        val bestIdx = probs.indices.maxBy { probs[it] }
+                        val bestProb = probs[bestIdx]
+                        if (bestProb >= minProb) {
+                            val bestLabel = catLabels.getOrNull(bestIdx) ?: "UNKNOWN"
+                            results += CatResult(
+                                box = RectF(d.left, d.top, d.right, d.bottom),
+                                detScore = d.score,
+                                breedLabel = bestLabel,
+                                breedProb = bestProb
+                            )
+                        }
+                        Log.d(TAG, "CAT best=${catLabels.getOrNull(bestIdx)} p=${"%.3f".format(bestProb)}")
+                    }
+                }
+            }.onFailure { e -> Log.e(TAG, "CAT classify failed: ${e.message}", e) }
+        }
+        results
+    }
+
+    // ===== ONNX 출력 차원 점검: 개/고양이 각각
     init {
         try {
             fun checkOutput(session: OrtSession, labelSize: Int, tag: String) {
-                val first = session.outputInfo.values.firstOrNull()
-                if (first == null) {
-                    Log.w("BREEDCHK-$tag", "출력 정보가 비어있습니다.")
-                } else {
-                    val ti = first.info
-                    if (ti is TensorInfo) {
-                        val dims: LongArray = ti.shape
-                        val lastDim = dims.lastOrNull() ?: -1L
-                        val numClassesFromOnnx =
-                            if (lastDim > 0) lastDim.toInt()
-                            else dims.filter { it > 0 }.lastOrNull()?.toInt() ?: -1
-
-                        Log.i("BREEDCHK-$tag", "ONNX numClasses=$numClassesFromOnnx, labelLen=$labelSize, dims=${dims.joinToString("x")}")
-
-                        if (numClassesFromOnnx != -1 && numClassesFromOnnx != labelSize) {
-                            Log.w("BREEDCHK-$tag", "⚠️ 라벨 개수와 ONNX 출력 차원 불일치! 매핑 오류 가능성 큼")
-                        }
-                    } else {
-                        Log.w("BREEDCHK-$tag", "TensorInfo 아님: ${ti?.javaClass?.simpleName}")
+                val nodeInfo = session.outputInfo.values.firstOrNull()
+                if (nodeInfo == null) {
+                    Log.w("$TAG-BREEDCHK-$tag", "출력 정보가 비어있습니다.")
+                    return
+                }
+                val ti = nodeInfo.info
+                if (ti is TensorInfo) {
+                    val dims: LongArray = ti.shape
+                    val lastDim = dims.lastOrNull() ?: -1L
+                    val numClassesFromOnnx =
+                        if (lastDim > 0) lastDim.toInt()
+                        else dims.filter { it > 0 }.lastOrNull()?.toInt() ?: -1
+                    Log.i("$TAG-BREEDCHK-$tag", "ONNX numClasses=$numClassesFromOnnx, labelLen=$labelSize, dims=${dims.joinToString("x")}")
+                    if (numClassesFromOnnx != -1 && numClassesFromOnnx != labelSize) {
+                        Log.w("$TAG-BREEDCHK-$tag", "⚠️ 라벨 개수와 ONNX 출력 차원 불일치! 매핑 오류 가능성 큼")
                     }
+                } else {
+                    Log.w("$TAG-BREEDCHK-$tag", "TensorInfo 아님: ${ti?.javaClass?.simpleName}")
                 }
             }
             checkOutput(dogBreedSession, dogLabels.size, "DOG")
             checkOutput(catBreedSession, catLabels.size, "CAT")
         } catch (e: Throwable) {
-            Log.w("BREEDCHK", "출력차원 파싱 실패: ${e.message}")
+            Log.w("$TAG-BREEDCHK", "출력차원 파싱 실패: ${e.message}")
         }
+    }
+
+    override fun onCleared() {
+        try {
+            dogBreedSession.close()
+            catBreedSession.close()
+            ortEnv.close()
+        } catch (_: Throwable)   { }
+        super.onCleared()
     }
 }
