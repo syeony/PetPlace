@@ -266,6 +266,7 @@ fun BoardWriteScreen(
             ) {
                 Text("등록하기", color = Color.White)
             }
+
         }
     }
 }

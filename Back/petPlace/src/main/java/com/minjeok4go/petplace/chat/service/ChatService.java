@@ -8,9 +8,12 @@ import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.chat.repository.ChatRepository;
 import com.minjeok4go.petplace.chat.repository.ChatRoomRepository;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
+import com.minjeok4go.petplace.notification.dto.CreateChatNotificationRequest;
 import com.minjeok4go.petplace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,6 +21,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ChatService {
+
+    private final ApplicationEventPublisher publisher;
     private final ChatRepository chatRepository;
     private final ChatRoomRepository chatRoomRepository;
     private final UserRepository userRepository;
@@ -25,6 +30,7 @@ public class ChatService {
     private final UserChatRoomService userChatRoomService;
 
     // 채팅 저장 및 DTO 반환 (chatId 포함)
+    @Transactional
     public ChatMessageDTO saveAndReturnMessage(ChatMessageDTO dto) {
         try {
             Chat chat = new Chat();
@@ -44,6 +50,8 @@ public class ChatService {
             chatRoom.setLastMessageAt(saved.getCreatedAt());
             chatRoomRepository.save(chatRoom);
 
+            Long receiverId = resolveReceiverId(chatRoom, dto.getUserId());
+
             // 이미지 저장
             List<String> imageUrls = dto.getImageUrls() != null ? dto.getImageUrls() : List.of();
             if (!imageUrls.isEmpty()) {
@@ -55,6 +63,11 @@ public class ChatService {
 
             // 유저 닉네임 불러오기
             String nickname = saved.getUser().getNickname();
+            String preview = saved.getMessage().startsWith("IMAGE:") ? "이미지를 보냈습니다." : saved.getMessage();
+
+            publisher.publishEvent(new CreateChatNotificationRequest(
+                    receiverId, nickname, saved.getChatRoom().getId(), saved.getId(), preview
+            ));
 
             // chatId(PK) 포함해서 DTO로 반환
             return new ChatMessageDTO(
@@ -73,7 +86,7 @@ public class ChatService {
             throw e; // 예외 재전파(서버에서 에러 응답됨)
         }
     }
-
+    @Transactional(readOnly = true)
     public List<ChatMessageDTO> getMessagesByRoom(Long chatRoomId) {
 //        List<Chat> chats = chatRepository.findByChatRoom_IdOrderByCreatedAtAsc(chatRoomId);
         List<Chat> chats = chatRepository.findAllByChatRoomId(chatRoomId); // 여기!
@@ -94,6 +107,17 @@ public class ChatService {
                     chat.getCreatedAt()
             );
         }).toList();
+    }
+
+    /** chatRoom 안의 두 유저 중 senderId가 아닌 쪽을 반환 */
+    private Long resolveReceiverId(ChatRoom room, Long senderId) {
+        // 프록시여도 .getId() 접근은 초기화 없이 식별자 사용 가능(Hibernate)
+        Long u1 = room.getUser1().getId();
+        Long u2 = room.getUser2().getId();
+
+        if (senderId.equals(u1)) return u2;
+        if (senderId.equals(u2)) return u1;
+        throw new IllegalArgumentException("보낸 사람이 채팅방에 속해있지 않습니다.");
     }
 }
 
