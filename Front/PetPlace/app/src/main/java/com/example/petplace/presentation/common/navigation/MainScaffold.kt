@@ -1,16 +1,20 @@
 package com.example.petplace.presentation.common.navigation
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -24,6 +28,7 @@ import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
 import com.example.petplace.presentation.feature.createfeed.CreateFeedScreen
 import com.example.petplace.presentation.feature.feed.BoardEditScreen
+import com.example.petplace.presentation.feature.feed.FeedDetailScreen
 import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.hotel.AnimalSelectScreen
 import com.example.petplace.presentation.feature.hotel.DateSelectionScreen
@@ -63,10 +68,10 @@ import com.example.petplace.presentation.feature.walk_and_care.WalkPostDetailScr
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnrememberedGetBackStackEntry")
 @Composable
-fun MainScaffold() {
-    val navController = rememberNavController()
+fun MainScaffold(navController: NavHostController = rememberNavController()) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val context = LocalContext.current
 
     val bottomNavRoutes = listOf(
         BottomNavItem.Feed.route,
@@ -75,6 +80,10 @@ fun MainScaffold() {
         BottomNavItem.Chat.route,
         BottomNavItem.MyPage.route
     )
+
+//    LaunchedEffect(Unit) {
+//        handleFCMNavigation(context, navController)
+//    }
 
     Scaffold(
         bottomBar = {
@@ -103,6 +112,16 @@ fun MainScaffold() {
                 val chatRoomId = backStackEntry.arguments?.getLong("chatRoomId") ?: 0
                 SingleChatScreen(
                     chatRoomId = chatRoomId,
+                    navController = navController
+                )
+            }
+            composable(
+                route = "feedDetail/{feedId}",
+                arguments = listOf(navArgument("feedId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val feedId = backStackEntry.arguments?.getLong("feedId") ?: 0
+                FeedDetailScreen(
+                    feedId = feedId,
                     navController = navController
                 )
             }
@@ -350,6 +369,78 @@ fun MainScaffold() {
             }
 
 
+        }
+    }
+}
+
+// FCM 네비게이션 처리 함수
+private fun handleFCMNavigation(context: Context, navController: NavHostController) {
+    val fcmDataPrefs = context.getSharedPreferences("fcm_data", Context.MODE_PRIVATE)
+    val hasPendingFcm = fcmDataPrefs.getBoolean("fcm_pending", false)
+
+    if (hasPendingFcm) {
+        val fcmType = fcmDataPrefs.getString("fcm_type", null)
+        val refType = fcmDataPrefs.getString("fcm_ref_type", null)
+        val refId = fcmDataPrefs.getString("fcm_ref_id", null)
+        val chatId = fcmDataPrefs.getString("fcm_chat_id", null)
+        val userId = fcmDataPrefs.getString("fcm_user_id", null)
+        val notificationId = fcmDataPrefs.getString("fcm_notification_id", null)
+
+        Log.d("FCM_NAV", "Handling FCM navigation - Type: $fcmType, RefType: $refType, RefId: $refId")
+
+        // FCM 데이터 클리어
+        fcmDataPrefs.edit().apply {
+            remove("fcm_type")
+            remove("fcm_ref_type")
+            remove("fcm_ref_id")
+            remove("fcm_chat_id")
+            remove("fcm_user_id")
+            remove("fcm_notification_id")
+            remove("fcm_pending")
+            apply()
+        }
+
+        // 타입에 따른 네비게이션 (refType 우선, fcmType 대안)
+        val typeToHandle = refType ?: fcmType
+        val idToUse = when (typeToHandle?.uppercase()) {
+            "CHAT" -> refId ?: chatId  // refId를 우선 사용, 없으면 chatId
+            else -> refId ?: chatId
+        }
+
+        when (typeToHandle?.lowercase()) {
+            "chat" -> {
+                idToUse?.toLongOrNull()?.let { id ->
+                    Log.d("FCM_NAV", "Navigating to chat: $id")
+                    navController.navigate("chatDetail/$id")
+                } ?: run {
+                    Log.d("FCM_NAV", "Chat ID is null, navigating to chat list")
+                    navController.navigate(BottomNavItem.Chat.route)
+                }
+            }
+            "feed" -> {
+                idToUse?.toLongOrNull()?.let { id ->
+                    Log.d("FCM_NAV", "Navigating to feed: $id")
+                    navController.navigate("feedDetail/$id")
+                } ?: run {
+                    Log.d("FCM_NAV", "Feed ID is null, navigating to feed list")
+                    navController.navigate(BottomNavItem.Feed.route)
+                }
+            }
+            "alarm", "notification" -> {
+                Log.d("FCM_NAV", "Navigating to alarm")
+                navController.navigate("alarm")
+            }
+            "user_profile" -> {
+                userId?.toLongOrNull()?.let { id ->
+                    Log.d("FCM_NAV", "Navigating to user profile: $id")
+                    navController.navigate("userProfile/$id")
+                }
+            }
+            // 필요한 다른 타입들 추가
+            else -> {
+                Log.d("FCM_NAV", "Unknown FCM type ($typeToHandle) or navigating to main feed")
+                navController.navigate(BottomNavItem.Feed.route)
+            }
         }
     }
 }

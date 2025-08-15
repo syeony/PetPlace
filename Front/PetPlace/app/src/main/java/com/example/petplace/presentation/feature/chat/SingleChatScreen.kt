@@ -64,6 +64,7 @@ fun SingleChatScreen(
     val showAttachmentOptions by viewModel.showAttachmentOptions.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
+    val chatPartnerId by viewModel.chatPartnerId.collectAsState()
     val chatPartnerName by viewModel.chatPartnerName.collectAsState()
     val chatPartnerProfileImage by viewModel.chatPartnerProfileImage.collectAsState()
     val imageUploadStatus by viewModel.imageUploadStatus.collectAsState()
@@ -142,6 +143,9 @@ fun SingleChatScreen(
                 isConnected = connectionStatus,
                 onBackClick = {
                     navController.popBackStack()
+                },
+                onProfileClick = {
+                    navController.navigate("userProfile/${chatPartnerId}")
                 }
             )
 
@@ -568,7 +572,8 @@ fun ChatTopAppBar(
     chatPartnerProfileImage: String? = null,
     isConnected: Boolean = true,
     onBackClick: () -> Unit = {},
-    onShareClick: () -> Unit = {}
+    onShareClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
     Box {
         SmallTopAppBar(
@@ -602,7 +607,8 @@ fun ChatTopAppBar(
                 contentDescription = "프로필 이미지",
                 modifier = Modifier
                     .size(36.dp)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .clickable(onClick = onProfileClick),
                 contentScale = ContentScale.Crop,
                 placeholder = painterResource(id = R.drawable.ic_mypage), // 로딩 중 플레이스홀더
                 error = painterResource(id = R.drawable.ic_mypage) // 에러 시 기본 이미지
