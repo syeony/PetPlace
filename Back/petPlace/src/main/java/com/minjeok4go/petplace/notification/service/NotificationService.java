@@ -7,10 +7,7 @@ import com.google.firebase.messaging.Message;
 import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.common.constant.NotificationType;
 import com.minjeok4go.petplace.common.constant.RefType;
-import com.minjeok4go.petplace.notification.dto.CreateChatNotificationRequest;
-import com.minjeok4go.petplace.notification.dto.CreateCommentNotificationRequest;
-import com.minjeok4go.petplace.notification.dto.CreateLikeNotificationRequest;
-import com.minjeok4go.petplace.notification.dto.NotificationResponse;
+import com.minjeok4go.petplace.notification.dto.*;
 import com.minjeok4go.petplace.notification.entity.Notification;
 import com.minjeok4go.petplace.notification.repository.NotificationRepository;
 import com.minjeok4go.petplace.push.entity.UserDeviceToken;
@@ -59,6 +56,25 @@ public class NotificationService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(CreateCommentNotificationRequest req) {
         String title = "새 댓글이 달렸어요";
+        String body = req.getSenderNickname() + ": " + req.getPreview();
+
+        sendAndStore(
+                req.getTargetUserId(),
+                NotificationType.COMMENT,
+                req.getRefType(),
+                req.getRefId(),
+                title,
+                body,
+                Map.of("refType",req.getRefType().name(),
+                        "refId", String.valueOf(req.getRefId()),
+                        "commentId", String.valueOf(req.getCommentId()))
+        );
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handle(CreateReplyNotificationRequest req) {
+        String title = "내 댓글에 새 답글이 달렸어요";
         String body = req.getSenderNickname() + ": " + req.getPreview();
 
         sendAndStore(
