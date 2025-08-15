@@ -11,6 +11,7 @@ import com.minjeok4go.petplace.common.constant.RefType;
 import com.minjeok4go.petplace.feed.entity.Feed;
 import com.minjeok4go.petplace.feed.service.FeedService;
 import com.minjeok4go.petplace.notification.dto.CreateCommentNotificationRequest;
+import com.minjeok4go.petplace.notification.dto.CreateReplyNotificationRequest;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.service.UserExperienceService;
 import jakarta.persistence.EntityNotFoundException;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -97,9 +99,39 @@ public class CommentService {
 
         expService.applyActivity(me, ActivityType.COMMENT_CREATE);
 
-        publisher.publishEvent(new CreateCommentNotificationRequest(
-            feed.getUserId(), me.getNickname(), RefType.FEED, feed.getId(), saved.getId(), saved.getContent()
-        ));
+        Long feedOwnerId = feed.getUserId();
+        if (parent == null) {
+            // 일반 댓글
+            if (!Objects.equals(feedOwnerId, me.getId())) {
+                publisher.publishEvent(new CreateCommentNotificationRequest(
+                        feedOwnerId, me.getNickname(), RefType.FEED, feed.getId(), saved.getId(), saved.getContent()
+                ));
+            }
+        } else {
+            Long parentOwnerId = parent.getUserId();
+
+            if (Objects.equals(feedOwnerId, parentOwnerId)) {
+                // 같은 사람에게 두 번 보내지 말고, '답글'로 1건만
+                if (!Objects.equals(feedOwnerId, me.getId())) {
+                    publisher.publishEvent(new CreateReplyNotificationRequest(
+                            feedOwnerId, me.getNickname(), RefType.FEED, feed.getId(), saved.getId(), saved.getContent()
+                    ));
+                }
+            } else {
+                // 서로 다른 사람이라면 각자 1건씩
+                if (!Objects.equals(feedOwnerId, me.getId())) {
+                    publisher.publishEvent(new CreateCommentNotificationRequest(
+                            feedOwnerId, me.getNickname(), RefType.FEED, feed.getId(), saved.getId(), saved.getContent()
+                    ));
+                }
+                if (!Objects.equals(parentOwnerId, me.getId())) {
+                    publisher.publishEvent(new CreateReplyNotificationRequest(
+                            parentOwnerId, me.getNickname(), RefType.FEED, feed.getId(), saved.getId(), saved.getContent()
+                    ));
+                }
+            }
+        }
+
 
         return mapComment(saved);
     }
