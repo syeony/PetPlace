@@ -65,9 +65,9 @@ public class CBFRecommendationService {
     private final TagRepository tagRepository;
 
     // 가중치
-    private static final double WEIGHT_LIKE = 2.0;
-    private static final double WEIGHT_COMMENT = 1.0;
-    private static final double WEIGHT_SAME_ANIMAL_WRITER = 7.0;
+    private static final double WEIGHT_LIKE = 20.0;
+    private static final double WEIGHT_COMMENT = 15.0;
+    private static final double WEIGHT_SAME_ANIMAL_WRITER = 12.0;
     private static final double WEIGHT_NEW_FEED = 10.0;
     private final ImageRepository imageRepository;
 
@@ -133,7 +133,7 @@ public class CBFRecommendationService {
         }
 
         // 3) 개인 가산점 계산
-        final double W_ANIMAL = 1.0; // 동물 매칭 시 가산치(튜닝 포인트)
+        final double W_ANIMAL = 2.0; // 동물 매칭 시 가산치(튜닝 포인트)
         Map<Long, Double> boost = new HashMap<>(candidateIds.size());
 
         for (Long fid : candidateIds) {
@@ -320,9 +320,9 @@ public class CBFRecommendationService {
         }
 
         // === [B] 내 최근 글(3시간 내 최대 3개) 핀고정 후보 추가 ===
-        LocalDateTime threeHoursAgo = LocalDateTime.now().minusHours(3);
+        LocalDateTime threeMinutesAgo = LocalDateTime.now().minusMinutes(3);
         List<Long> myRecentFeedIds = feedRepository
-                .findTop3IdsByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(userId, threeHoursAgo);
+                .findTop3IdsByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(userId, threeMinutesAgo);
 
         // === [C] 1차 풀 구성(핀고정 우선 + 후보) → 중복 제거 후 오버샘플 크기 제한 ===
         List<Long> pool = Stream.concat(myRecentFeedIds.stream(), candidateIds.stream())
