@@ -98,6 +98,7 @@ fun ReportScreen(
 ) {
     val ui by reportViewModel.uiState.collectAsState()
 
+
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
@@ -129,7 +130,11 @@ fun ReportScreen(
 
     // 갤러리 이미지(URI) 리스트
     val imageList by registerViewModel.imageList.collectAsState()
-
+    LaunchedEffect(imageList) {
+        if (imageList.isNotEmpty()) {
+            reportViewModel.analyzeImagesForPet(imageList)
+        }
+    }
     val launcherGallery =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
             if (!uris.isNullOrEmpty()) registerViewModel.addImages(uris)

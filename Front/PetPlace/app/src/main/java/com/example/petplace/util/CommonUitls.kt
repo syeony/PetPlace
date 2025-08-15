@@ -2,8 +2,10 @@ package com.example.petplace.util
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import com.google.android.gms.location.LocationServices
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 
@@ -41,7 +43,16 @@ object CommonUtils {
                 }
         }
 
-
+    suspend fun getFcmToken(): String? {
+        return try {
+            val token = FirebaseMessaging.getInstance().token.await()
+            Log.d("FCM", "Device FCM Token: $token")
+            token
+        } catch (e: Exception) {
+            Log.e("FCM", "Failed to get token", e)
+            null
+        }
+    }
 
     @SuppressLint("MissingPermission")
     suspend fun getXY(context: Context): Pair<Double, Double>? {

@@ -58,7 +58,7 @@ class ChatListViewModel @Inject constructor(
 
                 result.onSuccess { chatRoomResponses ->
                     Log.d(TAG, "채팅방 목록 로드 성공: ${chatRoomResponses.size}개")
-
+                    Log.d(TAG, "loadChatRooms: ${chatRoomResponses}")
                     // ChatRoomResponse를 ChatRoom으로 변환
                     val chatRoomList = chatRoomResponses.map { response ->
                         convertToChatRoom(response)
@@ -159,11 +159,19 @@ class ChatListViewModel @Inject constructor(
             id = response.chatRoomId,
             name = partnerInfo.nickname,
             region = partnerInfo.region ?: "알 수 없음",
-            lastMessage = response.lastMessage ?: "아직 메시지가 없습니다.",
+            lastMessage = formatLastMessage(response.lastMessage),
             time = formatLastMessageTime(response.lastMessageAt),
             unreadCount = unreadCount,
             profileImageUrl = profileImageUrl // String으로 변경
         )
+    }
+
+    private fun formatLastMessage(lastMessage: String?): String {
+        if(lastMessage == null || lastMessage.isEmpty())
+            return "아직 메시지가 없습니다."
+        if(lastMessage.startsWith("IMAGE:"))
+            return "이미지 \uD83D\uDDBC\uFE0F"
+        return lastMessage
     }
 
     private fun formatLastMessageTime(lastMessageAt: String?): String {
@@ -173,7 +181,8 @@ class ChatListViewModel @Inject constructor(
 
         try {
             // 1. UTC 기준 입력 파싱
-            val inputFormat = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+            val inputFormat =
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
             inputFormat.timeZone = java.util.TimeZone.getTimeZone("UTC") // 입력은 UTC 기준
 
             // 2. KST 기준으로 출력 포맷 정의

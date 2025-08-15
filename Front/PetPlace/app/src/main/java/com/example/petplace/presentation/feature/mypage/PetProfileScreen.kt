@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -84,19 +85,9 @@ fun PetProfileScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    var petName by remember { mutableStateOf("") }
-    var breed by remember { mutableStateOf("") }
     var showBreedMenu by remember { mutableStateOf(false) }
-    val breedOptions = listOf("푸들", "말티즈", "시바견", "골든 리트리버")
-
-    var gender by remember { mutableStateOf<String?>(null) }
-    var neutered by remember { mutableStateOf(false) }
-    var birthDate by remember { mutableStateOf("") }
-    var age by remember { mutableStateOf("") }
 
     val focusManager = LocalFocusManager.current
-
-    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val amber = Color(0xFFFFC981)
 
@@ -247,9 +238,58 @@ fun PetProfileScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // 견종 선택
+        // 동물 선택
         Text(
-            text = "견종 선택",
+            text = "동물 선택",
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentWidth(Alignment.Start)
+        )
+        Spacer(Modifier.height(8.dp))
+        ExposedDropdownMenuBox(
+            expanded = uiState.showAnimalMenu,
+            onExpandedChange = { viewModel.toggleAnimalMenu() }
+        ) {
+            OutlinedTextField(
+                value = uiState.animal,
+                onValueChange = {},
+                readOnly = true,
+                shape = RoundedCornerShape(8.dp),
+                placeholder = { Text(color = Color(0xFFADAEBC), text = "동물을 선택해주세요") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.showAnimalMenu)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+                    .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = amber,
+                    cursorColor = MaterialTheme.colorScheme.primary
+                )
+            )
+            ExposedDropdownMenu(
+                expanded = uiState.showAnimalMenu,
+                onDismissRequest = { viewModel.toggleAnimalMenu() },
+                modifier = Modifier.heightIn(max = 200.dp)
+            ) {
+                uiState.animalOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            viewModel.updateAnimal(option)
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 품종 선택
+        Text(
+            text = "품종 선택",
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentWidth(Alignment.Start)
@@ -264,23 +304,25 @@ fun PetProfileScreen(
                 onValueChange = {},
                 readOnly = true,
                 shape = RoundedCornerShape(8.dp),
-                placeholder = { Text(color = Color(0xFFADAEBC), text = "견종을 선택해주세요") },
+                placeholder = { Text(color = Color(0xFFADAEBC), text = "품종을 선택해주세요") },
                 trailingIcon = {
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showBreedMenu)
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = uiState.showBreedMenu)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .menuAnchor()
                     .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
-                    unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
-                    cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
-                )
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = amber,
+                    cursorColor = MaterialTheme.colorScheme.primary
+                ),
+                enabled = uiState.animal.isNotBlank() // 동물이 선택되어야 활성화
             )
             ExposedDropdownMenu(
                 expanded = uiState.showBreedMenu,
-                onDismissRequest = { viewModel.toggleBreedMenu() }
+                onDismissRequest = { viewModel.toggleBreedMenu() },
+                modifier = Modifier.heightIn(max = 200.dp)
             ) {
                 uiState.breedOptions.forEach { option ->
                     DropdownMenuItem(
@@ -375,18 +417,23 @@ fun PetProfileScreen(
         // 나이
         OutlinedTextField(
             value = uiState.age,
-            onValueChange = { viewModel.updateAge(it) },
+            onValueChange = { }, // 빈 람다로 변경 (수정 불가)
             shape = RoundedCornerShape(8.dp),
             placeholder = { Text("나이") },
-            label = { Text("나이") },
+            label = { Text("나이") }, // 레이블 수정
+            readOnly = true, // 읽기 전용으로 설정
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = Color.White, shape = RoundedCornerShape(8.dp)),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,   // 포커스 시 테두리 색
-                unfocusedBorderColor = amber, // 포커스 없을 때 테두리 색
-                cursorColor = MaterialTheme.colorScheme.primary           // 커서 색도 Primary
-            )
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = amber,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                disabledTextColor = Color.Black, // 비활성화 상태에서도 텍스트 보이게
+                disabledBorderColor = amber, // 비활성화 상태 테두리 색상
+                disabledLabelColor = Color.Gray // 비활성화 상태 레이블 색상
+            ),
+            enabled = false // 비활성화하여 클릭 불가
         )
 
         Spacer(Modifier.height(24.dp))
