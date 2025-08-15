@@ -3,13 +3,17 @@ package com.example.petplace.presentation.feature.mypage
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.petplace.R
+import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.model.feed.CommentReq
+import com.example.petplace.data.model.feed.CommentRes
 import com.example.petplace.data.model.feed.FeedRecommendRes
+import com.example.petplace.data.repository.FeedRepository
 import com.example.petplace.data.repository.MyPageRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -34,8 +38,13 @@ val categoryStyles = mapOf(
 
 @HiltViewModel
 class MyPostViewModel @Inject constructor(
-    private val myPageRepository: MyPageRepository
+    private val myPageRepository: MyPageRepository,
+    private val feedRepository: FeedRepository // 👍 좋아요/댓글 API 호출용
 ) : ViewModel() {
+
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val userInfo = app.getUserInfo()   // 👈 추가
+
     data class MyPostUiState(
         val posts: List<FeedRecommendRes> = emptyList(),
         val isLoading: Boolean = false,
@@ -48,6 +57,84 @@ class MyPostViewModel @Inject constructor(
 
     init {
         loadMyPosts()
+    }
+
+    private val _likedFeeds = MutableStateFlow<Set<Long>>(emptySet())
+    val likedFeeds: StateFlow<Set<Long>> = _likedFeeds
+
+    private val _commentList = MutableStateFlow<List<CommentRes>>(emptyList())
+    val commentList: StateFlow<List<CommentRes>> = _commentList
+
+    fun toggleLike(feed: FeedRecommendRes) {
+        viewModelScope.launch {
+            val newLiked = !(feed.liked == true || _likedFeeds.value.contains(feed.id))
+            updateFeedLikeState(feed.id, newLiked)
+
+            try {
+                if (newLiked) feedRepository.likeFeed(feed.id)
+                else feedRepository.unlikeFeed(feed.id)
+            } catch (e: Exception) {
+                updateFeedLikeState(feed.id, !newLiked) // 롤백
+            }
+        }
+    }
+
+    private fun updateFeedLikeState(feedId: Long, newLiked: Boolean) {
+        _likedFeeds.update { if (newLiked) it + feedId else it - feedId }
+        _uiState.update { state ->
+            state.copy(
+                posts = state.posts.map { post ->
+                    if (post.id == feedId) post.copy(
+                        likes = post.likes + if (newLiked) 1 else -1,
+                        liked = newLiked
+                    ) else post
+                }
+            )
+        }
+    }
+
+    fun refreshComments(feedId: Long) {
+        viewModelScope.launch {
+            _commentList.value = feedRepository.fetchComments(feedId)
+        }
+    }
+
+    // MyPostViewModel
+    fun bumpCommentCount(feedId: Long, delta: Int) {
+        _uiState.update { state ->
+            state.copy(
+                posts = state.posts.map { post ->
+                    if (post.id == feedId) post.copy(
+                        commentCount = (post.commentCount ?: 0) + delta
+                    ) else post
+                }
+            )
+        }
+    }
+
+    suspend fun addComment(feedId: Long, parentCommentId: Long?, content: String) {
+        feedRepository.createComment(CommentReq(feedId, parentCommentId, content))
+        refreshComments(feedId)
+        // 댓글 수 반영
+        _uiState.update { state ->
+            state.copy(
+                posts = state.posts.map { post ->
+                    if (post.id == feedId) post.copy(commentCount = post.commentCount + 1) else post
+                }
+            )
+        }
+    }
+
+    suspend fun removeComment(commentId: Long, feedId: Long) {
+        feedRepository.deleteComment(commentId)
+        refreshComments(feedId)
+        _uiState.update { state ->
+            state.copy(
+                posts = state.posts.map { post ->
+                    if (post.id == feedId) post.copy(commentCount = post.commentCount - 1) else post
+                }
+            )
+        }
     }
 
     fun loadMyPosts() {
@@ -104,15 +191,17 @@ class MyPostViewModel @Inject constructor(
         }
     }
 
-    fun deletePost(postId: Long) {
+    /** 내 피드 삭제 */
+    fun deleteMyFeed(feedId: Long) {
         viewModelScope.launch {
             try {
-                // TODO: Replace with actual repository call
-                // postRepository.deletePost(postId)
+                // 서버 삭제
+                feedRepository.deleteFeed(feedId)
 
-                val updatedPosts = _uiState.value.posts.filter { it.id != postId }
-                _uiState.value = _uiState.value.copy(posts = updatedPosts)
-
+                // UI 즉시 반영
+                _uiState.value = _uiState.value.copy(
+                    posts = _uiState.value.posts.filterNot { it.id == feedId }
+                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = e.message ?: "게시글 삭제 중 오류가 발생했습니다."
@@ -125,36 +214,4 @@ class MyPostViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    // 샘플 더미 데이터 - 실제 구현에서는 제거
-    private fun getSamplePosts(): List<Post> {
-        return listOf(
-            Post(
-                id = 1,
-                category = "잡담",
-                title = "오늘 날씨 너무 좋네요",
-                body = "하늘이 맑고 바람도 시원해서 산책하기 딱 좋은 날씨입니다.",
-                meta = "2025.08.10",
-                imageRes = R.drawable.pp_logo,
-                commentCount = 5
-            ),
-            Post(
-                id = 2,
-                category = "질문",
-                title = "Jetpack Compose 리스트 간격 조절 질문",
-                body = "LazyColumn에서 아이템 간 간격을 조절하는 방법을 알고 싶습니다.",
-                meta = "2025.08.09",
-                imageRes = R.drawable.pp_logo,
-                commentCount = 8
-            ),
-            Post(
-                id = 3,
-                category = "정보",
-                title = "안드로이드 스튜디오 최신 단축키 모음",
-                body = "효율적으로 개발할 수 있는 단축키 리스트를 정리했습니다.",
-                meta = "2025.08.08",
-                imageRes = R.drawable.pp_logo,
-                commentCount = 12
-            )
-        )
-    }
 }
