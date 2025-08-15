@@ -80,7 +80,7 @@ public class ChatRoomService {
                 .toList();
     }
 
-
+    @Transactional(readOnly = true)
     public List<ChatRoomDTO> getChatRoomsByUser(Long userId) {
         List<ChatRoom> rooms = chatRoomRepository.findByUserId(userId);
         // ChatRoom → ChatRoomDto 변환
