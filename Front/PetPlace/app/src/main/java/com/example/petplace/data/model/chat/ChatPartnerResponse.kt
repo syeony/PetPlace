@@ -8,5 +8,6 @@ data class ChatPartnerResponse(
     val nickname: String,
     @SerializedName("profileImg")
     val profileImageUrl: String? = null,
+    @SerializedName("regionName")
     val region: String? = null
 )

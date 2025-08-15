@@ -48,4 +48,11 @@ interface CaresApiService {
     suspend fun deleteCare(
         @Path("id") id: Long
     ): Response<ApiResponse<Boolean>>
+
+    @GET("/api/cares/my")
+    suspend fun getMyCares(
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int? = 20,
+        @Query("sort") sort: String = "createdAt,desc"
+    ): Response<ApiResponse<PageResponse<CareItem>>>
 }

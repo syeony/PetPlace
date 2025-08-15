@@ -3,11 +3,13 @@ package com.example.petplace.presentation.feature.walk_and_care
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.local.Walk.Post
 import com.example.petplace.data.model.cares.CareItem
 import com.example.petplace.data.model.cares.PageResponse
 import com.example.petplace.data.remote.UserApiService
 import com.example.petplace.data.repository.CaresRepository
+import com.example.petplace.data.repository.MyPageRepository
 import com.example.petplace.presentation.feature.hotel.ApiResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,43 +24,58 @@ import javax.inject.Inject
 @HiltViewModel
 class WalkAndCareViewModel @Inject constructor(
     private val caresRepository: CaresRepository,
-    private val userApi: UserApiService,
+    private val myPageRepository: MyPageRepository,
 ) : ViewModel() {
+
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val userInfo = app.getUserInfo()
+
+    private val regionId = userInfo?.regionId ?: 0
 
     private val _regionName = MutableStateFlow<String?>(null)
     val regionName: StateFlow<String?> = _regionName.asStateFlow()
 
-    private val _regionId = MutableStateFlow<Long?>(null)
-    val regionId: StateFlow<Long?> = _regionId.asStateFlow()
-
-    fun setRegionByLocation(lat: Double, lon: Double) {
-        Log.d("WalkVM", "위도=$lat, 경도=$lon")
+    init {
         viewModelScope.launch {
-            val res = runCatching { userApi.authenticateDong(lat, lon) }
-                .onFailure { e ->
-                    Log.e("WalkVM", "dong-auth API fail", e)
-                    _regionName.value = " 동네 인증 실패"
+            myPageRepository.getMyPageInfo()
+                .onSuccess { response ->
+                    _regionName.value = response.regionName
                 }
-                .getOrNull() ?: return@launch
-
-            if (!res.success) {
-                _regionName.value = " 동네 인증 실패"
-                return@launch
-            }
-
-            val finalName = res.data?.regionName?.trim().orEmpty()
-            val finalId = res.data?.regionId
-
-            Log.d("WalkVM", "regionName(final)=$finalName, regionId(final)=$finalId")
-
-            _regionName.value = " $finalName"
-            _regionId.value = finalId
-
-            if (finalId != null) {
-                fetchPosts(page = 0, size = 20)
-            }
+                .onFailure {
+                    it.printStackTrace()
+                }
         }
+        fetchPosts()
     }
+
+//    fun setRegionByLocation(lat: Double, lon: Double) {
+//        Log.d("WalkVM", "위도=$lat, 경도=$lon")
+//        viewModelScope.launch {
+//            val res = runCatching { userApi.authenticateDong(lat, lon) }
+//                .onFailure { e ->
+//                    Log.e("WalkVM", "dong-auth API fail", e)
+//                    _regionName.value = " 동네 인증 실패"
+//                }
+//                .getOrNull() ?: return@launch
+//
+//            if (!res.success) {
+//                _regionName.value = " 동네 인증 실패"
+//                return@launch
+//            }
+//
+//            val finalName = res.data?.regionName?.trim().orEmpty()
+//            val finalId = res.data?.regionId
+//
+//            Log.d("WalkVM", "regionName(final)=$finalName, regionId(final)=$finalId")
+//
+//            _regionName.value = " $finalName"
+//            regionId = finalId
+//
+//            if (finalId != null) {
+//                fetchPosts(page = 0, size = 20)
+//            }
+//        }
+//    }
 
     // ───────── 검색/필터 상태 ─────────
     private val _searchText = MutableStateFlow("")
@@ -84,30 +101,29 @@ class WalkAndCareViewModel @Inject constructor(
             }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    init {
-        viewModelScope.launch {
-            regionId.collect { id ->
-                if (id != null) fetchPosts()
-            }
-        }
-    }
 
     fun toggleCategory(cat: String) {
         _selectedCategory.value = if (_selectedCategory.value == cat) null else cat
     }
-    fun updateSearchText(text: String) { _searchText.value = text }
-    fun clearFilters() { _selectedCategory.value = null; _searchText.value = "" }
+
+    fun updateSearchText(text: String) {
+        _searchText.value = text
+    }
+
+    fun clearFilters() {
+        _selectedCategory.value = null; _searchText.value = ""
+    }
 
     fun fetchPosts(page: Int = 0, size: Int = 20) {
         viewModelScope.launch {
-            val id = _regionId.value
+            val id = regionId
             if (id == null) {
                 Log.e("WalkVM", "regionId 없음 → fetchPosts 중단")
                 return@launch
             }
-
             caresRepository.list(page, size, regionId = id)
                 .onSuccess { resp ->
+                    Log.d("resp", "fetchPosts: ${resp}")
                     val body: ApiResponse<PageResponse<CareItem>>? = resp.body()
                     val pageData: PageResponse<CareItem>? = body?.data
                     val cares: List<CareItem> = pageData?.content ?: emptyList()
@@ -145,10 +161,10 @@ class WalkAndCareViewModel @Inject constructor(
     private fun displayLabelFromCategoryEnum(enumName: String?): String =
         when (enumName?.uppercase()) {
             "WALK_WANT" -> "산책구인"
-            "WALK_REQ"  -> "산책의뢰"
+            "WALK_REQ" -> "산책의뢰"
             "CARE_WANT" -> "돌봄구인"
-            "CARE_REQ"  -> "돌봄의뢰"
-            else        -> "산책구인"
+            "CARE_REQ" -> "돌봄의뢰"
+            else -> "산책구인"
         }
 
     // ---------- 날짜/시간 포맷 ----------
@@ -178,7 +194,9 @@ class WalkAndCareViewModel @Inject constructor(
         return try {
             val tPart = dt?.split('T', ' ')?.getOrNull(1) ?: return null
             tPart.substring(0, 5)
-        } catch (_: Exception) { null }
+        } catch (_: Exception) {
+            null
+        }
     }
 }
 

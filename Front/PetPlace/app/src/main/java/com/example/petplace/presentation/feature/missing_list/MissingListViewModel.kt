@@ -4,13 +4,18 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.model.chat.ChatRoomResponse
+import com.example.petplace.data.model.chat.CreateChatRoomRequest
 import com.example.petplace.data.model.missing_list.MissingReportDto
+import com.example.petplace.data.remote.ChatApiService
 import com.example.petplace.data.repository.MissingSightingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -27,11 +32,14 @@ data class MissingListUiState(
     val error: String? = null,
     val page: Int = 0,
     val size: Int = 20,
-    val hasMore: Boolean = false
+    val hasMore: Boolean = false,
+    val createdChatRoomId: Long? = null,
+    val isChatRoomCreating: Boolean = false
 )
 
 data class MissingReportUi(
     val id: Long,
+    val userId: Long,
     val reporterName: String,
     val reporterAvatarUrl: String?,
     val content: String,
@@ -43,6 +51,7 @@ data class MissingReportUi(
 @HiltViewModel
 class MissingListViewModel @Inject constructor(
     private val repo: MissingSightingRepository,
+    private val chatApiService: ChatApiService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -117,6 +126,7 @@ class MissingListViewModel @Inject constructor(
 
         return MissingReportUi(
             id = id,
+            userId = userId,
             reporterName = userNickname,
             reporterAvatarUrl = avatar,
             content = content,
@@ -172,5 +182,59 @@ class MissingListViewModel @Inject constructor(
     // ====== 편의 래퍼 ======
     fun formatToHHmmKST(input: String): String = formatToKST(input, TIME_ONLY_FMT)
     fun formatToKSTFull(input: String): String = formatToKST(input, DATE_TIME_FMT)
+
+    fun startChatWithUser(userId: Long) {
+        viewModelScope.launch {
+            try {
+                _ui.value = _ui.value.copy(isChatRoomCreating = true)
+
+                val result = createChatRoom(userId)
+                result.onSuccess { chatRoomResponse ->
+                    _ui.value = _ui.value.copy(
+                        createdChatRoomId = chatRoomResponse.chatRoomId,
+                        isChatRoomCreating = false
+                    )
+                }.onFailure { exception ->
+                    _ui.value = _ui.value.copy(
+                        error = exception.message ?: "채팅방 생성에 실패했습니다.",
+                        isChatRoomCreating = false
+                    )
+                }
+            } catch (e: Exception) {
+                _ui.value = _ui.value.copy(
+                    error = e.message ?: "채팅방 생성 중 오류가 발생했습니다.",
+                    isChatRoomCreating = false
+                )
+            }
+        }
+    }
+
+    private suspend fun createChatRoom(userId: Long): Result<ChatRoomResponse> {
+        val myId = user.userId ?: 0
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = chatApiService.createChatRoom(
+                    CreateChatRoomRequest(userId1 = myId, userId2 = userId)
+                )
+
+                if (response.isSuccessful) {
+                    val chatRoom = response.body()
+                    if (chatRoom != null) {
+                        Result.success(chatRoom)
+                    } else {
+                        Result.failure(Exception("채팅방 생성 응답이 null"))
+                    }
+                } else {
+                    Result.failure(Exception("채팅방 생성 실패: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    fun consumeCreatedChatRoomId() {
+        _ui.value = _ui.value.copy(createdChatRoomId = null)
+    }
 
 }

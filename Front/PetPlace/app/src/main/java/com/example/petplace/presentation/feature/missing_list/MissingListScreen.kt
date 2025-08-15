@@ -34,6 +34,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -48,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -60,6 +62,16 @@ fun MissingListScreen(
     val bgColor = Color(0xFFFEF9F0)
     val orange  = Color(0xFFF79800)
     val ui by viewModel.ui.collectAsState()
+
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val currentUserId = app.getUserInfo()?.userId ?: 0
+
+    LaunchedEffect(ui.createdChatRoomId) {
+        ui.createdChatRoomId?.let { chatRoomId ->
+            navController.navigate("chatDetail/$chatRoomId")
+            viewModel.consumeCreatedChatRoomId()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -102,8 +114,10 @@ fun MissingListScreen(
                         MissingCard(
                             item = item,
                             orange = orange,
+                            currentUserId = currentUserId, // 추가
+                            isChatCreating = ui.isChatRoomCreating, // 추가
                             onChatClick = {
-                                // TODO: 채팅방 이동
+                                viewModel.startChatWithUser(item.userId)
                             }
                         )
                     }
@@ -146,6 +160,8 @@ fun MissingListScreen(
 private fun MissingCard(
     item: MissingReportUi,
     orange: Color,
+    currentUserId: Long,
+    isChatCreating: Boolean,
     onChatClick: () -> Unit
 ) {
     Card(
@@ -228,18 +244,27 @@ private fun MissingCard(
                 )
             }
 
-            // 채팅하기 버튼
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = onChatClick,
-                modifier = Modifier
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
-                    .fillMaxWidth()
-                    .height(42.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = orange)
-            ) {
-                Text("채팅하기", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            // 채팅하기 버튼 (본인 게시글이 아닐 때만 표시)
+            if (item.userId != currentUserId) {
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    onClick = onChatClick,
+                    enabled = !isChatCreating,
+                    modifier = Modifier
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                        .fillMaxWidth()
+                        .height(42.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = orange)
+                ) {
+                    if (isChatCreating) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("생성 중...", color = Color.White, fontSize = 15.sp)
+                    } else {
+                        Text("채팅하기", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         }
     }
