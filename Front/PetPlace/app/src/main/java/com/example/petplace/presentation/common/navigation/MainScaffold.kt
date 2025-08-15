@@ -49,6 +49,8 @@ import com.example.petplace.presentation.feature.mypage.MyCommentScreen
 import com.example.petplace.presentation.feature.mypage.MyLikePostScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 import com.example.petplace.presentation.feature.mypage.MyPostScreen
+import com.example.petplace.presentation.feature.mypage.MyWalkScreen
+import com.example.petplace.presentation.feature.mypage.MyCareScreen
 import com.example.petplace.presentation.feature.mypage.PetProfileScreen
 import com.example.petplace.presentation.feature.mypage.ProfileCompleteScreen
 import com.example.petplace.presentation.feature.mypage.ProfileEditScreen
@@ -87,11 +89,11 @@ fun MainScaffold() {
             startDestination = "splash",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("splash"){ SplashScreen(navController) }
+            composable("splash") { SplashScreen(navController) }
             composable("login") { LoginScreen(navController) }
 //            composable("join") { JoinScreen(navController, viewModel) }
             composable(BottomNavItem.Feed.route) { FeedScreen(navController = navController) }
-            composable(BottomNavItem.CreateFeed.route) {CreateFeedScreen(navController = navController)}
+            composable(BottomNavItem.CreateFeed.route) { CreateFeedScreen(navController = navController) }
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
             composable(BottomNavItem.MyPage.route) { MyPageScreen(navController) }
             composable(
@@ -194,6 +196,9 @@ fun MainScaffold() {
             composable("my_post") { MyPostScreen(navController) }
             composable("my_comment") { MyCommentScreen(navController) }
             composable("my_likePost") { MyLikePostScreen(navController) }
+            composable("my_walk") { MyWalkScreen(navController) }
+
+            composable("my_care") { MyCareScreen(navController) }
 
             composable(
                 route = "userProfile/{userId}",
@@ -249,31 +254,31 @@ fun MainScaffold() {
                     val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
                     ReservationCheckoutScreen(navController, viewModel)
                 }
-                 composable(
-                            route = "hotel/success/{merchantUid}?rid={reservationId}",
-                            arguments = listOf(
-                                navArgument("merchantUid") { type = NavType.StringType },
-                                navArgument("reservationId") { type = NavType.LongType; defaultValue = -1L } // 쿼리로 받음
-                            )
-                        ) { backStackEntry ->
-                            // 그래프 스코프의 ViewModel 유지
-                            val parentEntry = remember(backStackEntry) {
-                                navController.getBackStackEntry("hotel_graph")
-                            }
-                            val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                composable(
+                    route = "hotel/success/{merchantUid}?rid={reservationId}",
+                    arguments = listOf(
+                        navArgument("merchantUid") { type = NavType.StringType },
+                        navArgument("reservationId") {
+                            type = NavType.LongType; defaultValue = -1L
+                        } // 쿼리로 받음
+                    )
+                ) { backStackEntry ->
+                    // 그래프 스코프의 ViewModel 유지
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
 
-                            val merchantUid = backStackEntry.arguments!!.getString("merchantUid")!!
-                            val reservationId = backStackEntry.arguments!!.getLong("reservationId")
+                    val merchantUid = backStackEntry.arguments!!.getString("merchantUid")!!
+                    val reservationId = backStackEntry.arguments!!.getLong("reservationId")
 
-                            ReservationSuccessScreen(
-                                navController = navController,
-                                viewModel = viewModel,
-                                merchantUid = merchantUid,
-                                reservationId = reservationId
-                            )
-                        }
-
-
+                    ReservationSuccessScreen(
+                        navController = navController,
+                        viewModel = viewModel,
+                        merchantUid = merchantUid,
+                        reservationId = reservationId
+                    )
+                }
 
 
             }

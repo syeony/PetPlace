@@ -23,6 +23,12 @@ class CaresRepository @Inject constructor(
         sort: String = "createdAt,desc"
     ) = runCatching { api.getCares(regionId, page, size, sort) }
 
+    suspend fun myList(
+        page: Int = 0,
+        size: Int = 20,
+        sort: String = "createdAt,desc"
+    ) = runCatching { api.getMyCares(page, size, sort) }
+
 //    suspend fun listContent(
 //        page: Int = 0,
 //        size: Int = 20,
