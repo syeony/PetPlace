@@ -66,14 +66,20 @@ public class ChatRoomService {
         return ucrRepo.findByChatRoom_Id(chatRoomId).stream()
                 .map(ucr -> {
                     User user = ucr.getUser();
+                    String regionName = (user.getRegion() != null)
+                            ? user.getRegion().getName()   // 필드명에 맞게 수정
+                            : null;
+
                     return new ChatRoomParticipantDTO(
                             user.getId(),
                             user.getNickname(),
-                            user.getUserImgSrc()
+                            user.getUserImgSrc(),
+                            regionName
                     );
                 })
                 .toList();
     }
+
 
     public List<ChatRoomDTO> getChatRoomsByUser(Long userId) {
         List<ChatRoom> rooms = chatRoomRepository.findByUserId(userId);
