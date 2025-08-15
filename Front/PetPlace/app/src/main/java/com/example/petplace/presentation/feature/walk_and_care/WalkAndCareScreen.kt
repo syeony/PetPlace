@@ -72,8 +72,8 @@ fun WalkAndCareScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
     viewModel: WalkAndCareViewModel = hiltViewModel(),
-    currentLat: Double? = null,
-    currentLon: Double? = null
+//    currentLat: Double? = null,
+//    currentLon: Double? = null
 ) {
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val search = viewModel.searchText.collectAsState()
@@ -100,33 +100,33 @@ fun WalkAndCareScreen(
         }
     }
 
-    // 권한 있으면 현재 위치 가져와서 region 인증
-    LaunchedEffect(regionName) {
-        if (regionName != null) return@LaunchedEffect
-        val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
-        val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
-        val hasFine = ContextCompat.checkSelfPermission(context, fine) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
-        val hasCoarse = ContextCompat.checkSelfPermission(context, coarse) ==
-                android.content.pm.PackageManager.PERMISSION_GRANTED
+//    // 권한 있으면 현재 위치 가져와서 region 인증
+//    LaunchedEffect(regionName) {
+//        if (regionName != null) return@LaunchedEffect
+//        val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
+//        val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
+//        val hasFine = ContextCompat.checkSelfPermission(context, fine) ==
+//                android.content.pm.PackageManager.PERMISSION_GRANTED
+//        val hasCoarse = ContextCompat.checkSelfPermission(context, coarse) ==
+//                android.content.pm.PackageManager.PERMISSION_GRANTED
+//
+//        if (hasFine || hasCoarse) {
+//            val loc = LocationProvider.getCurrentLocation(context)
+//            if (loc != null) {
+//                Log.d("WalkAndCareScreen", "GPS lat=${loc.latitude}, lon=${loc.longitude}")
+//                viewModel.setRegionByLocation(loc.latitude, loc.longitude)
+//            } else {
+//                Log.e("WalkAndCareScreen", "현재 위치를 가져오지 못했습니다 (null)")
+//            }
+//        }
+//    }
 
-        if (hasFine || hasCoarse) {
-            val loc = LocationProvider.getCurrentLocation(context)
-            if (loc != null) {
-                Log.d("WalkAndCareScreen", "GPS lat=${loc.latitude}, lon=${loc.longitude}")
-                viewModel.setRegionByLocation(loc.latitude, loc.longitude)
-            } else {
-                Log.e("WalkAndCareScreen", "현재 위치를 가져오지 못했습니다 (null)")
-            }
-        }
-    }
-
-    // 외부에서 좌표 주입 시
-    LaunchedEffect(currentLat, currentLon) {
-        if (currentLat != null && currentLon != null) {
-            viewModel.setRegionByLocation(currentLat, currentLon)
-        }
-    }
+//    // 외부에서 좌표 주입 시
+//    LaunchedEffect(currentLat, currentLon) {
+//        if (currentLat != null && currentLon != null) {
+//            viewModel.setRegionByLocation(currentLat, currentLon)
+//        }
+//    }
 
     val hashtagColor = Color(0xFFFFE0B3)
 

@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.local.Walk.Post
 import com.example.petplace.data.model.cares.CareItem
 import com.example.petplace.data.model.cares.PageResponse
@@ -23,15 +24,9 @@ import javax.inject.Inject
 @HiltViewModel
 class MyWalkAndCareViewModel @Inject constructor(
     private val caresRepository: CaresRepository,
-    private val userApi: UserApiService,
-    @ApplicationContext private val context: Context
+//    private val userApi: UserApiService,
+//    @ApplicationContext private val context: Context
 ) : ViewModel() {
-
-    private val _regionName = MutableStateFlow<String?>(null)
-    val regionName: StateFlow<String?> = _regionName.asStateFlow()
-
-    private val _regionId = MutableStateFlow<Long?>(null)
-    val regionId: StateFlow<Long?> = _regionId.asStateFlow()
 
     private val _walkPosts = MutableStateFlow<List<Post>>(emptyList())
     val walkPosts: StateFlow<List<Post>> = _walkPosts.asStateFlow()
@@ -46,94 +41,93 @@ class MyWalkAndCareViewModel @Inject constructor(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     init {
-        // 앱 시작 시 자동으로 위치 가져오기
-        loadCurrentLocationAndSetRegion()
+//        // 앱 시작 시 자동으로 위치 가져오기
+//        loadCurrentLocationAndSetRegion()
 
-        viewModelScope.launch {
-            regionId.collect { id ->
-                if (id != null) {
-                    fetchMyWalkPosts()
-                    fetchMyCarePosts()
-                }
-            }
-        }
+//        viewModelScope.launch {
+//            regionId.collect { id ->
+//                if (id != null) {
+//                    fetchMyWalkPosts()
+//                    fetchMyCarePosts()
+//                }
+//            }
+//        }
     }
 
-    fun loadCurrentLocationAndSetRegion() {
-        viewModelScope.launch {
-            // 권한 체크
-            val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
-            val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
-            val hasFine = ContextCompat.checkSelfPermission(context, fine) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-            val hasCoarse = ContextCompat.checkSelfPermission(context, coarse) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
+//    fun loadCurrentLocationAndSetRegion() {
+//        viewModelScope.launch {
+//            // 권한 체크
+//            val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
+//            val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
+//            val hasFine = ContextCompat.checkSelfPermission(context, fine) ==
+//                    android.content.pm.PackageManager.PERMISSION_GRANTED
+//            val hasCoarse = ContextCompat.checkSelfPermission(context, coarse) ==
+//                    android.content.pm.PackageManager.PERMISSION_GRANTED
+//
+//            if (hasFine || hasCoarse) {
+//                try {
+//                    val location = LocationProvider.getCurrentLocation(context)
+//                    if (location != null) {
+//                        Log.d("MyWalkAndCareVM", "GPS lat=${location.latitude}, lon=${location.longitude}")
+//                        setRegionByLocation(location.latitude, location.longitude)
+//                    } else {
+//                        Log.e("MyWalkAndCareVM", "현재 위치를 가져오지 못했습니다 (null)")
+//                        _error.value = "위치 정보를 가져올 수 없습니다"
+//                    }
+//                } catch (e: Exception) {
+//                    Log.e("MyWalkAndCareVM", "위치 가져오기 실패", e)
+//                    _error.value = "위치 정보를 가져오는 중 오류가 발생했습니다"
+//                }
+//            } else {
+//                _error.value = "위치 권한이 필요합니다"
+//            }
+//        }
+//    }
 
-            if (hasFine || hasCoarse) {
-                try {
-                    val location = LocationProvider.getCurrentLocation(context)
-                    if (location != null) {
-                        Log.d("MyWalkAndCareVM", "GPS lat=${location.latitude}, lon=${location.longitude}")
-                        setRegionByLocation(location.latitude, location.longitude)
-                    } else {
-                        Log.e("MyWalkAndCareVM", "현재 위치를 가져오지 못했습니다 (null)")
-                        _error.value = "위치 정보를 가져올 수 없습니다"
-                    }
-                } catch (e: Exception) {
-                    Log.e("MyWalkAndCareVM", "위치 가져오기 실패", e)
-                    _error.value = "위치 정보를 가져오는 중 오류가 발생했습니다"
-                }
-            } else {
-                _error.value = "위치 권한이 필요합니다"
-            }
-        }
-    }
-
-    /**
-     * 위치 정보를 기반으로 지역 인증을 수행합니다.
-     */
-    fun setRegionByLocation(lat: Double, lon: Double) {
-        Log.d("MyWalkAndCareVM", "위도=$lat, 경도=$lon")
-        viewModelScope.launch {
-            val res = runCatching { userApi.authenticateDong(lat, lon) }
-                .onFailure { e ->
-                    Log.e("MyWalkAndCareVM", "dong-auth API fail", e)
-                    _regionName.value = " 동네 인증 실패"
-                }
-                .getOrNull() ?: return@launch
-
-            if (!res.success) {
-                _regionName.value = " 동네 인증 실패"
-                return@launch
-            }
-
-            val finalName = res.data?.regionName?.trim().orEmpty()
-            val finalId = res.data?.regionId
-
-            Log.d("MyWalkAndCareVM", "regionName(final)=$finalName, regionId(final)=$finalId")
-
-            _regionName.value = " $finalName"
-            _regionId.value = finalId
-        }
-    }
+//    /**
+//     * 위치 정보를 기반으로 지역 인증을 수행합니다.
+//     */
+//    fun setRegionByLocation(lat: Double, lon: Double) {
+//        Log.d("MyWalkAndCareVM", "위도=$lat, 경도=$lon")
+//        viewModelScope.launch {
+//            val res = runCatching { userApi.authenticateDong(lat, lon) }
+//                .onFailure { e ->
+//                    Log.e("MyWalkAndCareVM", "dong-auth API fail", e)
+//                    _regionName.value = " 동네 인증 실패"
+//                }
+//                .getOrNull() ?: return@launch
+//
+//            if (!res.success) {
+//                _regionName.value = " 동네 인증 실패"
+//                return@launch
+//            }
+//
+//            val finalName = res.data?.regionName?.trim().orEmpty()
+//            val finalId = res.data?.regionId
+//
+//            Log.d("MyWalkAndCareVM", "regionName(final)=$finalName, regionId(final)=$finalId")
+//
+//            _regionName.value = " $finalName"
+//            _regionId.value = finalId
+//        }
+//    }
 
     /**
      * 내가 작성한 산책 게시글만 가져옵니다.
      */
     fun fetchMyWalkPosts() {
         viewModelScope.launch {
-            val id = _regionId.value
-            if (id == null) {
-                Log.e("MyWalkAndCareVM", "regionId 없음 → fetchMyWalkPosts 중단")
-                _error.value = "지역 정보를 먼저 설정해주세요"
-                return@launch
-            }
+//            val id = regionId
+//            if (id == null) {
+//                Log.e("MyWalkAndCareVM", "regionId 없음 → fetchMyWalkPosts 중단")
+//                _error.value = "지역 정보를 먼저 설정해주세요"
+//                return@launch
+//            }
 
             _isLoading.value = true
             _error.value = null
 
             try {
-                // TODO: 실제로는 현재 사용자 ID를 기준으로 내 게시글만 조회해야 함
                 caresRepository.myList(page = 0, size = 100)
                     .onSuccess { resp ->
                         val body: ApiResponse<PageResponse<CareItem>>? = resp.body()
@@ -148,7 +142,7 @@ class MyWalkAndCareViewModel @Inject constructor(
                         }
 
                         _walkPosts.value = walkPosts
-                        Log.d("MyWalkAndCareVM", "내 산책 게시글: ${walkPosts.size}개 (지역: ${_regionName.value})")
+                        Log.d("MyWalkAndCareVM", "내 산책 게시글: ${walkPosts.size}개")
                     }
                     .onFailure { e ->
                         Log.e("MyWalkAndCareVM", "산책 게시글 조회 실패", e)
@@ -168,18 +162,11 @@ class MyWalkAndCareViewModel @Inject constructor(
      */
     fun fetchMyCarePosts() {
         viewModelScope.launch {
-            val id = _regionId.value
-            if (id == null) {
-                Log.e("MyWalkAndCareVM", "regionId 없음 → fetchMyCarePosts 중단")
-                _error.value = "지역 정보를 먼저 설정해주세요"
-                return@launch
-            }
 
             _isLoading.value = true
             _error.value = null
 
             try {
-                // TODO: 실제로는 현재 사용자 ID를 기준으로 내 게시글만 조회해야 함
                 caresRepository.myList(page = 0, size = 100)
                     .onSuccess { resp ->
                         val body: ApiResponse<PageResponse<CareItem>>? = resp.body()
@@ -194,7 +181,7 @@ class MyWalkAndCareViewModel @Inject constructor(
                         }
 
                         _carePosts.value = carePosts
-                        Log.d("MyWalkAndCareVM", "내 돌봄 게시글: ${carePosts.size}개 (지역: ${_regionName.value})")
+                        Log.d("MyWalkAndCareVM", "내 돌봄 게시글: ${carePosts.size}개")
                     }
                     .onFailure { e ->
                         Log.e("MyWalkAndCareVM", "돌봄 게시글 조회 실패", e)
@@ -212,11 +199,11 @@ class MyWalkAndCareViewModel @Inject constructor(
     /**
      * 지역 정보를 초기화하고 다시 설정합니다.
      */
-    fun refreshRegion(lat: Double, lon: Double) {
-        _regionName.value = null
-        _regionId.value = null
-        setRegionByLocation(lat, lon)
-    }
+//    fun refreshRegion(lat: Double, lon: Double) {
+//        _regionName.value = null
+//        _regionId.value = null
+//        setRegionByLocation(lat, lon)
+//    }
 
     /**
      * CareItem을 Post로 변환하는 공통 함수
