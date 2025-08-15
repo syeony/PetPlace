@@ -13,6 +13,7 @@ import com.minjeok4go.petplace.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +30,7 @@ public class ChatService {
     private final UserChatRoomService userChatRoomService;
 
     // 채팅 저장 및 DTO 반환 (chatId 포함)
+    @Transactional
     public ChatMessageDTO saveAndReturnMessage(ChatMessageDTO dto) {
         try {
             Chat chat = new Chat();
@@ -83,7 +85,7 @@ public class ChatService {
             throw e; // 예외 재전파(서버에서 에러 응답됨)
         }
     }
-
+    @Transactional(readOnly = true)
     public List<ChatMessageDTO> getMessagesByRoom(Long chatRoomId) {
 //        List<Chat> chats = chatRepository.findByChatRoom_IdOrderByCreatedAtAsc(chatRoomId);
         List<Chat> chats = chatRepository.findAllByChatRoomId(chatRoomId); // 여기!
