@@ -98,7 +98,7 @@ public class CommentService {
         expService.applyActivity(me, ActivityType.COMMENT_CREATE);
 
         publisher.publishEvent(new CreateCommentNotificationRequest(
-            feed.getUserId(), RefType.FEED, feed.getId(), saved.getId(), saved.getContent()
+            feed.getUserId(), me.getNickname(), RefType.FEED, feed.getId(), saved.getId(), saved.getContent()
         ));
 
         return mapComment(saved);

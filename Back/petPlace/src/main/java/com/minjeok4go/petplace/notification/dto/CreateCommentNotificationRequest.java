@@ -15,6 +15,9 @@ public class CreateCommentNotificationRequest {
     private Long targetUserId;
 
     @NotNull
+    private String senderNickname;
+
+    @NotNull
     private RefType refType;
 
     @NotNull
