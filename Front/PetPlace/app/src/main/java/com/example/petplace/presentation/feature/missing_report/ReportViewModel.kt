@@ -1,12 +1,20 @@
 package com.example.petplace.presentation.feature.missing_report
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.petplace.PetPlaceApp
+import com.example.petplace.data.local.onDevice.Detection
 import com.example.petplace.data.model.missing_report.CreateSightingImageReq
 import com.example.petplace.data.model.missing_report.CreateSightingReq
 import com.example.petplace.data.model.missing_report.SightingRes
@@ -24,6 +32,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlin.math.max
 import kotlin.math.roundToInt
 
 data class ReportUiState(
@@ -40,7 +49,8 @@ data class ReportUiState(
 
     // YOLO 상태
     val detectionChecked: Boolean = false,
-    val detectionMessage: String = ""
+    val detectionMessage: String = "",
+    val annotatedBitmap: Bitmap? = null
 )
 
 @HiltViewModel
@@ -93,16 +103,20 @@ class ReportViewModel @Inject constructor(
             if (imageUris.isEmpty()) {
                 _uiState.value = _uiState.value.copy(
                     detectionChecked = true,
-                    detectionMessage = "이미지가 없습니다."
+                    detectionMessage = "이미지가 없습니다.",
+                    annotatedBitmap = null
                 )
                 Log.d("YOLO11N", "analyzeImagesForPet(): end (no images)")
                 return@launch
             }
 
-            _uiState.value = _uiState.value.copy(detectionChecked = false, detectionMessage = "분석 중...")
+            _uiState.value = _uiState.value.copy(
+                detectionChecked = false,
+                detectionMessage = "분석 중...",
+                annotatedBitmap = null
+            )
 
             var detectedMsg = "강아지/고양이 없음"
-            var success = false
             val tAll0 = SystemClock.elapsedRealtime()
 
             for ((idx, uri) in imageUris.withIndex()) {
@@ -125,35 +139,49 @@ class ReportViewModel @Inject constructor(
                 Log.d("YOLO11N", "image[$idx]: inference done, detCount=${dets.size} (t=${tInf}ms)")
 
                 if (dets.isNotEmpty()) {
-                    success = true
+                    // 로그
                     Log.d("YOLO11N", "===== DETECTED on image[$idx] =====")
                     dets.forEachIndexed { i, d ->
                         val xmin = d.left.coerceIn(0f, (bmp.width - 1).toFloat()).roundToInt()
                         val ymin = d.top.coerceIn(0f, (bmp.height - 1).toFloat()).roundToInt()
                         val xmax = d.right.coerceIn(0f, (bmp.width - 1).toFloat()).roundToInt()
                         val ymax = d.bottom.coerceIn(0f, (bmp.height - 1).toFloat()).roundToInt()
-                        val wFace = d.score.toDouble() // confidence
-                        Log.d(
-                            "YOLO11N",
-                            "[$i] label=${d.label}, wFace=${"%.3f".format(wFace)}, box=($xmin,$ymin,$xmax,$ymax)"
-                        )
+                        Log.d("YOLO11N", "[$i] label=${d.label}, conf=${"%.3f".format(d.score)}, box=($xmin,$ymin,$xmax,$ymax)")
                     }
+
+                    // 🔹 여기서 시각화 생성
+                    val annotated = withContext(Dispatchers.Default) {
+                        drawDetectionsOnBitmap(bmp, dets) // 앞서 만든 유틸
+                    }
+
                     detectedMsg = "감지됨: " + dets.joinToString { "${it.label} ${"%.2f".format(it.score)}" } + " (idx=$idx)"
-                    break
+
+                    // UI 반영 후 종료(첫 감지 이미지만 표시)
+                    _uiState.value = _uiState.value.copy(
+                        detectionChecked = true,
+                        detectionMessage = detectedMsg,
+                        annotatedBitmap = annotated
+                    )
+
+                    val tAll = SystemClock.elapsedRealtime() - tAll0
+                    Log.d("YOLO11N", "analyzeImagesForPet(): end, total=${tAll}ms, success=true, message=$detectedMsg")
+                    return@launch
                 } else {
                     Log.d("YOLO11N", "image[$idx]: NO DETECTION")
                 }
             }
 
             val tAll = SystemClock.elapsedRealtime() - tAll0
-            Log.d("YOLO11N", "analyzeImagesForPet(): end, total=${tAll}ms, success=$success, message=$detectedMsg")
+            Log.d("YOLO11N", "analyzeImagesForPet(): end, total=${tAll}ms, success=false, message=$detectedMsg")
 
             _uiState.value = _uiState.value.copy(
                 detectionChecked = true,
-                detectionMessage = detectedMsg
+                detectionMessage = detectedMsg,
+                annotatedBitmap = null
             )
         }
     }
+
 
     /** 제보 등록 (이미 업로드된 URL 사용) */
     fun submitSighting(
@@ -223,5 +251,50 @@ class ReportViewModel @Inject constructor(
                 onFailure = onFailure
             )
         }
+    }
+    fun drawDetectionsOnBitmap(src: Bitmap, dets: List<Detection>): Bitmap {
+        // 원본 위에 그릴 수 있도록 복사 (mutable)
+        val out = src.copy(Bitmap.Config.ARGB_8888, /* isMutable = */ true)
+        val c = Canvas(out)
+
+        val stroke = max(2f, out.width * 0.004f)
+        val textSize = max(18f, out.width * 0.035f)
+        val pad = max(4f, out.width * 0.008f)
+
+        val boxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = stroke
+            color = Color.MAGENTA          // 원하면 색 바꿔도 됨
+        }
+        val textBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = Color.argb(160, 0, 0, 0)
+        }
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            this.textSize = textSize
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        }
+
+        val bounds = Rect()
+        dets.forEach { d ->
+            val rect = RectF(d.left, d.top, d.right, d.bottom)
+            // 박스
+            c.drawRect(rect, boxPaint)
+
+            // 라벨 텍스트
+            val label = "${d.label} ${(d.score * 100).roundToInt()}%"
+            textPaint.getTextBounds(label, 0, label.length, bounds)
+            val bg = RectF(
+                rect.left,
+                rect.top - bounds.height() - pad * 2,
+                rect.left + bounds.width() + pad * 2,
+                rect.top
+            )
+            // 라벨 배경 + 텍스트
+            c.drawRect(bg, textBgPaint)
+            c.drawText(label, bg.left + pad, bg.bottom - pad, textPaint)
+        }
+        return out
     }
 }

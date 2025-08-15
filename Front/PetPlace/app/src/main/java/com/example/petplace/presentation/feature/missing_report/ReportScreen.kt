@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -61,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -98,7 +100,6 @@ fun ReportScreen(
 ) {
     val ui by reportViewModel.uiState.collectAsState()
 
-
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
@@ -135,6 +136,7 @@ fun ReportScreen(
             reportViewModel.analyzeImagesForPet(imageList)
         }
     }
+
     val launcherGallery =
         rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
             if (!uris.isNullOrEmpty()) registerViewModel.addImages(uris)
@@ -254,6 +256,60 @@ fun ReportScreen(
                 color = Color.Gray,
                 modifier = Modifier.fillMaxWidth()
             )
+
+            // --- 검출 결과 표시 (로딩/성공/실패) ---
+            Spacer(Modifier.height(12.dp))
+            when {
+                !ui.detectionChecked -> {
+                    // 분석 중
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(ui.detectionMessage, fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
+                ui.annotatedBitmap != null -> {
+                    // 검출 성공 → 어노테이트된 비트맵 보여주기
+                    val bmp = ui.annotatedBitmap!!
+                    val ratio = remember(bmp) {
+                        (bmp.width.toFloat() / bmp.height.coerceAtLeast(1).toFloat())
+                    }
+                    Image(
+                        bitmap = bmp.asImageBitmap(),
+                        contentDescription = "Detection result",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(1.dp, Color(0x22000000), RoundedCornerShape(12.dp))
+                            .aspectRatio(ratio),
+                        contentScale = ContentScale.Fit
+                    )
+                    Text(
+                        text = ui.detectionMessage,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+                else -> {
+                    // 검출 실패
+                    Text(
+                        text = ui.detectionMessage, // 예: "강아지/고양이 없음"
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        textAlign = TextAlign.Center,
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
 
             Spacer(Modifier.height(16.dp))
 
