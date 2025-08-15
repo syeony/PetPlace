@@ -195,12 +195,13 @@ fun NeighborhoodScreen(
                         Modifier
                             .fillMaxWidth()
                             .padding(vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(8.dp) // ✅ 일정 간격
                     ) {
                         row.forEach { (label, iconRes) ->
                             FeatureButton(
                                 label = label,
-                                icon = iconRes         // ← 실제 아이콘 전달
+                                icon = iconRes,         // ← 실제 아이콘 전달
+                                modifier = Modifier.weight(1f) // ✅ 동일 비율로 확장/축소
                             ) {
                                 // 클릭 핸들
                                 when (label) {
