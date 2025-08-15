@@ -87,6 +87,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
@@ -296,6 +297,24 @@ fun ReportScreen(
                         fontSize = 12.sp,
                         color = Color.Gray
                     )
+                    Spacer(Modifier.height(8.dp))
+
+                    if (ui.dogResults.isNotEmpty()) {
+                        Text(
+                            text = "감지된 품종",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        )
+                        LazyRow(modifier = Modifier.fillMaxWidth()) {
+                            items(ui.dogResults) { r ->
+                                BreedChip("${r.breedLabel} ${(r.breedProb * 100).roundToInt()}%")
+                            }
+                        }
+                    }
                 }
                 else -> {
                     // 검출 실패
@@ -504,5 +523,18 @@ fun ReportScreen(
             handle?.remove<Double>("selected_lat")
             handle?.remove<Double>("selected_lng")
         }
+    }
+}
+@Composable
+private fun BreedChip(text: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .padding(end = 8.dp, bottom = 8.dp)
+            .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color(0xFFF7F7F7))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(text, fontSize = 12.sp, color = Color(0xFF333333))
     }
 }

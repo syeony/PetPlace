@@ -33,6 +33,10 @@ android {
             "IMP_KEY",
             "\"${project.properties["IMP_KEY"]}\""
         )
+
+        ndk{
+            abiFilters += listOf("arm64-v8a")
+        }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -150,6 +154,8 @@ dependencies {
 
     //TFLite
     implementation ("org.tensorflow:tensorflow-lite:2.14.0")
+    //
+    implementation ("com.microsoft.onnxruntime:onnxruntime-android:1.22.0")
 
 
 
