@@ -30,6 +30,31 @@ ALLOW_WHOLE_IMAGE   = os.getenv("ALLOW_WHOLE_IMAGE", "1") == "1" # yolo도 못�
 # YOLO는 “정말 bbox가 없을 때만” 쓸 폴백
 yolo = YOLO("yolo11n.pt") if USE_SERVER_YOLO else None
 
+def _box_provided(xmin, ymin, xmax, ymax) -> bool:
+    return None not in (xmin, ymin, xmax, ymax)
+
+def _box_is_zero(xmin, ymin, xmax, ymax) -> bool:
+    # 0,0,0,0 같이 '없음'으로 쓰는 케이스
+    return _box_provided(xmin, ymin, xmax, ymax) and (xmin, ymin, xmax, ymax) == (0, 0, 0, 0)
+
+def _clamp_box(xmin, ymin, xmax, ymax, W, H):
+    # PIL crop은 (left, upper, right, lower)에서 right/lower == W/H까지 허용
+    xmin = max(0, min(int(xmin), W))
+    xmax = max(0, min(int(xmax), W))
+    ymin = max(0, min(int(ymin), H))
+    ymax = max(0, min(int(ymax), H))
+    return xmin, ymin, xmax, ymax
+
+def _box_valid(xmin, ymin, xmax, ymax, W, H, min_frac: float = 1e-4) -> bool:
+    # 좌상단 < 우하단, 면적 > 0, 너무 작은 상자 거르기(이미지의 0.01% 미만이면 무효로 간주)
+    xmin, ymin, xmax, ymax = _clamp_box(xmin, ymin, xmax, ymax, W, H)
+    if not (xmax > xmin and ymax > ymin):
+        return False
+    img_area = max(W * H, 1)
+    box_area = (xmax - xmin) * (ymax - ymin)
+    return (box_area / img_area) >= min_frac
+
+
 # =========================
 # 디바이스 & 임베딩
 # =========================
@@ -102,12 +127,25 @@ def decide_bbox(img: Image.Image, species: str,
                 xmin: Optional[int], ymin: Optional[int],
                 xmax: Optional[int], ymax: Optional[int]) -> tuple[int,int,int,int]:
     W, H = img.size
-    # 1) 온디바이스 제공
-    if None not in (xmin, ymin, xmax, ymax):
-        return pad_box(xmin, ymin, xmax, ymax, W, H, 0.15)
-    # 2) bbox 필수 모드
+
+    # 0) 0,0,0,0은 "미제공"으로 취급
+    if _box_provided(xmin, ymin, xmax, ymax) and _box_is_zero(xmin, ymin, xmax, ymax):
+        xmin = ymin = xmax = ymax = None
+
+    # 1) 온디바이스가 bbox를 줬고, 유효하면 사용
+    if _box_provided(xmin, ymin, xmax, ymax):
+        if _box_valid(xmin, ymin, xmax, ymax, W, H):
+            x1, y1, x2, y2 = _clamp_box(xmin, ymin, xmax, ymax, W, H)
+            return pad_box(x1, y1, x2, y2, W, H, 0.15)
+        # 유효하지 않은 bbox: 필수모드면 400, 아니면 폴백
+        if REQUIRE_BBOX:
+            raise HTTPException(status_code=400, detail="invalid bbox (zero/negative area or out of bounds)")
+        # 계속 폴백 진행
+
+    # 2) bbox 필수 모드인데 미제공
     if REQUIRE_BBOX:
         raise HTTPException(status_code=400, detail="bbox required (xmin,ymin,xmax,ymax)")
+
     # 3) 서버 YOLO 폴백
     if yolo is not None:
         r = yolo.predict(img, verbose=False)[0]
@@ -118,9 +156,11 @@ def decide_bbox(img: Image.Image, species: str,
                 if names[cls] == species:
                     bxmin, bymin, bxmax, bymax = list(map(int, r.boxes.xyxy[i].tolist()))
                     return pad_box(bxmin, bymin, bxmax, bymax, W, H, 0.15)
+
     # 4) 최후: 전체 이미지 허용?
     if ALLOW_WHOLE_IMAGE:
         return (0, 0, W, H)
+
     raise HTTPException(status_code=400, detail="no bbox and fallback disabled")
 
 # =========================
