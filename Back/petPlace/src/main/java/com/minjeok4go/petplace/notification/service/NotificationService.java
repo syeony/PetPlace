@@ -34,7 +34,7 @@ public class NotificationService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(CreateCommentNotificationRequest req) {
         String title = "새 댓글이 달렸어요";
-        String body = req.getPreview();
+        String body = req.getSenderNickname() + ": " + req.getPreview();
 
         sendAndStore(
                 req.getTargetUserId(),
@@ -43,7 +43,7 @@ public class NotificationService {
                 req.getRefId(),
                 title,
                 body,
-                Map.of("refType",req.getRefType().getDisplayName(),
+                Map.of("refType",req.getRefType().name(),
                         "refId", String.valueOf(req.getRefId()),
                         "commentId", String.valueOf(req.getCommentId()))
         );
@@ -53,7 +53,7 @@ public class NotificationService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(CreateLikeNotificationRequest req) {
         String title = "내 글에 좋아요가 눌렸어요";
-        String body  = "누군가 내 글을 좋아합니다";
+        String body  = req.getSenderNickname() + "님이 내 글을 좋아합니다";
 
         sendAndStore(
                 req.getTargetUserId(),
@@ -62,7 +62,7 @@ public class NotificationService {
                 req.getRefId(),
                 title,
                 body,
-                Map.of("refType","FEED",
+                Map.of("refType", RefType.FEED.name(),
                         "refId", String.valueOf(req.getRefId()))
         );
     }

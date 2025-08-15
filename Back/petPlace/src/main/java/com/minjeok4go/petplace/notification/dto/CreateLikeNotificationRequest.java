@@ -15,6 +15,9 @@ public class CreateLikeNotificationRequest {
     private Long targetUserId;
 
     @NotNull
+    private String senderNickname;
+
+    @NotNull
     private Long refId;
 
     @NotNull
