@@ -63,7 +63,7 @@ public class ChatService {
 
             // 유저 닉네임 불러오기
             String nickname = saved.getUser().getNickname();
-            String preview = dto.getImageUrls() != null ? saved.getMessage() : "이미지를 보냈습니다.";
+            String preview = saved.getMessage().startsWith("IMAGE:") ? "이미지를 보냈습니다." : saved.getMessage();
 
             publisher.publishEvent(new CreateChatNotificationRequest(
                     receiverId, nickname, saved.getChatRoom().getId(), saved.getId(), preview
