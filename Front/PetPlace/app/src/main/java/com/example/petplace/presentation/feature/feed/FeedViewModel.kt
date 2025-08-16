@@ -23,12 +23,28 @@ import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.repository.FeedRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+
+data class CommentDelta(val feedId: Long, val delta: Int)
+
+object FeedEvents {
+    private val _commentDelta = MutableSharedFlow<CommentDelta>(
+        replay = 0,
+        extraBufferCapacity = 64
+    )
+    val commentDelta = _commentDelta.asSharedFlow()
+
+    fun emitCommentDelta(feedId: Long, delta: Int) {
+        _commentDelta.tryEmit(CommentDelta(feedId, delta))
+    }
+}
 
 @HiltViewModel
 class BoardViewModel @Inject constructor(
@@ -71,7 +87,23 @@ class BoardViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    init { loadFirstPage() }
+    init {
+        // 1) 배치 먼저 트리거 (비동기, 실패 무시)
+        runRecommendBatch()
+
+        // 2) 목록 첫 페이지 로드
+        loadFirstPage()
+    }
+
+    /** 서버 추천 배치 트리거 */
+    private fun runRecommendBatch() {
+        viewModelScope.launch {
+            // 202/200 빈 바디 성공 → 무시, 실패도 앱 흐름 영향 X
+            repo.triggerBatch()
+                .onFailure { /* 필요시 로그/스낵바 등 */ }
+        }
+    }
+
 
     // 내가 좋아요 누른 피드 id 집합 (앱 단 관리)
     private val _likedFeeds = MutableStateFlow<Set<Long>>(emptySet())
@@ -209,6 +241,7 @@ class BoardViewModel @Inject constructor(
         updateFeedCommentDelta(feedId, +1)
         // 3) 상세 댓글 리스트 새로고침 (목록 하단에 반영)
         refreshComments(feedId)
+        FeedEvents.emitCommentDelta(feedId, +1)    // ✅ 추가
         return result
     }
 
@@ -220,6 +253,7 @@ class BoardViewModel @Inject constructor(
         updateFeedCommentDelta(feedId, -1)
         // 3) 상세 댓글 리스트 새로고침
         refreshComments(feedId)
+        FeedEvents.emitCommentDelta(feedId, -1)    // ✅ 추가
     }
 
 

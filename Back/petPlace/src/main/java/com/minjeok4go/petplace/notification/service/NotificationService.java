@@ -14,6 +14,8 @@ import com.minjeok4go.petplace.push.entity.UserDeviceToken;
 import com.minjeok4go.petplace.push.repository.UserDeviceTokenRepository;
 import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -27,6 +29,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
@@ -127,6 +130,24 @@ public class NotificationService {
         );
     }
 
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handle(CreateSightingNotificationRequest req) {
+        String title = "실종 신고가 매칭됐어요";
+        String body  = req.getSenderNickname() + "님이 " + req.getMiss().getPet().getName() + "를 발견했습니다";
+
+        sendAndStore(
+                req.getTargetUserId(),
+                NotificationType.SIGHT,
+                RefType.SIGHTING,
+                req.getRefId(),
+                title,
+                body,
+                Map.of("refType", RefType.SIGHTING.name(),
+                        "refId", String.valueOf(req.getRefId()))
+        );
+    }
+
     protected void sendAndStore(Long targetUserId,
                                 NotificationType notificationType,
                                 RefType refType,
@@ -153,6 +174,9 @@ public class NotificationService {
                         .putData("notificationId", String.valueOf(notification.getId()))
                         .build()
         ).toList();
+
+
+        log.debug("[FCM] sent: {}", notification);
 
         try {
             var res = firebase.sendEach(messages);
