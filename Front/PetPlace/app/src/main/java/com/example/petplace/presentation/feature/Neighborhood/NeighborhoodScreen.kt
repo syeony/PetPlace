@@ -211,7 +211,9 @@ fun NeighborhoodScreen(
                                     "입양처" -> {
                                         viewModel.setShowAdoptConfirm(true)
                                     }
-                                    "실종펫 리스트" -> navController.navigate("missing_list")
+//                                    "실종펫 리스트" -> navController.navigate("missing_list")
+                                    "실종펫 리스트" ->navController.navigate("missingReportDetail/23")
+
                                     "동물호텔" -> navController.navigate("hotel_graph")
                                 }
                                 scope.launch {
