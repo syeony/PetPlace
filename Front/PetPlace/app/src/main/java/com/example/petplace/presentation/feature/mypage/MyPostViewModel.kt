@@ -9,6 +9,7 @@ import com.example.petplace.data.model.feed.CommentRes
 import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.repository.FeedRepository
 import com.example.petplace.data.repository.MyPageRepository
+import com.example.petplace.presentation.feature.feed.FeedEvents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,15 +56,22 @@ class MyPostViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(MyPostUiState())
     val uiState: StateFlow<MyPostUiState> = _uiState.asStateFlow()
 
-    init {
-        loadMyPosts()
-    }
-
     private val _likedFeeds = MutableStateFlow<Set<Long>>(emptySet())
     val likedFeeds: StateFlow<Set<Long>> = _likedFeeds
 
     private val _commentList = MutableStateFlow<List<CommentRes>>(emptyList())
     val commentList: StateFlow<List<CommentRes>> = _commentList
+
+    init {
+        loadMyPosts()
+
+        // ✅ 여기서 FeedEvents 수집
+        viewModelScope.launch {
+            FeedEvents.commentDelta.collect { (feedId, delta) ->
+                bumpCommentCount(feedId, delta)
+            }
+        }
+    }
 
     fun toggleLike(feed: FeedRecommendRes) {
         viewModelScope.launch {

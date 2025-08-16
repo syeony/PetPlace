@@ -338,7 +338,7 @@ private fun MyPostFeedItem(
         }
     }
 
-    if (showComments) { //테스트 
+    if (showComments) { //테스트
         CommentBottomSheet(
             feedId = feed.id,
             onDismiss = { showComments = false },

@@ -23,12 +23,28 @@ import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.repository.FeedRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+
+data class CommentDelta(val feedId: Long, val delta: Int)
+
+object FeedEvents {
+    private val _commentDelta = MutableSharedFlow<CommentDelta>(
+        replay = 0,
+        extraBufferCapacity = 64
+    )
+    val commentDelta = _commentDelta.asSharedFlow()
+
+    fun emitCommentDelta(feedId: Long, delta: Int) {
+        _commentDelta.tryEmit(CommentDelta(feedId, delta))
+    }
+}
 
 @HiltViewModel
 class BoardViewModel @Inject constructor(
@@ -209,6 +225,7 @@ class BoardViewModel @Inject constructor(
         updateFeedCommentDelta(feedId, +1)
         // 3) 상세 댓글 리스트 새로고침 (목록 하단에 반영)
         refreshComments(feedId)
+        FeedEvents.emitCommentDelta(feedId, +1)    // ✅ 추가
         return result
     }
 
@@ -220,6 +237,7 @@ class BoardViewModel @Inject constructor(
         updateFeedCommentDelta(feedId, -1)
         // 3) 상세 댓글 리스트 새로고침
         refreshComments(feedId)
+        FeedEvents.emitCommentDelta(feedId, -1)    // ✅ 추가
     }
 
 
