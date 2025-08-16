@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -65,6 +66,10 @@ import com.example.petplace.presentation.feature.userprofile.UserProfileScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkAndCareWriteScreen
 import com.example.petplace.presentation.feature.walk_and_care.WalkPostDetailScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnrememberedGetBackStackEntry")
@@ -82,9 +87,11 @@ fun MainScaffold(navController: NavHostController = rememberNavController()) {
         BottomNavItem.MyPage.route
     )
 
-//    LaunchedEffect(Unit) {
-//        handleFCMNavigation(context, navController)
-//    }
+    LaunchedEffect(navController) {
+        // NavController가 준비된 후 FCM 처리
+        delay(300) // NavGraph가 완전히 설정될 때까지 대기
+        handleFCMNavigation(context, navController)
+    }
 
     Scaffold(
         bottomBar = {
@@ -391,15 +398,16 @@ private fun handleFCMNavigation(context: Context, navController: NavHostControll
     val fcmDataPrefs = context.getSharedPreferences("fcm_data", Context.MODE_PRIVATE)
     val hasPendingFcm = fcmDataPrefs.getBoolean("fcm_pending", false)
 
+    Log.d("FCM_NAV_SCAFFOLD", "Handling FCM navigation - hasPending: $hasPendingFcm")
+
     if (hasPendingFcm) {
         val fcmType = fcmDataPrefs.getString("fcm_type", null)
         val refType = fcmDataPrefs.getString("fcm_ref_type", null)
         val refId = fcmDataPrefs.getString("fcm_ref_id", null)
         val chatId = fcmDataPrefs.getString("fcm_chat_id", null)
         val userId = fcmDataPrefs.getString("fcm_user_id", null)
-        val notificationId = fcmDataPrefs.getString("fcm_notification_id", null)
 
-        Log.d("FCM_NAV", "Handling FCM navigation - Type: $fcmType, RefType: $refType, RefId: $refId")
+        Log.d("FCM_NAV_SCAFFOLD", "FCM navigation data - RefType: $refType, RefId: $refId, FCMType: $fcmType, ChatId: $chatId")
 
         // FCM 데이터 클리어
         fcmDataPrefs.edit().apply {
@@ -410,50 +418,244 @@ private fun handleFCMNavigation(context: Context, navController: NavHostControll
             remove("fcm_user_id")
             remove("fcm_notification_id")
             remove("fcm_pending")
+            // 백업 데이터도 클리어
+            remove("has_fcm_data")
+            remove("backup_refType")
+            remove("backup_refId")
+            remove("backup_type")
+            remove("backup_chat_id")
+            remove("backup_user_id")
             apply()
         }
 
-        // 타입에 따른 네비게이션 (refType 우선, fcmType 대안)
-        val typeToHandle = refType ?: fcmType
-        val idToUse = when (typeToHandle?.uppercase()) {
-            "CHAT" -> refId ?: chatId  // refId를 우선 사용, 없으면 chatId
-            else -> refId ?: chatId
+        // 현재 경로 확인
+        val currentRoute = navController.currentDestination?.route
+        Log.d("FCM_NAV_SCAFFOLD", "Current route: $currentRoute")
+
+        // splash나 login 화면에서는 메인 화면으로 이동 후 네비게이션
+        if (currentRoute == "splash" || currentRoute == "login") {
+            try {
+                // 먼저 메인 화면으로 이동
+                navController.navigate(BottomNavItem.Feed.route) {
+                    popUpTo("splash") { inclusive = true }
+                    launchSingleTop = true
+                }
+
+                // 잠시 후 타겟 화면으로 이동
+                CoroutineScope(Dispatchers.Main).launch {
+                    delay(500)
+                    performFCMNavigationInScaffold(navController, refType, refId, fcmType, chatId, userId)
+                }
+            } catch (e: Exception) {
+                Log.e("FCM_NAV_SCAFFOLD", "Error during navigation from $currentRoute: ${e.message}")
+            }
+        } else {
+            // 이미 메인 영역에 있으면 바로 네비게이션
+            performFCMNavigationInScaffold(navController, refType, refId, fcmType, chatId, userId)
+        }
+    }
+}
+
+private fun performFCMNavigation(
+    navController: NavHostController,
+    refType: String?,
+    refId: String?,
+    fcmType: String?,
+    chatId: String?
+) {
+    Log.d("FCM_NAV_DIRECT", "=== performFCMNavigation ===")
+    Log.d("FCM_NAV_DIRECT", "refType: $refType, refId: $refId, fcmType: $fcmType, chatId: $chatId")
+
+    // 채팅 관련 처리 강화
+    val isChatType = refType?.equals("CHAT", ignoreCase = true) == true ||
+            fcmType?.equals("chat", ignoreCase = true) == true
+
+    if (isChatType) {
+        // 채팅 ID 우선순위: refId -> chatId
+        val chatIdToUse = refId ?: chatId
+        Log.d("FCM_NAV_DIRECT", "Chat type detected. Using chatId: $chatIdToUse")
+
+        chatIdToUse?.toLongOrNull()?.let { id ->
+            Log.d("FCM_NAV_DIRECT", "Navigating to CHAT with ID: $id")
+            try {
+                // 채팅 페이지로 직접 네비게이션
+                navController.navigate("chatDetail/$id") {
+                    launchSingleTop = true
+                    // 백스택 정리 (필요시)
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    restoreState = true
+                }
+                return // 성공적으로 네비게이션했으면 여기서 종료
+            } catch (e: Exception) {
+                Log.e("FCM_NAV_DIRECT", "Error navigating to chat detail: ${e.message}")
+                // 채팅 상세 페이지 실패시 채팅 목록으로
+                try {
+                    navController.navigate("chat") {
+                        launchSingleTop = true
+                    }
+                    return
+                } catch (e2: Exception) {
+                    Log.e("FCM_NAV_DIRECT", "Error navigating to chat list: ${e2.message}")
+                }
+            }
+        } ?: run {
+            Log.d("FCM_NAV_DIRECT", "No valid chat ID found, going to chat list")
+            try {
+                navController.navigate("chat") {
+                    launchSingleTop = true
+                }
+                return
+            } catch (e: Exception) {
+                Log.e("FCM_NAV_DIRECT", "Error navigating to chat list: ${e.message}")
+            }
+        }
+    }
+
+    // 기존 로직 (피드 및 기타 타입 처리)
+    when (refType?.uppercase()) {
+        "FEED" -> {
+            refId?.toLongOrNull()?.let { id ->
+                Log.d("FCM_NAV_DIRECT", "Navigating to FEED with ID: $id")
+                try {
+                    navController.navigate("feedDetail/$id") {
+                        launchSingleTop = true
+                    }
+                } catch (e: Exception) {
+                    Log.e("FCM_NAV_DIRECT", "Error navigating to feed: ${e.message}")
+                    navController.navigate("feed")
+                }
+            } ?: run {
+                Log.d("FCM_NAV_DIRECT", "No feed ID found, going to feed list")
+                navController.navigate("feed")
+            }
+        }
+        else -> {
+            // fcmType으로 판단
+            when (fcmType?.lowercase()) {
+                "feed" -> {
+                    refId?.toLongOrNull()?.let { id ->
+                        Log.d("FCM_NAV_DIRECT", "Navigating to FEED (from fcmType) with ID: $id")
+                        try {
+                            navController.navigate("feedDetail/$id") {
+                                launchSingleTop = true
+                            }
+                        } catch (e: Exception) {
+                            Log.e("FCM_NAV_DIRECT", "Error navigating to feed: ${e.message}")
+                            navController.navigate("feed")
+                        }
+                    } ?: run {
+                        Log.d("FCM_NAV_DIRECT", "No feed ID found, going to feed list")
+                        navController.navigate("feed")
+                    }
+                }
+                else -> {
+                    Log.d("FCM_NAV_DIRECT", "Unknown type: $refType / $fcmType, going to main feed")
+                    navController.navigate("feed")
+                }
+            }
+        }
+    }
+}
+
+// MainScaffold.kt의 performFCMNavigationInScaffold 메서드도 동일하게 수정
+
+private fun performFCMNavigationInScaffold(
+    navController: NavHostController,
+    refType: String?,
+    refId: String?,
+    fcmType: String?,
+    chatId: String?,
+    userId: String?
+) {
+    Log.d("FCM_NAV_SCAFFOLD", "=== performFCMNavigationInScaffold ===")
+    Log.d("FCM_NAV_SCAFFOLD", "refType: $refType, refId: $refId, fcmType: $fcmType, chatId: $chatId")
+
+    try {
+        // 채팅 관련 처리 강화
+        val isChatType = refType?.equals("CHAT", ignoreCase = true) == true ||
+                fcmType?.equals("chat", ignoreCase = true) == true
+
+        if (isChatType) {
+            // 채팅 ID 우선순위: refId -> chatId
+            val chatIdToUse = refId ?: chatId
+            Log.d("FCM_NAV_SCAFFOLD", "Chat type detected. Using chatId: $chatIdToUse")
+
+            chatIdToUse?.toLongOrNull()?.let { id ->
+                Log.d("FCM_NAV_SCAFFOLD", "Navigating to CHAT with ID: $id")
+                navController.navigate("chatDetail/$id") {
+                    launchSingleTop = true
+                }
+                return // 성공적으로 네비게이션했으면 종료
+            } ?: run {
+                Log.d("FCM_NAV_SCAFFOLD", "No valid chat ID found, going to chat list")
+                navController.navigate(BottomNavItem.Chat.route)
+                return
+            }
         }
 
-        when (typeToHandle?.lowercase()) {
-            "chat" -> {
-                idToUse?.toLongOrNull()?.let { id ->
-                    Log.d("FCM_NAV", "Navigating to chat: $id")
-                    navController.navigate("chatDetail/$id")
-                } ?: run {
-                    Log.d("FCM_NAV", "Chat ID is null, navigating to chat list")
-                    navController.navigate(BottomNavItem.Chat.route)
+        // 피드 처리
+        val isFeedType = refType?.equals("FEED", ignoreCase = true) == true ||
+                fcmType?.equals("feed", ignoreCase = true) == true
+
+        if (isFeedType) {
+            refId?.toLongOrNull()?.let { id ->
+                Log.d("FCM_NAV_SCAFFOLD", "Navigating to FEED with ID: $id")
+                navController.navigate("feedDetail/$id") {
+                    launchSingleTop = true
                 }
+                return
+            } ?: run {
+                Log.d("FCM_NAV_SCAFFOLD", "No feed ID found, going to feed list")
+                navController.navigate(BottomNavItem.Feed.route)
+                return
             }
-            "feed" -> {
-                idToUse?.toLongOrNull()?.let { id ->
-                    Log.d("FCM_NAV", "Navigating to feed: $id")
-                    navController.navigate("feedDetail/$id")
-                } ?: run {
-                    Log.d("FCM_NAV", "Feed ID is null, navigating to feed list")
-                    navController.navigate(BottomNavItem.Feed.route)
+        }
+
+        // 실종신고 처리
+        val isSightType = refType?.equals("SIGHTING", ignoreCase = true) == true ||
+                fcmType?.equals("sighting", ignoreCase = true) == true
+
+        if (isSightType) {
+            refId?.toLongOrNull()?.let { id ->
+                Log.d("FCM_NAV_SCAFFOLD", "Navigating to SIGHT with ID: $id")
+                navController.navigate("missingReportDetail/$id") {
+                    launchSingleTop = true
                 }
+                return
+            } ?: run {
+                Log.d("FCM_NAV_SCAFFOLD", "No sight ID found, going to missing list")
+                navController.navigate("missing_list")
+                return
             }
+        }
+
+        // 기타 타입 처리
+        when (fcmType?.lowercase()) {
             "alarm", "notification" -> {
-                Log.d("FCM_NAV", "Navigating to alarm")
+                Log.d("FCM_NAV_SCAFFOLD", "Navigating to alarm")
                 navController.navigate("alarm")
             }
             "user_profile" -> {
                 userId?.toLongOrNull()?.let { id ->
-                    Log.d("FCM_NAV", "Navigating to user profile: $id")
+                    Log.d("FCM_NAV_SCAFFOLD", "Navigating to user profile: $id")
                     navController.navigate("userProfile/$id")
                 }
             }
-            // 필요한 다른 타입들 추가
             else -> {
-                Log.d("FCM_NAV", "Unknown FCM type ($typeToHandle) or navigating to main feed")
+                Log.d("FCM_NAV_SCAFFOLD", "Unknown FCM type, navigating to main feed")
                 navController.navigate(BottomNavItem.Feed.route)
             }
+        }
+
+    } catch (e: Exception) {
+        Log.e("FCM_NAV_SCAFFOLD", "Error during FCM navigation: ${e.message}")
+        // 에러 발생 시 안전하게 메인 화면으로
+        try {
+            navController.navigate(BottomNavItem.Feed.route)
+        } catch (e2: Exception) {
+            Log.e("FCM_NAV_SCAFFOLD", "Critical navigation error: ${e2.message}")
         }
     }
 }
