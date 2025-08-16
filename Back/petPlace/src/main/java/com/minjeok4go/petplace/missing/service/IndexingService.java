@@ -6,6 +6,7 @@ import com.minjeok4go.petplace.image.entity.Image;
 import com.minjeok4go.petplace.image.repository.ImageRepository;
 import com.minjeok4go.petplace.image.service.ImageService;
 import com.minjeok4go.petplace.missing.client.AiSimilarityClient;
+import com.minjeok4go.petplace.missing.entity.MissingReport;
 import com.minjeok4go.petplace.missing.entity.SightingMatch;
 import com.minjeok4go.petplace.missing.repository.MissingReportRepository;
 import com.minjeok4go.petplace.missing.repository.SightingMatchRepository;
@@ -51,6 +52,12 @@ public class IndexingService {
     /** 실종 신고 저장 후: 등록 이미지들을 인덱스에 추가 */
     @Async
     public void indexMissingReportImages(Long missingReportId, String species) {
+
+
+        // 1) MissingReport -> Pet -> breed 가져오기
+        String breedEng = missingReportRepository.findPetBreedByReportId(missingReportId)
+                .map(Enum::name).map(IndexingService::normBreed).orElse(null);
+
         List<ImageResponse> images = imageService.getImages(RefType.MISSING_REPORT, missingReportId);
         if (images == null || images.isEmpty()) {
             log.warn("indexMissingReportImages: no images (reportId={})", missingReportId);
@@ -63,12 +70,20 @@ public class IndexingService {
                     log.warn("invalid src: {}", ir.getSrc());
                     continue;
                 }
-                aiClient.indexAddPath(ir.getId(), species, p.toString(), null, null, null, null, null).block();
+                aiClient.indexAddPath(ir.getId(), species, p.toString(), breedEng,null, null, null, null, null).block();
             } catch (Exception e) {
                 log.error("indexing failed: imageId={}, src={}", ir.getId(), ir.getSrc(), e);
             }
         }
         log.info("indexMissingReportImages done: reportId={}, count={}", missingReportId, images.size());
+    }
+    // class IndexingService { ... 맨 아래 아무데나
+    private static String normBreed(String s) {
+        if (s == null) return null;
+        return s.trim().toLowerCase()
+                .replace(" ", "")
+                .replace("-", "")
+                .replace("_", "");
     }
 
     @Async
@@ -83,18 +98,28 @@ public class IndexingService {
                 log.warn("searchForSighting: invalid src (null/unsupported) sightingId={}, src={}", sightingId, src);
                 return;
             }
+            var sighting = sightingRepository.getReferenceById(sightingId);
 
-            log.info("searchForSighting: sightingId={}, webSrc={}, abs={}", sightingId, src, abs);
+            String qBreedEng = Optional.ofNullable(sighting.getBreed())
+                    .map(Enum::name)                 // "MALTESE_DOG"
+                    .map(IndexingService::normBreed) // "maltesedog"
+                    .orElse(null);
 
-            var resp = aiClient
-                    .searchPath(species, abs, topK, wFace, xmin, ymin, xmax, ymax) // ⬅ abs 사용
-                    .block();            if (resp == null || resp.getResults() == null || resp.getResults().isEmpty()) {
+            var resp = aiClient.searchPath(
+                    species,      // 소문자 처리는 AiSimilarityClient에서 함
+                    abs,
+                    qBreedEng,    // ★ 품종 추가 (null이면 미적용)
+                    topK, wFace,
+                    xmin, ymin, xmax, ymax
+            ).block();
+
+            if (resp == null || resp.getResults() == null || resp.getResults().isEmpty()) {
                 log.info("searchForSighting: 후보 없음 sightingId={}, src={}", sightingId, src);
                 return;
             }
 
-            // ✅ JPA 프록시로 연관 세팅(쿼리 안 나감)
-            var sightingRef = sightingRepository.getReferenceById(sightingId);
+            // JPA 프록시로 연관 세팅(쿼리 안 나감)
+            var sightingRef = sighting; // 이미 getReferenceById 했으니 재사용
 
             int saved = 0;
             for (var it : resp.getResults()) {
@@ -111,7 +136,6 @@ public class IndexingService {
                 if (mrOpt.isEmpty()) continue;
                 var mr = mrOpt.get();
 
-                // ✅ 중복 매칭 방지
                 if (sightingMatchRepository.existsBySightingIdAndMissingReportId(sightingId, mr.getId())) {
                     continue;
                 }
@@ -119,7 +143,7 @@ public class IndexingService {
                 var match = SightingMatch.builder()
                         .sighting(sightingRef)
                         .missingReport(mr)
-                        .image(img)                               // ✅ 이제 가능
+                        .image(img)
                         .score(BigDecimal.valueOf(score))
                         .build();
                 sightingMatchRepository.save(match);
@@ -133,4 +157,5 @@ public class IndexingService {
             log.error("searchForSighting error sightingId={}, src={}", sightingId, src, e);
         }
     }
+
 }

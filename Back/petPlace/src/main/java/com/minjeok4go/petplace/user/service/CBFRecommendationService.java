@@ -67,7 +67,7 @@ public class CBFRecommendationService {
     // 가중치
     private static final double WEIGHT_LIKE = 20.0;
     private static final double WEIGHT_COMMENT = 15.0;
-    private static final double WEIGHT_SAME_ANIMAL_WRITER = 12.0;
+    private static final double WEIGHT_SAME_ANIMAL_WRITER = 24.0;
     private static final double WEIGHT_NEW_FEED = 10.0;
     private final ImageRepository imageRepository;
 

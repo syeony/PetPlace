@@ -19,6 +19,16 @@ EMBED_BACKBONE = os.getenv("EMBED_BACKBONE", "ViT-B-32")
 EMBED_PRETRAIN = os.getenv("EMBED_PRETRAIN", "openai")
 W_FACE_DEFAULT = float(os.getenv("W_FACE", "0.6"))
 
+BREED_ALPHA = float(os.getenv("BREED_ALPHA", "0.25"))   # 같은 품종 가중치(25% 보너스)
+HARD_BREED_FILTER = os.getenv("HARD_BREED_FILTER", "0") == "1"  # 하드필터(선택)
+
+# image_id -> 정규화된 품종 문자열
+BREED: Dict[int, str] = {}
+
+def _canon(s: Optional[str]) -> Optional[str]:
+    if not s: return None
+    return s.strip().lower().replace(" ", "").replace("-", "").replace("_", "")
+
 BASE_IMAGE_DIR = os.getenv("BASE_IMAGE_DIR", "/data/images")   # 공유 볼륨
 SERVICE_TOKEN  = os.getenv("SERVICE_TOKEN", "")                # 내부 토큰
 
@@ -184,6 +194,8 @@ def health():
 @app.post("/index/add_path")
 async def index_add_path(
     image_id: int = Form(...),
+    breed_eng: Optional[str] = Form(None),
+
     species: str = Form(...),     # "dog" | "cat"
     path: str = Form(...),        # "/images/xxx.jpg" or "/data/images/xxx.jpg"
     xmin: Optional[int] = Form(None),
@@ -217,6 +229,8 @@ async def index_add_path(
 async def index_add(
     image_id: int = Form(...),
     species: str = Form(...),
+    breed_eng: Optional[str] = Form(None),
+
     file: UploadFile = File(...),
     xmin: Optional[int] = Form(None),
     ymin: Optional[int] = Form(None),
@@ -248,6 +262,8 @@ async def index_add(
 # ---------- 검색 (경로) ----------
 @app.post("/search_path")
 async def search_path(
+    q_breed_eng: Optional[str] = Form(None),
+
     species: str = Form(...),
     path: str = Form(...),
     topk: int = Form(20),
@@ -288,6 +304,8 @@ async def search_path(
 # ---------- 검색 (바이너리) ----------
 @app.post("/search")
 async def search(
+    q_breed_eng: Optional[str] = Form(None),
+
     species: str = Form(...),
     file: UploadFile = File(...),
     topk: int = Form(20),

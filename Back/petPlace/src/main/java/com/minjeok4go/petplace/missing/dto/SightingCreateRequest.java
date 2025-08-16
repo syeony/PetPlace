@@ -44,6 +44,7 @@ public class SightingCreateRequest {
     private List<MissingImageRequest> images;
 
     // ↓↓↓ 선택/권장: 온디바이스 결과를 그대로 받기
+    private String breedEng;
     private String species;   // "dog" | "cat" (optional, 없으면 서버 기본)
     private Integer xmin;
     private Integer ymin;
