@@ -79,3 +79,27 @@ data class SightingResponse(
     val message: String,
     val data: SightingData
 )
+data class MissingReportDetailDto(
+    val id: Long,
+    val userId: Long,
+    val userNickname: String,
+    val userImg: String?,
+    val regionId: Long,
+    val regionName: String,
+    val address: String,
+    val latitude: Double,
+    val longitude: Double,
+    val content: String,
+    val breed: String?,
+    val sightedAt: String,  // ISO8601
+    val createdAt: String,  // ISO8601
+    val images: List<SightingImageDto>
+)
+
+data class SightingImageDto(
+    val id: Long,
+    val src : String,
+    val sort : Int
+)
+
+

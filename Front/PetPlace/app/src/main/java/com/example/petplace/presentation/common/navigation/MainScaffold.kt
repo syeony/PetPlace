@@ -49,6 +49,7 @@ import com.example.petplace.presentation.feature.missing_list.MissingListScreen
 import com.example.petplace.presentation.feature.missing_register.FamilySelectScreen
 import com.example.petplace.presentation.feature.missing_register.RegisterScreen
 import com.example.petplace.presentation.feature.missing_report.MissingMapScreen
+import com.example.petplace.presentation.feature.missing_report.MissingReportDetailScreen
 import com.example.petplace.presentation.feature.missing_report.ReportScreen
 import com.example.petplace.presentation.feature.mypage.MyCommentScreen
 import com.example.petplace.presentation.feature.mypage.MyLikePostScreen
@@ -125,6 +126,18 @@ fun MainScaffold(navController: NavHostController = rememberNavController()) {
                     navController = navController
                 )
             }
+            composable(
+                route = "missingReportDetail/{missingReportId}",
+                arguments = listOf(navArgument("missingReportId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val missingReportId = backStackEntry.arguments?.getLong("missingReportId") ?: 0L
+                MissingReportDetailScreen(
+                    missingReportId = missingReportId,
+                    navController = navController
+                )
+            }
+
+
 //            composable("board/write") { BoardWriteScreen(navController = navController) }
             composable(
                 route = "${BottomNavItem.Neighborhood.route}?showDialog={showDialog}",

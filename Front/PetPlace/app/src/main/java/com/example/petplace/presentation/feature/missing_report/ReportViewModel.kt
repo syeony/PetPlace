@@ -37,7 +37,6 @@ import kotlin.math.roundToInt
 
 private const val TAG = "ReportVM"
 
-// ===== UI STATE =====
 data class ReportUiState(
     val description: String = "",
     val selectedDate: LocalDate = LocalDate.now(),

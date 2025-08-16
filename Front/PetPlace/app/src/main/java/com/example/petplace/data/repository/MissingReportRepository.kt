@@ -5,9 +5,13 @@ import com.example.petplace.data.model.missing_list.PageResponse
 import com.example.petplace.data.model.missing_register.CreateRegisterReq
 import com.example.petplace.data.model.missing_register.RegisterRes
 import com.example.petplace.data.model.missing_report.ApiResponse
+import com.example.petplace.data.model.missing_report.MissingReportDetailDto
 import com.example.petplace.data.model.missing_report.SightingRequest
 import com.example.petplace.data.model.missing_report.SightingResponse
 import com.example.petplace.data.remote.MissingApiService
+import retrofit2.Response
+import retrofit2.http.GET
+import retrofit2.http.Path
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -45,4 +49,16 @@ suspend fun createSighting(req: SightingRequest): Result<SightingResponse> = run
     ): ApiResponse<PageResponse<MissingReportDto>> {
         return api.getMissingReports(regionId, page, size, sort)
     }
+    suspend fun getMissingReportDetail(id: Long): Result<MissingReportDetailDto> = runCatching {
+        val res = api.getMissingReportDetail(id)
+
+        if (!res.isSuccessful) throw retrofit2.HttpException(res)
+
+        val body = res.body() ?: error("Empty body")
+        if (body.success != true) error(body.message ?: "Server returned success=false")
+
+        body.data ?: error("Empty data")
+    }
+
+
 }
