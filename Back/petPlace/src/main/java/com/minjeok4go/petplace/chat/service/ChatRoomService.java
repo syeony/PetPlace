@@ -5,7 +5,6 @@ import com.minjeok4go.petplace.chat.entity.ChatRoom;
 import com.minjeok4go.petplace.chat.repository.ChatRoomRepository;
 import com.minjeok4go.petplace.user.entity.User;
 import com.minjeok4go.petplace.user.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.minjeok4go.petplace.chat.entity.UserChatRoom;
 import com.minjeok4go.petplace.chat.dto.ChatRoomParticipantDTO;
@@ -17,7 +16,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
@@ -25,7 +23,14 @@ public class ChatRoomService {
     private final UserChatRoomRepository ucrRepo;
     private final UserChatRoomService userChatRoomService;
 
-    @Transactional
+
+    public ChatRoomService(ChatRoomRepository chatRoomRepository, UserRepository userRepository, UserChatRoomRepository ucrRepo, UserChatRoomService userChatRoomService) {
+        this.chatRoomRepository = chatRoomRepository;
+        this.userRepository = userRepository;
+        this.ucrRepo = ucrRepo;
+        this.userChatRoomService = userChatRoomService;
+    }
+
     public ChatRoomDTO createChatRoom(Long userId1, Long userId2) {
         User user1 = userRepository.findById(userId1).orElseThrow();
         User user2 = userRepository.findById(userId2).orElseThrow();
@@ -61,10 +66,15 @@ public class ChatRoomService {
         return ucrRepo.findByChatRoom_Id(chatRoomId).stream()
                 .map(ucr -> {
                     User user = ucr.getUser();
+                    String regionName = (user.getRegion() != null)
+                            ? user.getRegion().getName()   // 필드명에 맞게 수정
+                            : null;
+
                     return new ChatRoomParticipantDTO(
                             user.getId(),
                             user.getNickname(),
-                            user.getUserImgSrc()
+                            user.getUserImgSrc(),
+                            regionName
                     );
                 })
                 .toList();

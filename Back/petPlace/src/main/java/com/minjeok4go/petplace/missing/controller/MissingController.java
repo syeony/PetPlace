@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.*;
 public class MissingController {
 
     private final MissingService missingService;
-
     /**
      * 실종 신고 등록 
      */
