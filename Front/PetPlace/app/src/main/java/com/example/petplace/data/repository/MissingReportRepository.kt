@@ -5,8 +5,8 @@ import com.example.petplace.data.model.missing_list.PageResponse
 import com.example.petplace.data.model.missing_register.CreateRegisterReq
 import com.example.petplace.data.model.missing_register.RegisterRes
 import com.example.petplace.data.model.missing_report.ApiResponse
-import com.example.petplace.data.model.missing_report.CreateSightingReq
-import com.example.petplace.data.model.missing_report.SightingRes
+import com.example.petplace.data.model.missing_report.SightingRequest
+import com.example.petplace.data.model.missing_report.SightingResponse
 import com.example.petplace.data.remote.MissingApiService
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,13 +15,21 @@ import javax.inject.Singleton
 class MissingSightingRepository @Inject constructor(
     private val api: MissingApiService
 ) {
-    suspend fun createSighting(req: CreateSightingReq): Result<SightingRes> =
-        runCatching {
-            val res = api.createSighting(req)
-            if (res.success && res.data != null) res.data
-            else throw IllegalStateException(res.message ?: "등록에 실패했습니다.")
-        }
+//    suspend fun createSighting(req: SightingRequest): Result<SightingResponse> =
+//        runCatching {
+//            val res = api.createSighting(req)
+//            if (res.success && res.data != null) res.data
+//            else throw IllegalStateException(res.message ?: "등록에 실패했습니다.")
+//        }
+suspend fun createSighting(req: SightingRequest): Result<SightingResponse> = runCatching {
+    val res = api.createSighting(req)
+    if (!res.isSuccessful) throw retrofit2.HttpException(res)
 
+    val body = res.body() ?: error("Empty body")
+    if (!body.success) error(body.message ?: "Server returned success=false")
+
+    body.data!! // <- 최종 데이터만 반환
+}
     suspend fun createRegister(req: CreateRegisterReq): Result<RegisterRes> =
         runCatching {
             val res = api.createRegister(req)

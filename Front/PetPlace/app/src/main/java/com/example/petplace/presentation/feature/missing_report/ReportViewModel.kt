@@ -7,11 +7,16 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import ai.onnxruntime.OnnxTensor
+import ai.onnxruntime.OrtEnvironment
+import ai.onnxruntime.OrtSession
+import ai.onnxruntime.TensorInfo
 import com.example.petplace.PetPlaceApp
 import com.example.petplace.data.local.onDevice.Detection
-import com.example.petplace.data.model.missing_report.CreateSightingImageReq
-import com.example.petplace.data.model.missing_report.CreateSightingReq
-import com.example.petplace.data.model.missing_report.SightingRes
+import com.example.petplace.data.model.missing_report.ApiResponse
+import com.example.petplace.data.model.missing_report.SightingImage
+import com.example.petplace.data.model.missing_report.SightingRequest
+import com.example.petplace.data.model.missing_report.SightingResponse
 import com.example.petplace.data.repository.ImageRepository
 import com.example.petplace.data.repository.MissingSightingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,7 +34,6 @@ import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
-import ai.onnxruntime.*
 
 private const val TAG = "ReportVM"
 
@@ -270,57 +274,10 @@ class ReportViewModel @Inject constructor(
         }
     }
 
-    /** 제보 등록 (이미 업로드된 URL 사용) */
-    fun submitSighting(
-        imageUrls: List<String>,
-        onSuccess: (SightingRes) -> Unit,
-        onFailure: (String) -> Unit
-    ) {
-        val s = _uiState.value
-        val lat = s.selectedLat
-        val lng = s.selectedLng
-        if (lat == null || lng == null) {
-            onFailure("좌표가 없습니다. 위치를 선택해주세요.")
-            return
-        }
-
-        val address = s.selectedAddress.ifBlank { "주소 미확인" }
-        val localDt = LocalDateTime.of(s.selectedDate, s.selectedTime)
-        val instantUtc = localDt.atZone(ZoneId.systemDefault()).toInstant()
-        val sightedAtIsoUtc = instantUtc.toString()
-
-        val images = imageUrls.mapIndexed { idx, url ->
-            CreateSightingImageReq(src = url, sort = idx + 1)
-        }
-
-        val req = CreateSightingReq(
-            regionId = user.regionId,
-            address = address,
-            latitude = lat,
-            longitude = lng,
-            content = s.description,
-            sightedAt = sightedAtIsoUtc,
-            images = images
-        )
-
-        viewModelScope.launch {
-            _uiState.value = s.copy(loading = true, error = null)
-            repo.createSighting(req)
-                .onSuccess {
-                    _uiState.value = _uiState.value.copy(loading = false, submitted = true)
-                    onSuccess(it)
-                }
-                .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(loading = false, error = e.message)
-                    onFailure(e.message ?: "등록에 실패했습니다.")
-                }
-        }
-    }
-
-    /** Uri들을 서버에 업로드 → URL 리스트 획득 → 제보 등록 */
+    /** Uri들을 서버에 업로드 → URL 리스트 획득 → 제보 등록 (SightingRequest) */
     fun submitSightingFromUris(
         imageUris: List<Uri>,
-        onSuccess: (SightingRes) -> Unit,
+        onSuccess: (SightingResponse) -> Unit,
         onFailure: (String) -> Unit
     ) {
         val s = _uiState.value
@@ -339,7 +296,112 @@ class ReportViewModel @Inject constructor(
         }
     }
 
-    // ===== Overlay =====
+    /** 제보 등록 (이미 업로드된 URL 사용) — 서버 스키마 SightingRequest에 맞게 전송 */
+    // presentation/feature/missing_report/ReportViewModel.kt (발췌)
+    fun submitSighting(
+        imageUrls: List<String>,
+        onSuccess: (SightingResponse) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        val s = _uiState.value
+        val lat = s.selectedLat
+        val lng = s.selectedLng
+        if (lat == null || lng == null) {
+            onFailure("좌표가 없습니다. 위치를 선택해주세요.")
+            return
+        }
+
+        val localDt = LocalDateTime.of(s.selectedDate, s.selectedTime)
+        val sightedAtIsoUtc = localDt.atZone(ZoneId.systemDefault()).toInstant().toString()
+
+        val images = imageUrls.mapIndexed { idx, url ->
+            SightingImage(src = url, sort = idx) // 서버 요구에 맞게 0/1 시작 조정
+        }
+
+        val (species, box, wface) = pickPrimarySpeciesAndBox(s) // 이전에 추가한 함수 (없으면 species="unknown", bbox=0)
+
+        val req = SightingRequest(
+            regionId = user.regionId,
+            address = s.selectedAddress.ifBlank { "주소 미확인" },
+            latitude = lat,
+            longitude = lng,
+            content = s.description,
+            sightedAt = sightedAtIsoUtc,
+            images = images,
+            species = species ?: "unknown",
+            xmin = box?.left?.roundToInt() ?: 0,
+            ymin = box?.top?.roundToInt() ?: 0,
+            xmax = box?.right?.roundToInt() ?: 0,
+            ymax = box?.bottom?.roundToInt() ?: 0,
+            wface = wface?.toDouble() ?: 0.0
+        )
+
+        viewModelScope.launch {
+            _uiState.value = s.copy(loading = true, error = null)
+            repo.createSighting(req)
+                .onSuccess { resp ->
+                    _uiState.value = _uiState.value.copy(loading = false, submitted = true)
+                    onSuccess(resp)
+
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(loading = false, error = e.message)
+                    onFailure(e.message ?: "등록에 실패했습니다.")
+                }
+        }
+
+    }
+
+    private fun unwrapAndHandle(
+        inner: Any?,
+        onSuccess: (SightingResponse) -> Unit,
+        onFailure: (String) -> Unit
+    ) {
+        when (inner) {
+            is ApiResponse<*> -> {
+                val ok = inner.success
+                val msg = inner.message
+                val data = inner.data as? SightingResponse
+                if (ok && data != null) {
+                    _uiState.value = _uiState.value.copy(loading = false, submitted = true)
+                    onSuccess(data)
+                } else {
+                    _uiState.value = _uiState.value.copy(loading = false, error = msg)
+                    onFailure(msg ?: "등록에 실패했습니다.")
+                }
+            }
+            is SightingResponse -> {
+                _uiState.value = _uiState.value.copy(loading = false, submitted = true)
+                onSuccess(inner)
+            }
+            else -> {
+                _uiState.value = _uiState.value.copy(loading = false, error = "알 수 없는 응답 형식")
+                onFailure("알 수 없는 응답 형식")
+            }
+        }
+    }
+    /** 감지/품종 결과에서 최우선 species, bbox, wface(신뢰도) 선택 */
+    private fun pickPrimarySpeciesAndBox(
+        state: ReportUiState
+    ): Triple<String?, RectF?, Float?> {
+        // 우선순위: 개/고양이 중 "품종 신뢰도"가 더 높은 쪽
+        val bestDog = state.dogResults.maxByOrNull { it.breedProb }
+        val bestCat = state.catResults.maxByOrNull { it.breedProb }
+
+        return when {
+            bestDog == null && bestCat == null -> Triple(null, null, null)
+            bestCat == null -> Triple("dog", bestDog!!.box, bestDog.breedProb)
+            bestDog == null -> Triple("cat", bestCat!!.box, bestCat.breedProb)
+            else -> {
+                if (bestDog.breedProb >= bestCat.breedProb)
+                    Triple("dog", bestDog.box, bestDog.breedProb)
+                else
+                    Triple("cat", bestCat.box, bestCat.breedProb)
+            }
+        }
+    }
+
+    // ===== 오버레이 그리기 등 유틸 =====
     private fun drawDetectionsOnBitmapWithBreedRounded(
         src: Bitmap,
         dets: List<Detection>,
@@ -471,7 +533,7 @@ class ReportViewModel @Inject constructor(
         return picked
     }
 
-    // ===== 전처리: 강아지 — [0..1] CHW (정규화 X) =====
+    // ===== 전처리/후처리 (ONNX) =====
     private fun preprocessDog01CHW(
         src: Bitmap,
         shortSide: Int = 512,
@@ -479,27 +541,20 @@ class ReportViewModel @Inject constructor(
     ): java.nio.FloatBuffer {
         val resized = resizeShorterSide(src, shortSide)
         val cropped = centerCrop(resized, cropSize, cropSize)
-
         val w = cropped.width
         val h = cropped.height
         val pixels = IntArray(w * h)
         cropped.getPixels(pixels, 0, w, 0, 0, w, h)
-
         val buf = java.nio.FloatBuffer.allocate(1 * 3 * h * w)
         for (c in 0..2) for (y in 0 until h) for (x in 0 until w) {
             val p = pixels[y * w + x]
-            val v01 = when (c) {
-                0 -> ((p ushr 16) and 0xFF) / 255f // R
-                1 -> ((p ushr 8) and 0xFF) / 255f  // G
-                else -> (p and 0xFF) / 255f        // B
-            }
+            val v01 = when (c) { 0 -> ((p ushr 16) and 0xFF) / 255f; 1 -> ((p ushr 8) and 0xFF) / 255f; else -> (p and 0xFF) / 255f }
             buf.put(v01)
         }
         buf.rewind()
         return buf
     }
 
-    // ===== 전처리: 고양이 — 기존(ImageNet mean/std 정규화) =====
     private fun preprocessCatNormCHW(
         src: Bitmap,
         shortSide: Int = 256,
@@ -507,23 +562,16 @@ class ReportViewModel @Inject constructor(
     ): java.nio.FloatBuffer {
         val resized = resizeShorterSide(src, shortSide)
         val cropped = centerCrop(resized, cropSize, cropSize)
-
         val mean = floatArrayOf(0.485f, 0.456f, 0.406f)
         val std  = floatArrayOf(0.229f, 0.224f, 0.225f)
-
         val w = cropped.width
         val h = cropped.height
         val pixels = IntArray(w * h)
         cropped.getPixels(pixels, 0, w, 0, 0, w, h)
-
         val buf = java.nio.FloatBuffer.allocate(1 * 3 * h * w)
         for (c in 0..2) for (y in 0 until h) for (x in 0 until w) {
             val p = pixels[y * w + x]
-            val v01 = when (c) {
-                0 -> ((p ushr 16) and 0xFF) / 255f
-                1 -> ((p ushr 8) and 0xFF) / 255f
-                else -> (p and 0xFF) / 255f
-            }
+            val v01 = when (c) { 0 -> ((p ushr 16) and 0xFF) / 255f; 1 -> ((p ushr 8) and 0xFF) / 255f; else -> (p and 0xFF) / 255f }
             val norm = (v01 - mean[c]) / std[c]
             buf.put(norm)
         }
@@ -611,29 +659,17 @@ class ReportViewModel @Inject constructor(
         for (d in dogs) {
             runCatching {
                 val bodyCrop = cropFromOriginal(bitmap, RectF(d.left, d.top, d.right, d.bottom), 0.15f)
-                val tensor = preprocessDog01CHW(bodyCrop, 512, inputSize) // [0..1], 정규화 X
+                val tensor = preprocessDog01CHW(bodyCrop, 512, inputSize)
                 val shape = longArrayOf(1, 3, inputSize.toLong(), inputSize.toLong())
                 OnnxTensor.createTensor(ortEnv, tensor, shape).use { input ->
                     val inputName = dogBreedSession.inputNames.first()
                     dogBreedSession.run(mapOf(inputName to input)).use { out ->
                         val logits = extract1D(out[0].value)
                         val probs = softmaxStable(logits)
-
-                        // --- 디버그: Top-1, Top-5 인덱스/라벨 로그 ---
                         val top1 = probs.indices.maxBy { probs[it] }
-                        val top1Label = dogLabels.getOrNull(top1)
-                        Log.i("$TAG-DEBUG", "DOG top1_idx=$top1 label=$top1Label conf=${String.format("%.2f", probs[top1])}")
-
-                        val top5 = probs.indices.sortedByDescending { probs[it] }.take(5)
-                        Log.i("$TAG-DEBUG", "DOG top5=" + top5.joinToString { i ->
-                            "${dogLabels.getOrNull(i)}(${String.format("%.2f", probs[i])})"
-                        })
-                        // --------------------------------------------
-
-                        val bestIdx = top1
-                        val bestProb = probs[bestIdx]
+                        val bestProb = probs[top1]
                         if (bestProb >= minProb) {
-                            val bestLabel = dogLabels.getOrNull(bestIdx) ?: "UNKNOWN"
+                            val bestLabel = dogLabels.getOrNull(top1) ?: "UNKNOWN"
                             results += DogResult(
                                 box = RectF(d.left, d.top, d.right, d.bottom),
                                 detScore = d.score,
@@ -641,7 +677,6 @@ class ReportViewModel @Inject constructor(
                                 breedProb = bestProb
                             )
                         }
-                        Log.d(TAG, "DOG best=${dogLabels.getOrNull(bestIdx)} p=${"%.3f".format(bestProb)}")
                     }
                 }
             }.onFailure { e -> Log.e(TAG, "DOG classify failed: ${e.message}", e) }
@@ -649,7 +684,7 @@ class ReportViewModel @Inject constructor(
         results
     }
 
-    // ===== 품종 분류: 고양이 — 기존 형식(정규화 유지) =====
+    // ===== 품종 분류: 고양이 =====
     private suspend fun asyncClassifyCats(
         bitmap: Bitmap,
         dets: List<Detection>,
@@ -661,7 +696,7 @@ class ReportViewModel @Inject constructor(
         for (d in cats) {
             runCatching {
                 val bodyCrop = cropFromOriginal(bitmap, RectF(d.left, d.top, d.right, d.bottom), 0.15f)
-                val tensor = preprocessCatNormCHW(bodyCrop, 256, inputSize) // mean/std 정규화 O
+                val tensor = preprocessCatNormCHW(bodyCrop, 256, inputSize)
                 val shape = longArrayOf(1, 3, inputSize.toLong(), inputSize.toLong())
                 OnnxTensor.createTensor(ortEnv, tensor, shape).use { input ->
                     val inputName = catBreedSession.inputNames.first()
@@ -679,7 +714,6 @@ class ReportViewModel @Inject constructor(
                                 breedProb = bestProb
                             )
                         }
-                        Log.d(TAG, "CAT best=${catLabels.getOrNull(bestIdx)} p=${"%.3f".format(bestProb)}")
                     }
                 }
             }.onFailure { e -> Log.e(TAG, "CAT classify failed: ${e.message}", e) }
@@ -687,15 +721,11 @@ class ReportViewModel @Inject constructor(
         results
     }
 
-    // ===== ONNX 출력 차원 점검: 개/고양이 각각
+    // ===== 출력 차원 점검(디버깅용) =====
     init {
         try {
             fun checkOutput(session: OrtSession, labelSize: Int, tag: String) {
-                val nodeInfo = session.outputInfo.values.firstOrNull()
-                if (nodeInfo == null) {
-                    Log.w("$TAG-BREEDCHK-$tag", "출력 정보가 비어있습니다.")
-                    return
-                }
+                val nodeInfo = session.outputInfo.values.firstOrNull() ?: return
                 val ti = nodeInfo.info
                 if (ti is TensorInfo) {
                     val dims: LongArray = ti.shape
@@ -705,17 +735,13 @@ class ReportViewModel @Inject constructor(
                         else dims.filter { it > 0 }.lastOrNull()?.toInt() ?: -1
                     Log.i("$TAG-BREEDCHK-$tag", "ONNX numClasses=$numClassesFromOnnx, labelLen=$labelSize, dims=${dims.joinToString("x")}")
                     if (numClassesFromOnnx != -1 && numClassesFromOnnx != labelSize) {
-                        Log.w("$TAG-BREEDCHK-$tag", "⚠️ 라벨 개수와 ONNX 출력 차원 불일치! 매핑 오류 가능성 큼")
+                        Log.w("$TAG-BREEDCHK-$tag", "⚠️ 라벨 개수와 ONNX 출력 차원 불일치 가능")
                     }
-                } else {
-                    Log.w("$TAG-BREEDCHK-$tag", "TensorInfo 아님: ${ti?.javaClass?.simpleName}")
                 }
             }
             checkOutput(dogBreedSession, dogLabels.size, "DOG")
             checkOutput(catBreedSession, catLabels.size, "CAT")
-        } catch (e: Throwable) {
-            Log.w("$TAG-BREEDCHK", "출력차원 파싱 실패: ${e.message}")
-        }
+        } catch (_: Throwable) { }
     }
 
     override fun onCleared() {
@@ -723,7 +749,7 @@ class ReportViewModel @Inject constructor(
             dogBreedSession.close()
             catBreedSession.close()
             ortEnv.close()
-        } catch (_: Throwable)   { }
+        } catch (_: Throwable) { }
         super.onCleared()
     }
 }

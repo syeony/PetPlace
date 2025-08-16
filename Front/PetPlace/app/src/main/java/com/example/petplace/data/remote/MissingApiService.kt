@@ -5,8 +5,9 @@ import com.example.petplace.data.model.missing_list.PageResponse
 import com.example.petplace.data.model.missing_register.CreateRegisterReq
 import com.example.petplace.data.model.missing_register.RegisterRes
 import com.example.petplace.data.model.missing_report.ApiResponse
-import com.example.petplace.data.model.missing_report.CreateSightingReq
-import com.example.petplace.data.model.missing_report.SightingRes
+import com.example.petplace.data.model.missing_report.SightingRequest
+import com.example.petplace.data.model.missing_report.SightingResponse
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -16,8 +17,8 @@ interface MissingApiService {
 
     @POST("/api/missing/sightings")
     suspend fun createSighting(
-        @Body req: CreateSightingReq
-    ): ApiResponse<SightingRes>
+        @Body req: SightingRequest
+    ): Response<ApiResponse<SightingResponse>>
 
     @POST("/api/missing/reports")
     suspend fun createRegister(
@@ -31,4 +32,6 @@ interface MissingApiService {
         @Query("size") size: Int = 20,
         @Query("sort") sort: String = "createdAt,desc"
     ): ApiResponse<PageResponse<MissingReportDto>>
+
+
 }
