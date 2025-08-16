@@ -296,7 +296,6 @@ class ReportViewModel @Inject constructor(
     }
 
     /** 제보 등록 (이미 업로드된 URL 사용) — 서버 스키마 SightingRequest에 맞게 전송 */
-    // presentation/feature/missing_report/ReportViewModel.kt (발췌)
     fun submitSighting(
         imageUrls: List<String>,
         onSuccess: (SightingResponse) -> Unit,
@@ -314,25 +313,28 @@ class ReportViewModel @Inject constructor(
         val sightedAtIsoUtc = localDt.atZone(ZoneId.systemDefault()).toInstant().toString()
 
         val images = imageUrls.mapIndexed { idx, url ->
-            SightingImage(src = url, sort = idx) // 서버 요구에 맞게 0/1 시작 조정
+            SightingImage(src = url, sort = idx)
         }
 
-        val (species, box, wface) = pickPrimarySpeciesAndBox(s) // 이전에 추가한 함수 (없으면 species="unknown", bbox=0)
+        // 🔸 모델 산출 결과에서 species/breed/bbox/prob 선택
+        val pick = pickPrimary(s)
 
         val req = SightingRequest(
-            regionId = user.regionId,
-            address = s.selectedAddress.ifBlank { "주소 미확인" },
-            latitude = lat,
-            longitude = lng,
-            content = s.description,
-            sightedAt = sightedAtIsoUtc,
-            images = images,
-            species = species ?: "unknown",
-            xmin = box?.left?.roundToInt() ?: 0,
-            ymin = box?.top?.roundToInt() ?: 0,
-            xmax = box?.right?.roundToInt() ?: 0,
-            ymax = box?.bottom?.roundToInt() ?: 0,
-            wface = wface?.toDouble() ?: 0.0
+            regionId   = user.regionId,
+            address    = s.selectedAddress.ifBlank { "주소 미확인" },
+            latitude   = lat,
+            longitude  = lng,
+            content    = s.description,
+            sightedAt  = sightedAtIsoUtc,
+            images     = images,
+
+            species    = pick.species ?: "unknown",
+            breed      = pick.breed ?: "미상",
+            xmin       = pick.box?.left?.roundToInt() ?: 0,
+            ymin       = pick.box?.top?.roundToInt() ?: 0,
+            xmax       = pick.box?.right?.roundToInt() ?: 0,
+            ymax       = pick.box?.bottom?.roundToInt() ?: 0,
+            wface      = pick.prob?.toDouble() ?: 0.0
         )
 
         viewModelScope.launch {
@@ -341,14 +343,12 @@ class ReportViewModel @Inject constructor(
                 .onSuccess { resp ->
                     _uiState.value = _uiState.value.copy(loading = false, submitted = true)
                     onSuccess(resp)
-
                 }
                 .onFailure { e ->
                     _uiState.value = _uiState.value.copy(loading = false, error = e.message)
                     onFailure(e.message ?: "등록에 실패했습니다.")
                 }
         }
-
     }
 
     private fun unwrapAndHandle(
@@ -379,24 +379,27 @@ class ReportViewModel @Inject constructor(
             }
         }
     }
-    /** 감지/품종 결과에서 최우선 species, bbox, wface(신뢰도) 선택 */
-    private fun pickPrimarySpeciesAndBox(
-        state: ReportUiState
-    ): Triple<String?, RectF?, Float?> {
-        // 우선순위: 개/고양이 중 "품종 신뢰도"가 더 높은 쪽
+
+    // 🔹 최종 전송에 사용할 1차 선택 결과 (species/breed/bbox/prob)
+    private data class PrimaryPick(
+        val species: String?,   // "dog" | "cat" | null
+        val breed: String?,     // 라벨 (예: "Maltese")
+        val prob: Float?,       // 품종 신뢰도
+        val box: RectF?         // BBox
+    )
+
+    /** 감지/품종 결과에서 최우선 species, breed, bbox, prob 선택 */
+    private fun pickPrimary(state: ReportUiState): PrimaryPick {
         val bestDog = state.dogResults.maxByOrNull { it.breedProb }
         val bestCat = state.catResults.maxByOrNull { it.breedProb }
-
         return when {
-            bestDog == null && bestCat == null -> Triple(null, null, null)
-            bestCat == null -> Triple("dog", bestDog!!.box, bestDog.breedProb)
-            bestDog == null -> Triple("cat", bestCat!!.box, bestCat.breedProb)
-            else -> {
-                if (bestDog.breedProb >= bestCat.breedProb)
-                    Triple("dog", bestDog.box, bestDog.breedProb)
-                else
-                    Triple("cat", bestCat.box, bestCat.breedProb)
-            }
+            bestDog == null && bestCat == null -> PrimaryPick(null, null, null, null)
+            bestCat == null -> PrimaryPick("dog", bestDog!!.breedLabel, bestDog.breedProb, bestDog.box)
+            bestDog == null -> PrimaryPick("cat", bestCat!!.breedLabel, bestCat.breedProb, bestCat.box)
+            else -> if (bestDog.breedProb >= bestCat.breedProb)
+                PrimaryPick("dog", bestDog.breedLabel, bestDog.breedProb, bestDog.box)
+            else
+                PrimaryPick("cat", bestCat.breedLabel, bestCat.breedProb, bestCat.box)
         }
     }
 
