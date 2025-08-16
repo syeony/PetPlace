@@ -1,5 +1,6 @@
 package com.example.petplace.presentation.feature.missing_report
 
+import android.util.Log
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,6 +26,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
 import com.example.petplace.data.model.missing_report.MissingReportDetailDto
 import com.example.petplace.presentation.common.theme.AppTypography
@@ -59,6 +61,12 @@ fun MissingReportDetailScreen(
 
     LaunchedEffect(missingReportId) { vm.load(missingReportId) }
 
+    LaunchedEffect(ui.createdChatRoomId) {
+        ui.createdChatRoomId?.let { chatRoomId ->
+            navController.navigate("chatDetail/$chatRoomId")
+            vm.consumeCreatedChatRoomId()
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -86,26 +94,43 @@ fun MissingReportDetailScreen(
             )
         },
         bottomBar = {
-            Surface(
-                color = Color.Transparent,
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp
-            ) {
-                Button(
-                    onClick = { /* TODO: 채팅 진입 */ },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-//                        .navigationBarsPadding(), // ✅ 네비게이션바만 고려
-                            ,
-                    shape = RoundedCornerShape(14.dp),
-                    contentPadding = PaddingValues(vertical = 14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFF79800),
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text("채팅하기", fontWeight = FontWeight.SemiBold)
+            ui.data?.let { detail ->
+                // 현재 사용자 ID 가져오기
+                val app = LocalContext.current.applicationContext as PetPlaceApp
+                val currentUserId = app.getUserInfo()?.userId ?: 0
+
+                // 본인 게시글이 아닐 때만 버튼 표시
+                if (detail.userId != currentUserId) {
+                    Surface(
+                        color = Color.Transparent,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp
+                    ) {
+                        Button(
+                            onClick = { vm.startChatWithUser(detail.userId) },
+                            enabled = !ui.isChatRoomCreating,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            contentPadding = PaddingValues(vertical = 14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFF79800),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            if (ui.isChatRoomCreating) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text("생성 중...", fontWeight = FontWeight.SemiBold)
+                            } else {
+                                Text("채팅하기", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -185,7 +210,9 @@ private fun DetailContent(detail: MissingReportDetailDto, modifier: Modifier = M
                                 .clip(RoundedCornerShape(8.dp))
                                 .border(
                                     if (idx == mainIndex) 2.dp else 1.dp,
-                                    if (idx == mainIndex) MaterialTheme.colorScheme.primary else Color(0xFFDADADA),
+                                    if (idx == mainIndex) MaterialTheme.colorScheme.primary else Color(
+                                        0xFFDADADA
+                                    ),
                                     RoundedCornerShape(8.dp)
                                 )
                                 .clickable { mainIndex = idx },
