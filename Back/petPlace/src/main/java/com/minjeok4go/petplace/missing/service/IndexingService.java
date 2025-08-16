@@ -7,13 +7,17 @@ import com.minjeok4go.petplace.image.repository.ImageRepository;
 import com.minjeok4go.petplace.image.service.ImageService;
 import com.minjeok4go.petplace.missing.client.AiSimilarityClient;
 import com.minjeok4go.petplace.missing.entity.MissingReport;
+import com.minjeok4go.petplace.missing.entity.Sighting;
 import com.minjeok4go.petplace.missing.entity.SightingMatch;
 import com.minjeok4go.petplace.missing.repository.MissingReportRepository;
 import com.minjeok4go.petplace.missing.repository.SightingMatchRepository;
 import com.minjeok4go.petplace.missing.repository.SightingRepository;
+import com.minjeok4go.petplace.notification.dto.CreateCommentNotificationRequest;
+import com.minjeok4go.petplace.notification.dto.CreateSightingNotificationRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +37,7 @@ public class IndexingService {
     private static final int MAX_SAVE = 5;
     private static final double MIN_SCORE = 0.35;
 
+    private final ApplicationEventPublisher publisher;
     private final ImageRepository imageRepository;
     private final MissingReportRepository missingReportRepository;
     private final SightingMatchRepository sightingMatchRepository;
@@ -147,6 +152,10 @@ public class IndexingService {
                         .score(BigDecimal.valueOf(score))
                         .build();
                 sightingMatchRepository.save(match);
+
+                publisher.publishEvent(new CreateSightingNotificationRequest(
+                        mr.getUser().getId(), sighting.getUser().getNickname(), RefType.SIGHTING, sighting.getId(), mr, sighting
+                ));
 
                 if (++saved >= MAX_SAVE) break;
             }
