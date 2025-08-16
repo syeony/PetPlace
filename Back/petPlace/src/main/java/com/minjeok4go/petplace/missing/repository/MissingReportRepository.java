@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.missing.repository;
 
+import com.minjeok4go.petplace.common.constant.Breed;
 import com.minjeok4go.petplace.missing.entity.MissingReport;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +51,10 @@ public interface MissingReportRepository extends JpaRepository<MissingReport, Lo
             @Param("maxLng") BigDecimal maxLng,
             @Param("afterDate") LocalDateTime afterDate
     );
+
+    // MissingReportRepository
+    @Query("select p.breed from MissingReport mr join mr.pet p where mr.id = :id")
+    Optional<Breed> findPetBreedByReportId(Long id);
 
     // 최근 실종 신고 통계
     @Query("SELECT COUNT(mr) FROM MissingReport mr " +

@@ -2,6 +2,7 @@ package com.minjeok4go.petplace.config;
 
 // AsyncConfig.java
 import org.springframework.context.annotation.*;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -36,5 +37,16 @@ public class AsyncConfig {
         ex.setThreadNamePrefix("notification-");
         ex.initialize();
         return ex;
+    }
+
+    // @Configuration 클래스
+    @Bean
+    public TaskExecutor appTaskExecutor() {
+        var t = new ThreadPoolTaskExecutor();
+        t.setThreadNamePrefix("afterCommit-");
+        t.setCorePoolSize(2);
+        t.setMaxPoolSize(4);
+        t.initialize();
+        return t;
     }
 }

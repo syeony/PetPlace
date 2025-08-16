@@ -1,5 +1,6 @@
 package com.minjeok4go.petplace.missing.entity;
 
+import com.minjeok4go.petplace.image.entity.Image;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -28,6 +29,10 @@ public class SightingMatch {
     @JoinColumn(name = "missing_report_id", nullable = false)
     private MissingReport missingReport;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "image_id") // 처음엔 nullable 허용 권장
+    private Image image;
+
     @Column(name = "score", nullable = false, precision = 5, scale = 4)
     private BigDecimal score;
 
@@ -40,9 +45,10 @@ public class SightingMatch {
     private LocalDateTime createdAt;
 
     @Builder
-    public SightingMatch(Sighting sighting, MissingReport missingReport, BigDecimal score) {
+    public SightingMatch(Sighting sighting, MissingReport missingReport, Image image,BigDecimal score) {
         this.sighting = sighting;
         this.missingReport = missingReport;
+        this.image = image;
         this.score = score;
     }
 

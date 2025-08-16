@@ -30,9 +30,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CBFUserProfileService {
 
-    /** 행동별 가중치(시작값). 필요시 @Value 또는 @ConfigurationProperties 로 외부화 권장 */
+    /** 행동별 가중치(시작값). 필요시 @Value 또는 @ConfigurationProperties */
     private static final double W_MINE = 2.0;  // 내가 쓴 글의 태그
-    private static final double W_LIKE = 1.5;  // 내가 좋아요한 글의 태그
+    private static final double W_LIKE = 2.5;  // 내가 좋아요한 글의 태그
     private static final double W_CMT  = 1.2;  // 내가 댓글 단 글의 태그
 
     /** Redis TTL (개인 프로필의 신선도 유지) */

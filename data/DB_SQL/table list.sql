@@ -698,51 +698,6 @@ INSERT INTO `tags` (`name`) VALUES
 ('유치원'), ('캣타워'), ('펫시터'), ('입양'), ('보험'),
 ('장난감'), ('케어'), ('리드줄'), ('하네스'), ('이동장'), ('실종');
 
--- 📊 소셜 로그인 테스트 데이터
-INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type) VALUES
-('testuser', '$2a$10$N.zmdr9k7uOCQb0bKIppuetjm6P7eGdKz3u5ey.7BtGAO3t6xtxaG', '홍길동', '펫러버', 1100000000, 'TEST_CI_001', '01012345678', 'male', '1990-01-01', 'EMAIL');
-
-INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type, social_id, social_email) VALUES
-('kakao_12345678', NULL, '김카카', '카카오유저', 1100000000, 'TEST_CI_002', '01087654321', 'female', '1995-05-05', 'KAKAO', '12345678', 'user@kakao.com');
-
--- ===================================
--- 추가 테스트 사용자 데이터
--- ===================================
-
-INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type) VALUES
-('testuser2', '$2a$10$N.zmdr9k7uOCQb0bKIppuetjm6P7eGdKz3u5ey.7BtGAO3t6xtxaG', '이영희', '강아지사랑', 4111000000, 'TEST_CI_003', '01055556666', 'female', '1988-03-15', 'EMAIL'),
-('testuser3', '$2a$10$N.zmdr9k7uOCQb0bKIppuetjm6P7eGdKz3u5ey.7BtGAO3t6xtxaG', '박민수', '고양이집사', 1111000000, 'TEST_CI_004', '01077778888', 'male', '1992-07-20', 'EMAIL'),
-('testuser4', '$2a$10$N.zmdr9k7uOCQb0bKIppuetjm6P7eGdKz3u5ey.7BtGAO3t6xtxaG', '최수진', '펫맘', 4719000000, 'TEST_CI_005', '01099990000', 'female', '1985-12-10', 'EMAIL');
-
-INSERT IGNORE INTO users (user_name, password, name, nickname, region_id, ci, phone_number, gender, birthday, login_type, social_id, social_email) VALUES
-('kakao_87654321', NULL, '정소영', '소영이네', 1100000000, 'TEST_CI_006', '01033334444', 'female', '1993-09-25', 'KAKAO', '87654321', 'soyoung@kakao.com');
-
--- ===================================
--- 반려동물(pets) 테스트 데이터
--- ===================================
-
--- 사용자별 반려동물 데이터 추가
-INSERT IGNORE INTO pets (user_id, name, animal, breed, sex, birthday, img_src, tnr) VALUES
--- 홍길동의 반려동물들
-(1, '초코', 'DOG', 'GOLDEN_RETRIEVER', 'MALE', '2020-05-15', 'https://example.com/pet1.jpg', true),
-(1, '밤이', 'CAT', 'KOREAN_SHORTHAIR', 'FEMALE', '2021-03-10', 'https://example.com/pet2.jpg', true),
-
--- 이영희의 반려동물
-(3, '하루', 'DOG', 'POMERANIAN', 'FEMALE', '2019-08-20', 'https://example.com/pet3.jpg', true),
-
--- 박민수의 반려동물들
-(4, '나비', 'CAT', 'PERSIAN', 'FEMALE', '2020-11-05', 'https://example.com/pet4.jpg', true),
-(4, '구름', 'CAT', 'BRITISH_SHORTHAIR', 'MALE', '2021-07-18', 'https://example.com/pet5.jpg', false),
-
--- 최수진의 반려동물
-(5, '뽀삐', 'DOG', 'CHIHUAHUA', 'MALE', '2022-01-12', 'https://example.com/pet6.jpg', false),
-
--- 김카카의 반려동물
-(2, '몽이', 'DOG', 'LABRADOR_RETRIEVER', 'MALE', '2020-12-25', 'https://example.com/pet7.jpg', true),
-
--- 정소영의 반려동물들
-(6, '코코', 'CAT', 'RUSSIAN_BLUE', 'FEMALE', '2021-04-30', 'https://example.com/pet8.jpg', true),
-(6, '달이', 'DOG', 'SHIBA_INU', 'FEMALE', '2020-09-14', 'https://example.com/pet9.jpg', true);
 
 -- ===================================
 -- 호텔 테스트 데이터
@@ -761,33 +716,28 @@ INSERT IGNORE INTO hotels (name, description, address, phone_number, latitude, l
 ('해운대 펫 빌라', '바다가 보이는 최고의 위치! 반려동물과 함께 바다 구경도 하고 힐링도 하세요.', '부산시 해운대구 해운대해변로 500', '051-1111-9999', 35.1595454, 129.1603193, 75000.00, 18, 'https://example.com/hotel7.jpg', NOW(), NOW()),
 -- 제주도 호텔
 ('제주 펫 파라다이스', '제주도의 아름다운 자연 속에서 반려동물과 함께 힐링할 수 있는 최고의 펜션입니다.', '제주시 애월읍 고내리 333', '064-2222-7777', 33.4506921, 126.4017004, 95000.00, 30, 'https://example.com/hotel8.jpg', NOW(), NOW()),
+-- 구미 호텔
+('마이구미 펫 호텔', '구미에서 만나는 펫 호텔 ! 강아지와 고양을 환영합니다. ', '구미시 진평2길 22 ', '064-2222-7777', 36.1190, 128.3445 , 40000.00, 30, 'https://example.com/hotel8.jpg', NOW(), NOW()),
+('구미 펫하우스', '구미 중심에 위치한 소규모 반려동물 호텔. 소형견과 고양이에게 최적화된 공간을 제공합니다.', '구미시 원평동 45-12', '054-111-2233', 36.1285, 128.3459, 45000.00, 12, 'https://example.com/gumi_hotel1.jpg', NOW(), NOW()),
+('강변 펫 리조트', '낙동강 근처에 위치해 산책 코스가 좋은 호텔입니다. 넓은 운동장과 CCTV 모니터링 시스템 제공.', '구미시 선산읍 강변로 100', '054-333-5566', 36.2478, 128.2790, 70000.00, 20, 'https://example.com/gumi_hotel2.jpg', NOW(), NOW()),
+('스마일 펫 호텔', '합리적인 가격과 깔끔한 시설을 갖춘 호텔. 중소형 반려견과 고양이 전용 공간 구비.', '구미시 도량동 88-7', '054-444-7788', 36.1451, 128.3377, 38000.00, 15, 'https://example.com/gumi_hotel3.jpg', NOW(), NOW()),
+('펫케어 구미', '전문 수의사가 상주하는 프리미엄 반려동물 호텔. 건강 관리와 미용 서비스까지 지원합니다.', '구미시 인동동 210-4', '054-555-9999', 36.1025, 128.4568, 95000.00, 25, 'https://example.com/gumi_hotel4.jpg', NOW(), NOW());
 
-('마이구미 펫 호텔', '구미에서 만나는 펫 호텔 ! 강아지와 고양을 환영합니다. ', '구미시 진평2길 22 ', '064-2222-7777', 36.1190, 128.3445 , 40000.00, 30, 'https://example.com/hotel8.jpg', NOW(), NOW());
 
 -- 호텔별 지원 펫 타입 데이터 삽입
 INSERT IGNORE INTO hotel_supported_pet_types (hotel_id, pet_type) VALUES
 (1, 'DOG'), (2, 'CAT'), (3, 'DOG'), (3, 'CAT'), (4, 'DOG'), (4, 'CAT'),
-(5, 'DOG'), (6, 'DOG'), (6, 'CAT'), (7, 'DOG'), (8, 'DOG'), (8, 'CAT');
+(5, 'DOG'), (6, 'DOG'), (6, 'CAT'), (7, 'DOG'), (8, 'DOG'), (8, 'CAT'),
+(9, 'DOG'),(10, 'DOG'), (10, 'CAT'),
+(11, 'DOG'),
+(12, 'DOG'), (12, 'CAT'),
+(13, 'DOG'), (13, 'CAT');
 
 
 
 -- ===================================
 -- 예약 테스트 데이터
 -- ==================================
--- 💡 새로운 방식: 날짜 선택 기반 예약 데이터
-INSERT INTO reservations (user_id, pet_id, hotel_id, total_price, status, special_requests, created_at, updated_at) VALUES
--- 완료된 예약들 (과거 - 임의로 과거 날짜들 예약된 것으로 가정)
-(1, 1, 1, 160000.00, 'COMPLETED', '초코는 다른 강아지들과 잘 어울려요!', '2025-07-01 10:00:00', NOW()),
-(3, 3, 5, 140000.00, 'COMPLETED', '하루는 산책을 좋아해요', '2025-07-05 14:30:00', NOW()),
-
--- 확정된 미래 예약들 (오늘부터 7일 후 시작하는 2박 예약)
-(1, 2, 2, 130000.00, 'CONFIRMED', '밤이는 조용한 환경을 좋아합니다', NOW(), NOW()),
-(4, 4, 2, 130000.00, 'CONFIRMED', '나비는 털 관리를 자주 해주세요', NOW(), NOW()),
-(5, 6, 4, 110000.00, 'CONFIRMED', '뽀삐는 작은 강아지라 따뜻하게 해주세요', NOW(), NOW()),
-
--- 결제 대기 중인 예약들
-(1, 1, 5, 140000.00, 'PENDING', '초코 두 번째 방문이에요!', NOW(), NOW()),
-(6, 9, 7, 150000.00, 'PENDING', '달이는 바다를 처음 봐요', NOW(), NOW());
 
 -- 예약된 날짜들과 예약 연결 (reservation_dates 테이블)
 -- 예약 ID 3: 호텔 ID 2, 오늘부터 7일 후부터 2박
@@ -890,6 +840,7 @@ CREATE TABLE `sighting_matches` (
     `id` BIGINT NOT NULL AUTO_INCREMENT,
     `sighting_id` BIGINT NOT NULL COMMENT '목격 제보 ID',
     `missing_report_id` BIGINT NOT NULL COMMENT '연결된 실종 신고 ID',
+	`image_id` BIGINT NULL COMMENT '매칭에 사용된 실종신고 이미지 ID(선택)',
     `score` DECIMAL(5, 4) NOT NULL COMMENT '모델이 계산한 유사도 점수 (0.0000 ~ 1.0000)',
     `status` ENUM('PENDING', 'CONFIRMED', 'REJECTED') NOT NULL DEFAULT 'PENDING' COMMENT '매칭 상태 (대기, 주인 확인, 관계 없음)',
     `created_at` DATETIME NOT NULL DEFAULT NOW() COMMENT '매칭 생성일시',
