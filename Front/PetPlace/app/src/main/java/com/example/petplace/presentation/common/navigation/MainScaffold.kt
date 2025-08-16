@@ -613,6 +613,24 @@ private fun performFCMNavigationInScaffold(
             }
         }
 
+        // 실종신고 처리
+        val isSightType = refType?.equals("SIGHTING", ignoreCase = true) == true ||
+                fcmType?.equals("sighting", ignoreCase = true) == true
+
+        if (isSightType) {
+            refId?.toLongOrNull()?.let { id ->
+                Log.d("FCM_NAV_SCAFFOLD", "Navigating to SIGHT with ID: $id")
+                navController.navigate("missingReportDetail/$id") {
+                    launchSingleTop = true
+                }
+                return
+            } ?: run {
+                Log.d("FCM_NAV_SCAFFOLD", "No sight ID found, going to missing list")
+                navController.navigate("missing_list")
+                return
+            }
+        }
+
         // 기타 타입 처리
         when (fcmType?.lowercase()) {
             "alarm", "notification" -> {

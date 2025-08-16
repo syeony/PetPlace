@@ -477,6 +477,33 @@ class MainActivity : ComponentActivity() {
                         navController.navigate("chat")
                     }
                 }
+                "SIGHTING" -> {
+                    refId?.toLongOrNull()?.let { id ->
+                        Log.d("FCM_NAV", "Navigating to missing report: $id")
+                        navController.navigate("missingReportDetail/$id") {
+                            launchSingleTop = true
+                        }
+                    } ?: run {
+                        Log.d("FCM_NAV", "No missing report ID, going to missing list")
+                        navController.navigate("missing_list")
+                    }
+                }
+                "sighting" -> {
+                    refId?.toLongOrNull()?.let { id ->
+                        Log.d("FCM_NAV", "Navigating to missing report (from fcmType): $id")
+                        try {
+                            navController.navigate("missingReportDetail/$id") {
+                                launchSingleTop = true
+                            }
+                        } catch (e: Exception) {
+                            Log.e("FCM_NAV", "Error navigating to missing report: ${e.message}")
+                            navController.navigate("missing_list")
+                        }
+                    } ?: run {
+                        Log.d("FCM_NAV", "No missing report ID found, going to missing list")
+                        navController.navigate("missing_list")
+                    }
+                }
                 "FEED" -> {
                     refId?.toLongOrNull()?.let { id ->
                         Log.d("FCM_NAV", "Navigating to feed: $id")
