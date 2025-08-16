@@ -157,6 +157,8 @@ public class IndexingService {
                         mr.getUser().getId(), sighting.getUser().getNickname(), RefType.SIGHTING, sighting.getId(), mr, sighting
                 ));
 
+                log.debug("{}에게 {}글이 매칭 되었음", mr.getUser().getId(), sighting.getId());
+
                 if (++saved >= MAX_SAVE) break;
             }
 

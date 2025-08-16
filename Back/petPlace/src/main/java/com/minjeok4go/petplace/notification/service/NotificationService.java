@@ -14,6 +14,8 @@ import com.minjeok4go.petplace.push.entity.UserDeviceToken;
 import com.minjeok4go.petplace.push.repository.UserDeviceTokenRepository;
 import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -27,6 +29,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
@@ -127,7 +130,6 @@ public class NotificationService {
         );
     }
 
-
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(CreateSightingNotificationRequest req) {
@@ -172,6 +174,9 @@ public class NotificationService {
                         .putData("notificationId", String.valueOf(notification.getId()))
                         .build()
         ).toList();
+
+
+        log.debug("[FCM] sent: {}", notification);
 
         try {
             var res = firebase.sendEach(messages);
