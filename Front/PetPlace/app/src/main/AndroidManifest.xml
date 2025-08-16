@@ -23,10 +23,26 @@
         android:theme="@style/Theme.PetPlace"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
+        <!-- Firebase 자동 알림 활성화 (백그라운드에서도 onMessageReceived 호출되도록) -->
+        <meta-data
+            android:name="firebase_messaging_auto_init_enabled"
+            android:value="true" />
+
+        <!-- Firebase 기본 아이콘 설정 -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/pp_logo" />
+
+        <!-- Firebase 기본 알림 채널 설정 -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="fcm_notification_channel" />
+
+        <!-- FCM 서비스 명시적 선언 -->
         <service
             android:name=".service.MyFirebaseMessagingService"
-            android:enabled="true"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
@@ -49,13 +65,20 @@
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- FCM 백그라운드 알림을 위한 intent-filter 추가 -->
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
             <intent-filter>
                 <data android:scheme="iamportapp" />
             </intent-filter>
         </activity>
+
         <activity
             android:name="com.canhub.cropper.CropImageActivity"
             android:theme="@style/Theme.MaterialComponents.DayNight.DarkActionBar" />
