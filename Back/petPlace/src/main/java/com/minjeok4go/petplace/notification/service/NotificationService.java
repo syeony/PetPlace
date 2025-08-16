@@ -127,6 +127,25 @@ public class NotificationService {
         );
     }
 
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handle(CreateSightingNotificationRequest req) {
+        String title = "실종 신고가 매칭됐어요";
+        String body  = req.getSenderNickname() + "님이 " + req.getMiss().getPet().getName() + "를 발견했습니다";
+
+        sendAndStore(
+                req.getTargetUserId(),
+                NotificationType.SIGHT,
+                RefType.SIGHTING,
+                req.getRefId(),
+                title,
+                body,
+                Map.of("refType", RefType.SIGHTING.name(),
+                        "refId", String.valueOf(req.getRefId()))
+        );
+    }
+
     protected void sendAndStore(Long targetUserId,
                                 NotificationType notificationType,
                                 RefType refType,
