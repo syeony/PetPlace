@@ -9,6 +9,7 @@ import com.example.petplace.data.model.feed.FeedCreateRes
 import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.model.feed.LikeFeedReq
 import com.example.petplace.data.model.feed.LikesRes
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -16,6 +17,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+
 
 interface FeedApiService {
     //사용자 기반 추천 피드들
@@ -25,6 +27,9 @@ interface FeedApiService {
         @Query("page") page: Int  = 0,
         @Query("size") size: Int  = 100
     ): List<FeedRecommendRes>
+
+    @POST("api/recommend/batch")
+    suspend fun runRecommendBatch(): Response<Unit>
 
     @GET("api/recommend/group")
     suspend fun getRecommendedFeeds2(
