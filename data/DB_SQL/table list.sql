@@ -877,7 +877,7 @@ CREATE TABLE `user_device_token` (
 CREATE TABLE `notification` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `target_user_id` BIGINT NOT NULL,
-  `type` ENUM('COMMENT','LIKE','CHAT') NOT NULL,
+  `type` ENUM('COMMENT','LIKE','CHAT','SIGHT') NOT NULL,
   `ref_type` ENUM('FEED', 'CARE', 'HOTEL', 'USER', 'REVIEW', 'CHAT',
     'MISSING_REPORT', 'SIGHTING'
     ) NOT NULL,
