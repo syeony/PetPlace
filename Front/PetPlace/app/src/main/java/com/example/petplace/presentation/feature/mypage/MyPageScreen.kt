@@ -461,12 +461,12 @@ fun MyPageScreen(
                         WalkCareMenuItem(
                             icon = R.drawable.my_walk,
                             title = "내 산책",
-                            onClick = { /* 산책 로직 */ }
+                            onClick = { navController.navigate("my_walk") }
                         )
                         WalkCareMenuItem(
                             icon = R.drawable.my_care,
                             title = "내 돌봄",
-                            onClick = { /* 돌봄 로직 */ }
+                            onClick = { navController.navigate("my_care") }
                         )
                     }
                 }

@@ -14,7 +14,13 @@ public class CreateChatNotificationRequest {
     private Long targetUserId;
 
     @NotNull
+    private String senderNickname;
+
+    @NotNull
     private Long roomId;
+
+    @NotNull
+    private Long chatId;
 
     @NotNull
     private String preview;

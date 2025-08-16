@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.petplace.PetPlaceApp
 import com.example.petplace.R
 import com.example.petplace.presentation.feature.feed.categoryStyles
 import kotlin.math.max
@@ -57,7 +58,17 @@ fun WalkPostDetailScreen(
     viewModel: WalkAndCareDetailViewModel = hiltViewModel()
 ) {
     val ui by viewModel.uiState.collectAsState()
+
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val currentUserId = app.getUserInfo()?.userId ?: 0
     LaunchedEffect(postId) { viewModel.load(postId) }
+
+    LaunchedEffect(ui.createdChatRoomId) {
+        ui.createdChatRoomId?.let { chatRoomId ->
+            navController.navigate("chatDetail/$chatRoomId")
+            viewModel.consumeCreatedChatRoomId()
+        }
+    }
 
     val orange = Color(0xFFF79800)
     val listState = rememberLazyListState()
@@ -78,20 +89,37 @@ fun WalkPostDetailScreen(
             }
         },
         bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                Button(
-                    onClick = { /* TODO: 채팅 진입 */ },
+            val isMyPost = ui.data?.userId == PetPlaceApp.getAppContext().let { app ->
+                (app as? PetPlaceApp)?.getUserInfo()?.userId ?: 0
+            }
+
+            if (!isMyPost) {
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = orange)
-                ) { Text("채팅하기", color = Color.White) }
+                        .background(Color.White)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            ui.data?.userId?.let { userId ->
+                                viewModel.startChatWithUser(userId)
+                            }
+                        },
+                        enabled = !ui.isChatRoomCreating,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = orange)
+                    ) {
+                        if (ui.isChatRoomCreating) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
+                        } else {
+                            Text("채팅하기", color = Color.White)
+                        }
+                    }
+                }
             }
         }
     ) { innerPadding ->

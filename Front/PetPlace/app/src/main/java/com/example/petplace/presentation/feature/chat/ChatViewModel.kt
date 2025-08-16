@@ -58,6 +58,9 @@ class ChatViewModel @Inject constructor(
     private val _connectionStatus = MutableStateFlow(false)
     val connectionStatus: StateFlow<Boolean> = _connectionStatus.asStateFlow()
 
+    private val _chatPartnerId = MutableStateFlow<Long?>(null)
+    val chatPartnerId: StateFlow<Long?> = _chatPartnerId.asStateFlow()
+
     private val _chatPartnerName = MutableStateFlow<String?>(null)
     val chatPartnerName: StateFlow<String?> = _chatPartnerName.asStateFlow()
 
@@ -146,6 +149,7 @@ class ChatViewModel @Inject constructor(
                 val partner = participants.firstOrNull { it.userId != currentUserId }
 
                 if (partner != null) {
+                    _chatPartnerId.value = partner.userId
                     _chatPartnerName.value = partner.nickname
                     // 프로필 이미지 URL 처리
                     val profileImageUrl = partner.profileImageUrl?.let { imageUrl ->

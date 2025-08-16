@@ -60,6 +60,7 @@ import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.PrimaryColor
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.petplace.PetPlaceApp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +72,10 @@ fun UserProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val dividerColor = Color(0xFFE5E7EB)
+
+    val app = PetPlaceApp.getAppContext() as PetPlaceApp
+    val currentUserId = app.getUserInfo()?.userId ?: 0
+    val isMyProfile = uiState.userProfile.userId == currentUserId
 
     LaunchedEffect(userId) {
         viewModel.loadUserProfile(userId)
@@ -241,30 +246,32 @@ fun UserProfileScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // 채팅하기 버튼
-                        Button(
-                            onClick = {
-                                viewModel.startChatWithUser(uiState.userProfile.userId)
-                            },
-                            enabled = !uiState.isChatRoomCreating, // 생성 중일 때는 비활성화
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = PrimaryColor
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            if (uiState.isChatRoomCreating) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = Color.White
+                        if (!isMyProfile) {
+                            Button(
+                                onClick = {
+                                    viewModel.startChatWithUser(uiState.userProfile.userId)
+                                },
+                                enabled = !uiState.isChatRoomCreating,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryColor
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                if (uiState.isChatRoomCreating) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        color = Color.White
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Text(
+                                    text = if (uiState.isChatRoomCreating) "채팅방 생성 중..." else "채팅하기",
+                                    style = AppTypography.labelLarge,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(vertical = 8.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
                             }
-                            Text(
-                                text = if (uiState.isChatRoomCreating) "채팅방 생성 중..." else "채팅하기",
-                                style = AppTypography.labelLarge,
-                                color = Color.White,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
                         }
                     }
                 }

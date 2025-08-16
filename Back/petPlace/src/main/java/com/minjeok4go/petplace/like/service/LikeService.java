@@ -68,7 +68,7 @@ public class LikeService {
         expService.applyActivity(me, ActivityType.LIKE_CREATE);
 
         publisher.publishEvent(new CreateLikeNotificationRequest(
-                feed.getUserId(), feed.getId(), feed
+                feed.getUserId(), me.getNickname(), feed.getId(), feed
         ));
 
         return feedService.increaseLike(feed);   // ✅ 여기서 호출

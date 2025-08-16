@@ -4,17 +4,23 @@ package com.minjeok4go.petplace.notification.service;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
+import com.minjeok4go.petplace.auth.service.AuthService;
 import com.minjeok4go.petplace.common.constant.NotificationType;
 import com.minjeok4go.petplace.common.constant.RefType;
-import com.minjeok4go.petplace.notification.dto.CreateCommentNotificationRequest;
-import com.minjeok4go.petplace.notification.dto.CreateLikeNotificationRequest;
+import com.minjeok4go.petplace.notification.dto.*;
 import com.minjeok4go.petplace.notification.entity.Notification;
 import com.minjeok4go.petplace.notification.repository.NotificationRepository;
 import com.minjeok4go.petplace.push.entity.UserDeviceToken;
 import com.minjeok4go.petplace.push.repository.UserDeviceTokenRepository;
+import com.minjeok4go.petplace.user.entity.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -28,12 +34,29 @@ public class NotificationService {
     private final FirebaseMessaging firebase;
     private final UserDeviceTokenRepository userDeviceTokenRepository;
     private final NotificationRepository notificationRepository;
+    private final AuthService authService;
+
+    @Transactional(readOnly = true)
+    public Slice<NotificationResponse> getMyNotifications(String tokenUserId, int page, int size) {
+
+        User me = authService.getUserFromToken(tokenUserId);
+
+        // createdAt DESC 고정
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Slice<Notification> slice = notificationRepository
+                .findByTargetUserIdAndTypeNotOrderByCreatedAtDesc(
+                        me.getId(), NotificationType.CHAT, pageable
+                );
+
+        return slice.map(NotificationResponse::new);
+    }
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(CreateCommentNotificationRequest req) {
         String title = "새 댓글이 달렸어요";
-        String body = req.getPreview();
+        String body = req.getSenderNickname() + ": " + req.getPreview();
 
         sendAndStore(
                 req.getTargetUserId(),
@@ -42,7 +65,26 @@ public class NotificationService {
                 req.getRefId(),
                 title,
                 body,
-                Map.of("refType",req.getRefType().getDisplayName(),
+                Map.of("refType",req.getRefType().name(),
+                        "refId", String.valueOf(req.getRefId()),
+                        "commentId", String.valueOf(req.getCommentId()))
+        );
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handle(CreateReplyNotificationRequest req) {
+        String title = "내 댓글에 새 답글이 달렸어요";
+        String body = req.getSenderNickname() + ": " + req.getPreview();
+
+        sendAndStore(
+                req.getTargetUserId(),
+                NotificationType.COMMENT,
+                req.getRefType(),
+                req.getRefId(),
+                title,
+                body,
+                Map.of("refType",req.getRefType().name(),
                         "refId", String.valueOf(req.getRefId()),
                         "commentId", String.valueOf(req.getCommentId()))
         );
@@ -52,7 +94,7 @@ public class NotificationService {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(CreateLikeNotificationRequest req) {
         String title = "내 글에 좋아요가 눌렸어요";
-        String body  = "누군가 내 글을 좋아합니다";
+        String body  = req.getSenderNickname() + "님이 내 글을 좋아합니다";
 
         sendAndStore(
                 req.getTargetUserId(),
@@ -61,8 +103,27 @@ public class NotificationService {
                 req.getRefId(),
                 title,
                 body,
-                Map.of("refType","FEED",
+                Map.of("refType", RefType.FEED.name(),
                         "refId", String.valueOf(req.getRefId()))
+        );
+    }
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handle(CreateChatNotificationRequest req) {
+        String title = "새 채팅 메세지가 왔어요";
+        String body  = req.getSenderNickname() + ": " + req.getPreview();
+
+        sendAndStore(
+                req.getTargetUserId(),
+                NotificationType.CHAT,
+                RefType.CHAT,
+                req.getRoomId(),
+                title,
+                body,
+                Map.of("refType", RefType.CHAT.name(),
+                        "refId", String.valueOf(req.getRoomId()),
+                        "chatId", String.valueOf(req.getChatId()))
         );
     }
 

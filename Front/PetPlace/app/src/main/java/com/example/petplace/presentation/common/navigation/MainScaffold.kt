@@ -1,16 +1,20 @@
 package com.example.petplace.presentation.common.navigation
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -24,6 +28,7 @@ import com.example.petplace.presentation.feature.chat.ChatScreen
 import com.example.petplace.presentation.feature.chat.SingleChatScreen
 import com.example.petplace.presentation.feature.createfeed.CreateFeedScreen
 import com.example.petplace.presentation.feature.feed.BoardEditScreen
+import com.example.petplace.presentation.feature.feed.FeedDetailScreen
 import com.example.petplace.presentation.feature.feed.FeedScreen
 import com.example.petplace.presentation.feature.hotel.AnimalSelectScreen
 import com.example.petplace.presentation.feature.hotel.DateSelectionScreen
@@ -49,6 +54,8 @@ import com.example.petplace.presentation.feature.mypage.MyCommentScreen
 import com.example.petplace.presentation.feature.mypage.MyLikePostScreen
 import com.example.petplace.presentation.feature.mypage.MyPageScreen
 import com.example.petplace.presentation.feature.mypage.MyPostScreen
+import com.example.petplace.presentation.feature.mypage.MyWalkScreen
+import com.example.petplace.presentation.feature.mypage.MyCareScreen
 import com.example.petplace.presentation.feature.mypage.PetProfileScreen
 import com.example.petplace.presentation.feature.mypage.ProfileCompleteScreen
 import com.example.petplace.presentation.feature.mypage.ProfileEditScreen
@@ -61,10 +68,10 @@ import com.example.petplace.presentation.feature.walk_and_care.WalkPostDetailScr
 @RequiresApi(Build.VERSION_CODES.O)
 @SuppressLint("UnrememberedGetBackStackEntry")
 @Composable
-fun MainScaffold() {
-    val navController = rememberNavController()
+fun MainScaffold(navController: NavHostController = rememberNavController()) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val context = LocalContext.current
 
     val bottomNavRoutes = listOf(
         BottomNavItem.Feed.route,
@@ -73,6 +80,10 @@ fun MainScaffold() {
         BottomNavItem.Chat.route,
         BottomNavItem.MyPage.route
     )
+
+//    LaunchedEffect(Unit) {
+//        handleFCMNavigation(context, navController)
+//    }
 
     Scaffold(
         bottomBar = {
@@ -87,11 +98,11 @@ fun MainScaffold() {
             startDestination = "splash",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("splash"){ SplashScreen(navController) }
+            composable("splash") { SplashScreen(navController) }
             composable("login") { LoginScreen(navController) }
 //            composable("join") { JoinScreen(navController, viewModel) }
             composable(BottomNavItem.Feed.route) { FeedScreen(navController = navController) }
-            composable(BottomNavItem.CreateFeed.route) {CreateFeedScreen(navController = navController)}
+            composable(BottomNavItem.CreateFeed.route) { CreateFeedScreen(navController = navController) }
             composable(BottomNavItem.Chat.route) { ChatScreen(navController) }
             composable(BottomNavItem.MyPage.route) { MyPageScreen(navController) }
             composable(
@@ -101,6 +112,16 @@ fun MainScaffold() {
                 val chatRoomId = backStackEntry.arguments?.getLong("chatRoomId") ?: 0
                 SingleChatScreen(
                     chatRoomId = chatRoomId,
+                    navController = navController
+                )
+            }
+            composable(
+                route = "feedDetail/{feedId}",
+                arguments = listOf(navArgument("feedId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val feedId = backStackEntry.arguments?.getLong("feedId") ?: 0
+                FeedDetailScreen(
+                    feedId = feedId,
                     navController = navController
                 )
             }
@@ -194,6 +215,9 @@ fun MainScaffold() {
             composable("my_post") { MyPostScreen(navController) }
             composable("my_comment") { MyCommentScreen(navController) }
             composable("my_likePost") { MyLikePostScreen(navController) }
+            composable("my_walk") { MyWalkScreen(navController) }
+
+            composable("my_care") { MyCareScreen(navController) }
 
             composable(
                 route = "userProfile/{userId}",
@@ -249,31 +273,31 @@ fun MainScaffold() {
                     val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
                     ReservationCheckoutScreen(navController, viewModel)
                 }
-                 composable(
-                            route = "hotel/success/{merchantUid}?rid={reservationId}",
-                            arguments = listOf(
-                                navArgument("merchantUid") { type = NavType.StringType },
-                                navArgument("reservationId") { type = NavType.LongType; defaultValue = -1L } // 쿼리로 받음
-                            )
-                        ) { backStackEntry ->
-                            // 그래프 스코프의 ViewModel 유지
-                            val parentEntry = remember(backStackEntry) {
-                                navController.getBackStackEntry("hotel_graph")
-                            }
-                            val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
+                composable(
+                    route = "hotel/success/{merchantUid}?rid={reservationId}",
+                    arguments = listOf(
+                        navArgument("merchantUid") { type = NavType.StringType },
+                        navArgument("reservationId") {
+                            type = NavType.LongType; defaultValue = -1L
+                        } // 쿼리로 받음
+                    )
+                ) { backStackEntry ->
+                    // 그래프 스코프의 ViewModel 유지
+                    val parentEntry = remember(backStackEntry) {
+                        navController.getBackStackEntry("hotel_graph")
+                    }
+                    val viewModel = hiltViewModel<HotelSharedViewModel>(parentEntry)
 
-                            val merchantUid = backStackEntry.arguments!!.getString("merchantUid")!!
-                            val reservationId = backStackEntry.arguments!!.getLong("reservationId")
+                    val merchantUid = backStackEntry.arguments!!.getString("merchantUid")!!
+                    val reservationId = backStackEntry.arguments!!.getLong("reservationId")
 
-                            ReservationSuccessScreen(
-                                navController = navController,
-                                viewModel = viewModel,
-                                merchantUid = merchantUid,
-                                reservationId = reservationId
-                            )
-                        }
-
-
+                    ReservationSuccessScreen(
+                        navController = navController,
+                        viewModel = viewModel,
+                        merchantUid = merchantUid,
+                        reservationId = reservationId
+                    )
+                }
 
 
             }
@@ -345,6 +369,78 @@ fun MainScaffold() {
             }
 
 
+        }
+    }
+}
+
+// FCM 네비게이션 처리 함수
+private fun handleFCMNavigation(context: Context, navController: NavHostController) {
+    val fcmDataPrefs = context.getSharedPreferences("fcm_data", Context.MODE_PRIVATE)
+    val hasPendingFcm = fcmDataPrefs.getBoolean("fcm_pending", false)
+
+    if (hasPendingFcm) {
+        val fcmType = fcmDataPrefs.getString("fcm_type", null)
+        val refType = fcmDataPrefs.getString("fcm_ref_type", null)
+        val refId = fcmDataPrefs.getString("fcm_ref_id", null)
+        val chatId = fcmDataPrefs.getString("fcm_chat_id", null)
+        val userId = fcmDataPrefs.getString("fcm_user_id", null)
+        val notificationId = fcmDataPrefs.getString("fcm_notification_id", null)
+
+        Log.d("FCM_NAV", "Handling FCM navigation - Type: $fcmType, RefType: $refType, RefId: $refId")
+
+        // FCM 데이터 클리어
+        fcmDataPrefs.edit().apply {
+            remove("fcm_type")
+            remove("fcm_ref_type")
+            remove("fcm_ref_id")
+            remove("fcm_chat_id")
+            remove("fcm_user_id")
+            remove("fcm_notification_id")
+            remove("fcm_pending")
+            apply()
+        }
+
+        // 타입에 따른 네비게이션 (refType 우선, fcmType 대안)
+        val typeToHandle = refType ?: fcmType
+        val idToUse = when (typeToHandle?.uppercase()) {
+            "CHAT" -> refId ?: chatId  // refId를 우선 사용, 없으면 chatId
+            else -> refId ?: chatId
+        }
+
+        when (typeToHandle?.lowercase()) {
+            "chat" -> {
+                idToUse?.toLongOrNull()?.let { id ->
+                    Log.d("FCM_NAV", "Navigating to chat: $id")
+                    navController.navigate("chatDetail/$id")
+                } ?: run {
+                    Log.d("FCM_NAV", "Chat ID is null, navigating to chat list")
+                    navController.navigate(BottomNavItem.Chat.route)
+                }
+            }
+            "feed" -> {
+                idToUse?.toLongOrNull()?.let { id ->
+                    Log.d("FCM_NAV", "Navigating to feed: $id")
+                    navController.navigate("feedDetail/$id")
+                } ?: run {
+                    Log.d("FCM_NAV", "Feed ID is null, navigating to feed list")
+                    navController.navigate(BottomNavItem.Feed.route)
+                }
+            }
+            "alarm", "notification" -> {
+                Log.d("FCM_NAV", "Navigating to alarm")
+                navController.navigate("alarm")
+            }
+            "user_profile" -> {
+                userId?.toLongOrNull()?.let { id ->
+                    Log.d("FCM_NAV", "Navigating to user profile: $id")
+                    navController.navigate("userProfile/$id")
+                }
+            }
+            // 필요한 다른 타입들 추가
+            else -> {
+                Log.d("FCM_NAV", "Unknown FCM type ($typeToHandle) or navigating to main feed")
+                navController.navigate(BottomNavItem.Feed.route)
+            }
         }
     }
 }

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -22,18 +21,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val BorderColor = Color(0xFFFFEDD5)   // #FFEDD5
-
-/* FeatureButton.kt */
-
 @Composable
 fun FeatureButton(
     label: String,
     icon: Any,
-    onClick: () -> Unit
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .width(100.dp)
+        modifier = modifier // ✅ 전달받은 modifier부터 시작
             .border(
                 BorderStroke(1.dp, Color(0xFFFFC981)),
                 shape = RoundedCornerShape(20.dp)
@@ -42,7 +38,6 @@ fun FeatureButton(
             .padding(vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // ➡️ 1) 원형 Box 통째로 없애고 아이콘만 배치
         if (icon is ImageVector) {
             Icon(
                 imageVector = icon,
@@ -63,3 +58,4 @@ fun FeatureButton(
         Text(label, fontSize = 14.sp, color = Color(0xFF3C3C3C))
     }
 }
+
