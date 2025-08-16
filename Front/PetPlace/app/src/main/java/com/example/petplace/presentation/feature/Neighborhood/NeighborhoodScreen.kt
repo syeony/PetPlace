@@ -76,7 +76,7 @@ fun NeighborhoodScreen(
     val viewModel: NeighborhoodViewModel = hiltViewModel()
     val showAdoptConfirm by viewModel.showAdoptConfirm.collectAsState()
 
-    //입양처 다이얼로그 확인창
+    // 입양처 다이얼로그 확인창
     if (showAdoptConfirm) {
         AlertDialog(
             onDismissRequest = { viewModel.setShowAdoptConfirm(false) },
@@ -88,38 +88,64 @@ fun NeighborhoodScreen(
                     modifier = Modifier.size(60.dp)
                 )
             },
-            title = { Text("알림", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
-            text = { Text("유기보호동물 보호소 홈페이지로 이동합니다.\n 가족이 되어주세요.",
-                fontSize   = 14.sp,
-                lineHeight = 20.sp,
-                color      = Color.Gray,
-                textAlign  = TextAlign.Center) },
-            confirmButton = {
+            title = {
                 Text(
-                    "확인",
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .clickable {
-                            val url = "https://www.animal.go.kr/front/awtis/public/publicList.do?menuNo=1000000055"
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            context.startActivity(intent)
-                            viewModel.setShowAdoptConfirm(false)
-                        },
-                    color = Color(0xFFF79800)
+                    "알림",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
             },
-            dismissButton = {
+            text = {
                 Text(
-                    "취소",
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .clickable { viewModel.setShowAdoptConfirm(false) },
-                    color = Color.Gray
+                    "유기보호동물 보호소 홈페이지로 이동합니다.\n 가족이 되어주세요.",
+                    fontSize   = 14.sp,
+                    lineHeight = 20.sp,
+                    color      = Color.Gray,
+                    textAlign  = TextAlign.Center,
+                    modifier   = Modifier.fillMaxWidth()
                 )
+            },
+            confirmButton = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "확인",
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .clickable {
+                                val url = "https://www.animal.go.kr/front/awtis/public/publicList.do?menuNo=1000000055"
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                                context.startActivity(intent)
+                                viewModel.setShowAdoptConfirm(false)
+                            },
+                        color = Color(0xFFF79800),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            dismissButton = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "취소",
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .clickable { viewModel.setShowAdoptConfirm(false) },
+                        color = Color.Gray,
+                        textAlign = TextAlign.Center
+                    )
+                }
             },
             containerColor = Color.White
         )
     }
+
 
     /* -------- ViewModel state -------- */
     val tags = viewModel.tags                 // List<TagItem>

@@ -9,6 +9,7 @@ import com.example.petplace.data.model.feed.LikeFeedReq
 import com.example.petplace.data.model.feed.LikesRes
 import com.example.petplace.data.remote.FeedApiService
 import com.example.petplace.data.remote.LoginApiService
+import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,6 +24,14 @@ class FeedRepository @Inject constructor(
         size: Int = 100
     ): List<FeedRecommendRes> = api.getRecommendedFeeds(userId, page, size)
 
+    suspend fun triggerBatch(): Result<Unit> = runCatching {
+        val res = api.runRecommendBatch()
+        if (res.isSuccessful) {
+            Unit
+        } else {
+            throw HttpException(res)
+        }
+    }
     suspend fun fetchRecommendedFeeds2(
         page: Int = 0,
         size: Int = 100
