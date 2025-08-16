@@ -15,6 +15,7 @@ import com.example.petplace.data.repository.MissingSightingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -86,7 +87,15 @@ class RegisterViewModel @Inject constructor(
     private val _isSubmitting = MutableStateFlow(false)
     val isSubmitting = _isSubmitting.asStateFlow()
     private val _submitError = MutableStateFlow<String?>(null)
+    // ✅ 감지된 이미지 상태
+    private val _detectionImageUri = MutableStateFlow<Uri?>(null)
+    val detectionImageUri: StateFlow<Uri?> = _detectionImageUri.asStateFlow()
 
+    // ✅ 감지 완료 시(외부에서 uri 넘겨줌)
+    fun onDetectionDone(uri: Uri?) { _detectionImageUri.value = uri }
+
+    // ✅ 감지 카드 닫기 버튼에서 호출
+    fun clearDetection() { _detectionImageUri.value = null }
     // 진입 시 현재 시간 기본값 세팅
     fun setNowIfEmpty(now: ZonedDateTime = ZonedDateTime.now()) {
         if (date.value == "yyyy년 MM월 dd일") {
