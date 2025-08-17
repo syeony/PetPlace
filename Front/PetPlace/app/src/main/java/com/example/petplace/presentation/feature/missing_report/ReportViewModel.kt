@@ -327,9 +327,8 @@ class ReportViewModel @Inject constructor(
             content    = s.description,
             sightedAt  = sightedAtIsoUtc,
             images     = images,
-
             species    = pick.species ?: "unknown",
-            breed      = pick.breed ?: "미상",
+            breedEng      = pick.breed ?: "미상",
             xmin       = pick.box?.left?.roundToInt() ?: 0,
             ymin       = pick.box?.top?.roundToInt() ?: 0,
             xmax       = pick.box?.right?.roundToInt() ?: 0,

@@ -52,13 +52,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.petplace.PetPlaceApp
+import coil.request.ImageRequest
 import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.AppTypography
 import com.example.petplace.presentation.common.theme.PrimaryColor
@@ -72,6 +73,21 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.util.Locale
 
+private const val IMAGE_BASE_URL = "http://i13d104.p.ssafy.io:8081/"
+
+private fun resolveImageUrl(raw: String?): String? {
+    if (raw.isNullOrBlank()) return null
+    val trimmed = raw.trim()
+    return if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        trimmed
+    } else {
+        val base = IMAGE_BASE_URL.trimEnd('/')
+        val path = trimmed.trimStart('/')
+        "$base/$path"
+    }
+}
+
+/* ───────────────────────────── */
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,25 +95,20 @@ import java.util.Locale
 fun HotelListScreen(
     navController: NavController,
     viewModel: HotelSharedViewModel = hiltViewModel(),
-
 ) {
     var expanded by remember { mutableStateOf(false) }
     val reservationState by viewModel.reservationState.collectAsState()
 
-    // 화면에서 선택한 날짜 상태
     var startDate by remember { mutableStateOf<LocalDate?>(null) }
     var endDate by remember { mutableStateOf<LocalDate?>(null) }
     val hotelList by viewModel.hotelList.collectAsState()
-    val app = PetPlaceApp.getAppContext() as PetPlaceApp
-    // ViewModel 상태와 동기화
+
     LaunchedEffect(reservationState.checkInDate, reservationState.checkOutDate) {
         startDate = reservationState.checkInDate?.takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) }
         endDate = reservationState.checkOutDate?.takeIf { it.isNotEmpty() }?.let { LocalDate.parse(it) }
     }
     LaunchedEffect(Unit) {
         viewModel.getHotelList()
-//        Log.d("내 지역", "HotelListScreen:${userInfo.} ")
-
     }
     Log.d("check", "checkIn=${reservationState.checkInDate}, checkOut=${reservationState.checkOutDate}")
 
@@ -109,6 +120,7 @@ fun HotelListScreen(
         firstDayOfWeek = DayOfWeek.MONDAY
     )
     val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -124,13 +136,12 @@ fun HotelListScreen(
                         }
                         Box(
                             modifier = Modifier.fillMaxHeight(),
-                            contentAlignment = Alignment.Center // 세로 중앙 정렬
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(text = displayText, style = AppTypography.bodyLarge)
                         }
                         Icon(
-                            imageVector = if (expanded) Icons.Default.KeyboardArrowUp
-                            else Icons.Default.KeyboardArrowDown,
+                            imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = null
                         )
                     }
@@ -141,130 +152,73 @@ fun HotelListScreen(
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White),
-                modifier = Modifier.height(48.dp), // 높이 줄이기
-                windowInsets = WindowInsets(0.dp)  // 상단 패딩 제거
+                modifier = Modifier.height(48.dp),
+                windowInsets = WindowInsets(0.dp)
             )
         }
     ) { innerPadding ->
-
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-
-            // 날짜/마릿수 선택 시트
             AnimatedVisibility(visible = expanded) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White)
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // 월 이동 헤더
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = {
-                                val prevMonth = calendarState.firstVisibleMonth.yearMonth.minusMonths(1)
-                                coroutineScope.launch { calendarState.animateScrollToMonth(prevMonth) }
-                            }
-                        ) { Text("<") }
+                DatePickerSheet(
+                    onPrevMonth = {
+                        val prevMonth = calendarState.firstVisibleMonth.yearMonth.minusMonths(1)
+                        coroutineScope.launch { calendarState.animateScrollToMonth(prevMonth) }
+                    },
+                    onNextMonth = {
+                        val nextMonth = calendarState.firstVisibleMonth.yearMonth.plusMonths(1)
+                        coroutineScope.launch { calendarState.animateScrollToMonth(nextMonth) }
+                    },
+                    monthLabel = "${calendarState.firstVisibleMonth.yearMonth.year}년 ${calendarState.firstVisibleMonth.yearMonth.monthValue}월",
+                    calendar = {
+                        HorizontalCalendar(
+                            state = calendarState,
+                            dayContent = { day ->
+                                val isStart = day.date == startDate
+                                val isEnd = day.date == endDate
+                                val inRange = startDate != null && endDate != null &&
+                                        day.date.isAfter(startDate) && day.date.isBefore(endDate)
 
-                        Text(
-                            text = "${calendarState.firstVisibleMonth.yearMonth.year}년 ${calendarState.firstVisibleMonth.yearMonth.monthValue}월",
-                            style = MaterialTheme.typography.titleMedium
+                                val bgColor = when {
+                                    isStart || isEnd -> Color(0xFFFFA000)
+                                    inRange -> Color(0xFFFFECB3)
+                                    else -> Color.Transparent
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(bgColor, RoundedCornerShape(8.dp))
+                                        .clickable(enabled = day.position == DayPosition.MonthDate) {
+                                            if (startDate == null || (startDate != null && endDate != null)) {
+                                                startDate = day.date
+                                                endDate = null
+                                            } else if (startDate != null && endDate == null) {
+                                                endDate = if (day.date.isBefore(startDate)) {
+                                                    startDate.also { startDate = day.date }
+                                                } else day.date
+                                            }
+
+                                            viewModel.selectDate(
+                                                startDate?.toString().orEmpty(),
+                                                endDate?.toString().orEmpty()
+                                            )
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = day.date.dayOfMonth.toString(),
+                                        color = if (day.position == DayPosition.MonthDate) Color.Black else Color.Gray
+                                    )
+                                }
+                            }
                         )
-
-                        IconButton(
-                            onClick = {
-                                val nextMonth = calendarState.firstVisibleMonth.yearMonth.plusMonths(1)
-                                coroutineScope.launch { calendarState.animateScrollToMonth(nextMonth) }
-                            }
-                        ) { Text(">") }
-                    }
-
-                    // 달력
-                    HorizontalCalendar(
-                        state = calendarState,
-                        dayContent = { day ->
-                            val isStart = day.date == startDate
-                            val isEnd = day.date == endDate
-                            val inRange = startDate != null && endDate != null &&
-                                    day.date.isAfter(startDate) && day.date.isBefore(endDate)
-
-                            val bgColor = when {
-                                isStart || isEnd -> Color(0xFFFFA000)
-                                inRange -> Color(0xFFFFECB3)
-                                else -> Color.Transparent
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(bgColor, RoundedCornerShape(8.dp))
-                                    .clickable(enabled = day.position == DayPosition.MonthDate) {
-                                        if (startDate == null || (startDate != null && endDate != null)) {
-                                            startDate = day.date
-                                            endDate = null
-                                        } else if (startDate != null && endDate == null) {
-                                            endDate = if (day.date.isBefore(startDate)) {
-                                                startDate.also { startDate = day.date }
-                                            } else day.date
-                                        }
-
-                                        // 선택될 때마다 ViewModel 업데이트
-                                        viewModel.selectDate(
-                                            startDate?.toString().orEmpty(),
-                                            endDate?.toString().orEmpty()
-                                        )
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = day.date.dayOfMonth.toString(),
-                                    color = if (day.position == DayPosition.MonthDate) Color.Black else Color.Gray
-                                )
-                            }
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 마릿수 선택
-//                    Row(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .clip(RoundedCornerShape(12.dp))
-//                            .background(Color(0xFFF2F2F2))
-//                            .padding(8.dp),
-//                        horizontalArrangement = Arrangement.SpaceBetween,
-//                        verticalAlignment = Alignment.CenterVertically
-//                    ) {
-//                        TextButton(onClick = { viewModel.decreaseAnimalCount() }) { Text("-") }
-//                        Text("${reservationState.animalCount} 마리")
-//                        TextButton(onClick = { viewModel.increaseAnimalCount() }) { Text("+") }
-//                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = { expanded = false },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
-                    ) {
-                        Text("적용하기", color = Color.White)
-                    }
-                }
+                    },
+                    onApply = { expanded = false }
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -297,9 +251,51 @@ fun HotelListScreen(
                         }
                     )
                 }
-
-
             }
+        }
+    }
+}
+
+@Composable
+private fun DatePickerSheet(
+    onPrevMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    monthLabel: String,
+    calendar: @Composable () -> Unit,
+    onApply: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onPrevMonth) { Text("<") }
+            Text(text = monthLabel, style = MaterialTheme.typography.titleMedium)
+            IconButton(onClick = onNextMonth) { Text(">") }
+        }
+
+        calendar()
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = onApply,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor)
+        ) {
+            Text("적용하기", color = Color.White)
         }
     }
 }
@@ -313,6 +309,9 @@ fun RoomPriceCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val fullUrl = resolveImageUrl(imageUrl) // 이 페이지 내부 헬퍼로 절대 URL 변환
+
     Card(
         onClick = onClick,
         modifier = modifier,
@@ -322,7 +321,10 @@ fun RoomPriceCard(
     ) {
         Row(Modifier.padding(12.dp)) {
             AsyncImage(
-                model = imageUrl,
+                model = ImageRequest.Builder(context)
+                    .data(fullUrl)
+                    .crossfade(true)
+                    .build(),
                 contentDescription = null,
                 placeholder = painterResource(R.drawable.pp_logo),
                 error = painterResource(R.drawable.pp_logo),
