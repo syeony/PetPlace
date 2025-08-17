@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.example.petplace.presentation.feature.alarm
 
 import androidx.compose.foundation.Image
@@ -13,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,8 +35,8 @@ import java.util.*
 
 data class MessageItem(
     val id: String,
-    val profileImage: Int,
-    val animalImage: Int,
+//    val profileImage: Int,
+//    val animalImage: Int,
     val message: String,
     val timeAgo: String,
     val isRead: Boolean = false,
@@ -62,8 +61,8 @@ fun AlarmScreen(navController: NavController) {
     val messages = alarms.map { alarm ->
         MessageItem(
             id = alarm.id,
-            profileImage = getProfileImageByType(alarm.refType),
-            animalImage = getAnimalImageByType(alarm.refType),
+//            profileImage = getProfileImageByType(alarm.refType),
+//            animalImage = getAnimalImageByType(alarm.refType),
             message = alarm.message,
             timeAgo = formatTimestamp(alarm.timestamp),
             isRead = alarm.isRead,
@@ -87,8 +86,9 @@ fun AlarmScreen(navController: NavController) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Box(
                                 modifier = Modifier
-                                    .background(Color.Red, CircleShape)
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .size(25.dp)
+                                    .background(Color.Red, CircleShape),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = unreadCount.toString(),
@@ -107,6 +107,21 @@ fun AlarmScreen(navController: NavController) {
                             contentDescription = "뒤로가기",
                             tint = Color.Gray
                         )
+                    }
+                },
+                actions = {
+                    if (messages.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                viewModel.clearAllAlarms()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "알림 모두 삭제",
+                                tint = Color.Gray
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -166,22 +181,38 @@ fun MessageItemRow(
 ) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
+            .wrapContentWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .clickable { onClick() },
         verticalAlignment = Alignment.Top
     ) {
         // 프로필 이미지
         Box {
-            Image(
-                painter = painterResource(id = message.profileImage),
-                contentDescription = "프로필 이미지",
+
+            // 메시지 내용
+            Column(
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .border(1.dp, Color(0xFFE0E0E0), CircleShape),
-                contentScale = ContentScale.Crop
-            )
+                    .fillMaxWidth()
+                    .padding(end = 8.dp)
+            ) {
+                Text(
+                    text = message.message,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = if (message.isRead) Color.Gray else Color.Black,
+                    fontWeight = if (message.isRead) FontWeight.Normal else FontWeight.Medium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = message.timeAgo,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
 
             // 읽지 않은 알림 표시
             if (!message.isRead) {
@@ -194,42 +225,6 @@ fun MessageItemRow(
             }
         }
 
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // 메시지 내용
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 8.dp)
-        ) {
-            Text(
-                text = message.message,
-                fontSize = 14.sp,
-                lineHeight = 20.sp,
-                color = if (message.isRead) Color.Gray else Color.Black,
-                fontWeight = if (message.isRead) FontWeight.Normal else FontWeight.Medium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = message.timeAgo,
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
-        }
-
-        // 동물 이미지
-        Image(
-            painter = painterResource(id = message.animalImage),
-            contentDescription = "동물 이미지",
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(8.dp)),
-            contentScale = ContentScale.Crop
-        )
     }
 }
 
@@ -287,10 +282,4 @@ private fun handleAlarmClick(navController: NavController, message: MessageItem)
             navController.navigate("feed")
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun AlarmScreenPreview() {
-    // Preview용 더미 데이터
 }

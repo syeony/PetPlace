@@ -170,10 +170,14 @@ class AlarmViewModel @Inject constructor(
 
     fun clearAllAlarms() {
         viewModelScope.launch {
-            alarmsPrefs.edit().clear().apply()
-            _alarms.value = emptyList()
-            _unreadCount.value = 0
-            Log.d(TAG, "Cleared all alarms")
+            try {
+                alarmsPrefs.edit().clear().apply()
+                _alarms.value = emptyList()
+                _unreadCount.value = 0
+                Log.d(TAG, "Cleared all alarms")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error clearing alarms: ${e.message}")
+            }
         }
     }
 }

@@ -30,7 +30,7 @@ class AlarmManager @Inject constructor(
         try {
             val alarmId = "alarm_${System.currentTimeMillis()}"
             val message = if (title.isNotEmpty() && body.isNotEmpty() && title != body) {
-                "$title: $body"
+                "$title\n$body"
             } else {
                 body.ifEmpty { title }
             }
