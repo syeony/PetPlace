@@ -133,8 +133,7 @@ fun UserProfileScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(Color.White)
-                .padding(paddingValues)
-                .padding(16.dp),
+                .padding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
@@ -419,11 +418,6 @@ fun UserProfileScreen(
                         }
                     }
                 }
-            }
-
-            // 하단 여백
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }

@@ -11,10 +11,17 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.petplace.MainActivity
 import com.example.petplace.R
+import com.example.petplace.utils.AlarmManager
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MyFirebaseMessagingService : FirebaseMessagingService() {
+
+    @Inject
+    lateinit var alarmManager: AlarmManager
 
     companion object {
         private const val TAG = "FCMService"
@@ -91,6 +98,19 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val chatId = data["chatId"] ?: data["chat_id"] ?: data["chatRoomId"]
         val userId = data["userId"] ?: data["user_id"]
 
+        val title = data["title"] ?: data["notification_title"] ?: "PetPlace"
+        val body = data["body"] ?: data["notification_body"] ?: "새로운 알림이 있습니다."
+
+        alarmManager.saveAlarmFromFCM(
+            title = title,
+            body = body,
+            refType = refType,
+            refId = refId,
+            chatId = chatId,
+            userId = userId
+        )
+
+
         Log.d(TAG, "Normalized Background Data - refType: $refType, refId: $refId, chatId: $chatId, userId: $userId")
 
         // FCM 네비게이션 데이터 저장
@@ -161,6 +181,16 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         // SharedPreferences에 백업 저장
         saveToSharedPreferences(refType, refId, chatId, userId, data)
+
+        // 알림을 AlarmManager에 저장 (추가)
+        alarmManager.saveAlarmFromFCM(
+            title = title,
+            body = body,
+            refType = refType,
+            refId = refId,
+            chatId = chatId,
+            userId = userId
+        )
 
         // Intent 생성
         val intent = createNotificationIntent(refType, refId, chatId, userId, data)
