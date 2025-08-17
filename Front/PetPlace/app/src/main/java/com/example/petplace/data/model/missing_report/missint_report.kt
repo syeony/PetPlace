@@ -45,7 +45,7 @@ data class SightingRequest(
     val sightedAt: String, // ISO 8601 (예: "2025-08-15T21:55:13.400Z")
     val images: List<SightingImage>,
     val species: String,
-    val breed: String,
+    val breedEng: String,
     val xmin: Int,
     val ymin: Int,
     val xmax: Int,
