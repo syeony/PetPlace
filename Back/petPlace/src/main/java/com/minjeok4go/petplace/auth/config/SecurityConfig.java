@@ -27,20 +27,21 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        System.out.println("🔥 SecurityConfig: 동네 인증 API 허용 설정 중...");
+
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        // 🔽 명시적으로 GET 메소드만 허용할 경로들
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/hotels/**" // 호텔 정보 조회는 누구나 가능
-                                // 추가적으로 GET 요청만 허용할 API가 있다면 여기에 추가
-                        ).permitAll()
-
                         // 🔽 인증 없이 누구나 접근 가능한 경로들
                         .requestMatchers(
+                                // 🔥 동네 인증 관련 API
+                                "/api/user/me/dong-authentication",
+                                "/api/user/me/dong-authentication/**",
+                                "/api/user/test/region-by-coordinates",
+
                                 // Swagger 관련 경로
                                 "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**",
                                 "/swagger-resources/**", "/webjars/**", "/favicon.ico",
@@ -55,8 +56,6 @@ public class SecurityConfig {
                                 // 소셜로그인 및 인증
                                 "/api/auth/**",
                                 "/api/auth/social/**",
-
-
 
                                 // 추천 API
                                 "/api/recommend/group", "/api/recommend/batch",
@@ -76,10 +75,14 @@ public class SecurityConfig {
                                 "/error"
                         ).permitAll()
 
+                        // 🔽 명시적으로 GET 메소드만 허용할 경로들
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/hotels/**" // 호텔 정보 조회는 누구나 가능
+                        ).permitAll()
+
                         // 🔼 위에서 설정한 경로 외의 모든 요청은 인증이 필요함
                         .anyRequest().authenticated()
                 )
-                // 필터 순서 조정
                 .addFilterBefore(requestLoggingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(jwtAuthenticationFilter, RequestLoggingFilter.class);
 
@@ -90,6 +93,7 @@ public class SecurityConfig {
     public WebSecurityCustomizer webSecurityCustomizer() {
         return web -> web.ignoring().requestMatchers("/images/**");
     }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
