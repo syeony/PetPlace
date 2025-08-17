@@ -59,9 +59,16 @@ import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.platform.LocalContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyPageScreen(
     navController: NavController,
@@ -85,246 +92,258 @@ fun MyPageScreen(
         viewModel.refreshData()
     }
 
-    // Loading 처리
-    if (uiState.isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
+    Scaffold(
+        topBar = {
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "프로필",
+                            style = AppTypography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.White
+                    ),
+                    windowInsets = WindowInsets(0.dp)
+                )
+                Divider(color = dividerColor, thickness = 1.dp)
+            }
         }
-        return
-    }
-
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.White),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-
-        item {
-            Text(
-                text = "프로필",
-                style = AppTypography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier
-                    .fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        }
-        // 프로필 섹션
-        item {
-            Divider(color = dividerColor, thickness = 1.dp)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) { paddingValues ->
+        // Loading 처리
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
+                CircularProgressIndicator()
+            }
+            return@Scaffold
+        }
+
+        LazyColumn(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.White)
+                .padding(paddingValues),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            // 프로필 섹션
+            item {
+                Divider(color = dividerColor, thickness = 1.dp)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.padding(20.dp)
                     ) {
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 프로필 이미지
-                            Box(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .clip(CircleShape)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                val profileImageUrl = if (!uiState.userProfile.userImgSrc.isNullOrEmpty()) {
-                                    if (uiState.userProfile.userImgSrc.startsWith("http")) {
-                                        uiState.userProfile.userImgSrc
-                                    } else {
-                                        "http://43.201.108.195:8081${uiState.userProfile.userImgSrc}"
-                                    }
-                                } else null
+                                // 프로필 이미지
+                                Box(
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .clip(CircleShape)
+                                ) {
+                                    val profileImageUrl =
+                                        if (!uiState.userProfile.userImgSrc.isNullOrEmpty()) {
+                                            if (uiState.userProfile.userImgSrc.startsWith("http")) {
+                                                uiState.userProfile.userImgSrc
+                                            } else {
+                                                "http://43.201.108.195:8081${uiState.userProfile.userImgSrc}"
+                                            }
+                                        } else null
 
-                                AsyncImage(
-                                    model = profileImageUrl,
-                                    contentDescription = "프로필 이미지",
-                                    placeholder = painterResource(id = R.drawable.ic_mypage),
-                                    error = painterResource(id = R.drawable.ic_mypage),
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
+                                    AsyncImage(
+                                        model = profileImageUrl,
+                                        contentDescription = "프로필 이미지",
+                                        placeholder = painterResource(id = R.drawable.ic_mypage),
+                                        error = painterResource(id = R.drawable.ic_mypage),
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
+                                    Text(
+                                        text = uiState.userProfile.nickname,
+                                        style = AppTypography.titleSmall.copy(
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                    Text(
+                                        text = uiState.userProfile.location,
+                                        style = AppTypography.bodySmall,
+                                        color = Color.Gray
+                                    )
+                                }
                             }
 
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column {
-                                Text(
-                                    text = uiState.userProfile.nickname,
-                                    style = AppTypography.titleSmall.copy(
-                                        fontWeight = FontWeight.Bold
-                                    )
+                            IconButton(onClick = {
+                                navController.navigate("profile_edit")
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Filled.KeyboardArrowRight,
+                                    contentDescription = "이동",
+                                    tint = Color.Gray
                                 )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 경험치 바
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Text(
-                                    text = uiState.userProfile.location,
+                                    text = "꼬순내지수",
                                     style = AppTypography.bodySmall,
                                     color = Color.Gray
                                 )
+                                Text(
+                                    text = "${uiState.userProfile.level} Lv.",
+                                    style = AppTypography.bodySmall.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = PrimaryColor
+                                )
                             }
-                        }
 
-                        IconButton(onClick = {
-                            navController.navigate("profile_edit")
-                        }) {
-                            Icon(
-                                imageVector = Icons.Filled.KeyboardArrowRight,
-                                contentDescription = "이동",
-                                tint = Color.Gray
-                            )
-                        }
-                    }
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 경험치 바
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "꼬순내지수",
-                                style = AppTypography.bodySmall,
-                                color = Color.Gray
-                            )
-                            Text(
-                                text = "${uiState.userProfile.level} Lv.",
-                                style = AppTypography.bodySmall.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = PrimaryColor
+                            LinearProgressIndicator(
+                                progress = uiState.userProfile.experienceProgress,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                color = PrimaryColor,
+                                trackColor = Color(0xFFE0E0E0)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                        LinearProgressIndicator(
-                            progress = uiState.userProfile.experienceProgress,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            color = PrimaryColor,
-                            trackColor = Color(0xFFE0E0E0)
+                        Text(
+                            text = uiState.userProfile.introduction,
+                            style = AppTypography.bodyMedium,
+                            color = Color.Gray,
+                            lineHeight = 18.sp
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = uiState.userProfile.introduction,
-                        style = AppTypography.bodyMedium,
-                        color = Color.Gray,
-                        lineHeight = 18.sp
-                    )
                 }
+                Divider(color = dividerColor, thickness = 1.dp)
             }
-            Divider(color = dividerColor, thickness = 1.dp)
-        }
 
-        // 내 가족 섹션
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
+            // 내 가족 섹션
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
-                    Text(
-                        text = "내 가족",
-                        style = AppTypography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .border(
-                                2.dp,
-                                Color(0xFFE0E0E0),
-                                RoundedCornerShape(12.dp)
-                            )
-                            .clickable { navController.navigate("pet_profile") },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "추가",
-                                tint = Color.Gray,
-                                modifier = Modifier.size(32.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "반려동물 추가",
-                                style = AppTypography.bodyMedium,
-                                color = Color.Gray
-                            )
-                        }
-                    }
-                    // 반려동물 목록이 비어있을 때는 추가 버튼만 표시
-                    if (uiState.pets.isNotEmpty()) {
-                        // 반려동물이 있을 때는 각 반려동물마다 카드 표시
-                        uiState.pets.forEachIndexed { index, pet ->
-                            Spacer(modifier = Modifier.height(12.dp))
-
-
-                            PetInfoCard(
-                                pet = pet,
-                                onEditClick = { petId ->
-                                    navController.navigate("pet_profile?petId=$petId")
-                                },
-                                onCardClick = {
-                                    // 반려동물 상세 정보 로직
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-            Divider(color = dividerColor, thickness = 1.dp)
-        }
-
-        // 펫 용품 섹션
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier.padding(20.dp)
                     ) {
                         Text(
-                            text = "펫 용품",
+                            text = "내 가족",
                             style = AppTypography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold
                             ),
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                                .border(
+                                    2.dp,
+                                    Color(0xFFE0E0E0),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable { navController.navigate("pet_profile") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "추가",
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "반려동물 추가",
+                                    style = AppTypography.bodyMedium,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                        // 반려동물 목록이 비어있을 때는 추가 버튼만 표시
+                        if (uiState.pets.isNotEmpty()) {
+                            // 반려동물이 있을 때는 각 반려동물마다 카드 표시
+                            uiState.pets.forEachIndexed { index, pet ->
+                                Spacer(modifier = Modifier.height(12.dp))
+
+
+                                PetInfoCard(
+                                    pet = pet,
+                                    onEditClick = { petId ->
+                                        navController.navigate("pet_profile?petId=$petId")
+                                    },
+                                    onCardClick = {
+                                        // 반려동물 상세 정보 로직
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                Divider(color = dividerColor, thickness = 1.dp)
+            }
+
+            // 펫 용품 섹션
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "펫 용품",
+                                style = AppTypography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            )
 //                        Spacer(modifier = Modifier.weight(1f))
 //                        IconButton(
 //                            onClick = {
@@ -336,166 +355,162 @@ fun MyPageScreen(
 //                                contentDescription = "추가",
 //                            )
 //                        }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // 목욕 용품
+                            PetSupplyItem(
+                                imageRes = R.drawable.bath_item,
+                                title = "목욕 용품",
+                                actualImageUrl = uiState.petSupplies.bathImageUrl,
+                                onClick = {
+                                    viewModel.showSupplyDialog(SupplyType.BATH)
+                                }
+                            )
+
+                            // 사료 용품
+                            PetSupplyItem(
+                                imageRes = R.drawable.bowl_item,
+                                title = "사료 용품",
+                                actualImageUrl = uiState.petSupplies.foodImageUrl,
+                                onClick = {
+                                    viewModel.showSupplyDialog(SupplyType.FOOD)
+                                }
+                            )
+
+                            // 배변 용품
+                            PetSupplyItem(
+                                imageRes = R.drawable.poo_item,
+                                title = "배변 용품",
+                                actualImageUrl = uiState.petSupplies.wasteImageUrl,
+                                onClick = {
+                                    viewModel.showSupplyDialog(SupplyType.WASTE)
+                                }
+                            )
+                        }
                     }
+                }
+                Divider(color = dividerColor, thickness = 1.dp)
+                // 용품 관리 다이얼로그
+                if (uiState.showSupplyDialog) {
+                    PetSupplyDialog(
+                        supplyType = uiState.currentSupplyType,
+                        selectedImage = uiState.selectedSupplyImage,
+                        existingImageUrl = uiState.currentSupplyType?.let {
+                            viewModel.getExistingSupplyImageUrl(it)
+                        },
+                        isSaving = uiState.isSavingSupply,
+                        onDismiss = { viewModel.hideSupplyDialog() },
+                        onImageSelected = { uri -> viewModel.updateSupplyImage(uri) },
+                        onConfirm = { viewModel.saveSupplyInfo() }
+                    )
+                }
+            }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+            // MY 섹션
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
                     ) {
-                        // 목욕 용품
-                        PetSupplyItem(
-                            imageRes = R.drawable.bath_item,
-                            title = "목욕 용품",
-                            actualImageUrl = uiState.petSupplies.bathImageUrl,
-                            onClick = {
-                                viewModel.showSupplyDialog(SupplyType.BATH)
-                            }
+                        Text(
+                            text = "MY",
+                            style = AppTypography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(bottom = 16.dp)
                         )
 
-                        // 사료 용품
-                        PetSupplyItem(
-                            imageRes = R.drawable.bowl_item,
-                            title = "사료 용품",
-                            actualImageUrl = uiState.petSupplies.foodImageUrl,
-                            onClick = {
-                                viewModel.showSupplyDialog(SupplyType.FOOD)
-                            }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // MY 메뉴들
+                            MyMenuItem(
+                                icon = R.drawable.my_post,
+                                title = "내 피드",
+                                onClick = { navController.navigate("my_post") }
+                            )
+                            MyMenuItem(
+                                icon = R.drawable.my_comment,
+                                title = "내 댓글",
+                                onClick = { navController.navigate("my_comment") }
+                            )
+                            MyMenuItem(
+                                icon = R.drawable.heart,
+                                title = "찜한글",
+                                onClick = { navController.navigate("my_likePost") }
+                            )
+                        }
+                    }
+                }
+                Divider(color = dividerColor, thickness = 1.dp)
+            }
+
+            // 산책/돌봄 섹션
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(
+                            text = "산책/돌봄",
+                            style = AppTypography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(bottom = 16.dp)
                         )
 
-                        // 배변 용품
-                        PetSupplyItem(
-                            imageRes = R.drawable.poo_item,
-                            title = "배변 용품",
-                            actualImageUrl = uiState.petSupplies.wasteImageUrl,
-                            onClick = {
-                                viewModel.showSupplyDialog(SupplyType.WASTE)
-                            }
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            WalkCareMenuItem(
+                                icon = R.drawable.my_walk,
+                                title = "내 산책",
+                                onClick = { navController.navigate("my_walk") }
+                            )
+                            WalkCareMenuItem(
+                                icon = R.drawable.my_care,
+                                title = "내 돌봄",
+                                onClick = { navController.navigate("my_care") }
+                            )
+                        }
                     }
                 }
             }
-            Divider(color = dividerColor, thickness = 1.dp)
-            // 용품 관리 다이얼로그
-            if (uiState.showSupplyDialog) {
-                PetSupplyDialog(
-                    supplyType = uiState.currentSupplyType,
-                    selectedImage = uiState.selectedSupplyImage,
-                    existingImageUrl = uiState.currentSupplyType?.let {
-                        viewModel.getExistingSupplyImageUrl(it)
+
+            // 로그아웃 버튼
+            item {
+                Button(
+                    onClick = {
+                        viewModel.logout()
+                        navController.navigate("login")
                     },
-                    isSaving = uiState.isSavingSupply,
-                    onDismiss = { viewModel.hideSupplyDialog() },
-                    onImageSelected = { uri -> viewModel.updateSupplyImage(uri) },
-                    onConfirm = { viewModel.saveSupplyInfo() }
-                )
-            }
-        }
-
-        // MY 섹션
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE57373)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "MY",
-                        style = AppTypography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        text = "로그아웃",
+                        style = AppTypography.labelLarge,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // MY 메뉴들
-                        MyMenuItem(
-                            icon = R.drawable.my_post,
-                            title = "내 피드",
-                            onClick = { navController.navigate("my_post") }
-                        )
-                        MyMenuItem(
-                            icon = R.drawable.my_comment,
-                            title = "내 댓글",
-                            onClick = { navController.navigate("my_comment") }
-                        )
-                        MyMenuItem(
-                            icon = R.drawable.heart,
-                            title = "찜한글",
-                            onClick = { navController.navigate("my_likePost") }
-                        )
-                    }
                 }
             }
-            Divider(color = dividerColor, thickness = 1.dp)
-        }
-
-        // 산책/돌봄 섹션
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp)
-                ) {
-                    Text(
-                        text = "산책/돌봄",
-                        style = AppTypography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        WalkCareMenuItem(
-                            icon = R.drawable.my_walk,
-                            title = "내 산책",
-                            onClick = { navController.navigate("my_walk") }
-                        )
-                        WalkCareMenuItem(
-                            icon = R.drawable.my_care,
-                            title = "내 돌봄",
-                            onClick = { navController.navigate("my_care") }
-                        )
-                    }
-                }
-            }
-        }
-
-        // 로그아웃 버튼
-        item {
-            Button(
-                onClick = {
-                    viewModel.logout()
-                    navController.navigate("login")
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFE57373)
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = "로그아웃",
-                    style = AppTypography.labelLarge,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-        }
-
-        // 하단 여백
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
