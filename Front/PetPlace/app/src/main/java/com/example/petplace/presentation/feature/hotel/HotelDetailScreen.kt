@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +51,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.petplace.R
 import com.example.petplace.presentation.common.theme.AppTypography
 import com.kakao.vectormap.KakaoMap
@@ -61,6 +63,17 @@ import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import com.kakao.vectormap.label.LabelStyle
 import com.kakao.vectormap.label.LabelStyles
+
+/* ───────── 이미지 경로 전처리(이 파일 전용) ───────── */
+private const val IMAGE_BASE_URL = "http://i13d104.p.ssafy.io:8081/"  // ← 실제 서버 도메인으로 변경
+
+private fun resolveImageUrl(raw: String?): String? {
+    if (raw.isNullOrBlank()) return null
+    val t = raw.trim()
+    return if (t.startsWith("http://") || t.startsWith("https://")) t
+    else IMAGE_BASE_URL.trimEnd('/') + "/" + t.trimStart('/')
+}
+/* ─────────────────────────────────────────────────── */
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,18 +97,16 @@ fun HotelDetailScreen(
             navController.navigate("hotel/checkout")
         }
     }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Box(
                         modifier = Modifier.fillMaxHeight(),
-                        contentAlignment = Alignment.Center // 세로 중앙 정렬
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            "호텔 상세",
-                            style = AppTypography.titleMedium
-                        )
+                        Text("호텔 상세", style = AppTypography.titleMedium)
                     }
                 },
                 navigationIcon = {
@@ -104,21 +115,19 @@ fun HotelDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White),
-                modifier = Modifier.height(48.dp), // 높이 줄이기
-                windowInsets = WindowInsets(0.dp)  // 상단 패딩 제거
+                modifier = Modifier.height(48.dp),
+                windowInsets = WindowInsets(0.dp)
             )
         },
         bottomBar = {
             Surface(
-                color = Color.White,        // ✅ 바텀바 배경 화이트
-                tonalElevation = 0.dp,      // ✅ 톤 오버레이 제거 (순수한 흰색 유지)
-                shadowElevation = 4.dp      // ✅ 분리감은 그림자로
+                color = Color.White,        // 바텀바 배경 화이트
+                tonalElevation = 0.dp,      // 톤 오버레이 제거
+                shadowElevation = 4.dp      // 분리감은 그림자로
             ) {
                 Button(
-                    onClick = {
-                        viewModel.checkReservationAvailability()
-                    },
-                    enabled = detail != null,              // 로딩 중엔 비활성
+                    onClick = { viewModel.checkReservationAvailability() },
+                    enabled = detail != null, // 로딩 중엔 비활성
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
@@ -145,7 +154,7 @@ fun HotelDetailScreen(
                 )
             }
 
-            // 상단 이미지 (로딩 중엔 로고)
+            // 상단 이미지 (URL 전처리 후 로드)
             Card(
                 Modifier
                     .fillMaxWidth()
@@ -154,7 +163,10 @@ fun HotelDetailScreen(
                 shape = RoundedCornerShape(20.dp)
             ) {
                 AsyncImage(
-                    model = detail?.imageUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(resolveImageUrl(detail?.imageUrl)) // ✅ 상대경로도 절대 URL로
+                        .crossfade(true)
+                        .build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     placeholder = painterResource(R.drawable.pp_logo),
@@ -228,6 +240,7 @@ fun HotelDetailScreen(
                 color = Color(0xFFE0E0E0),
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
             )
+
             // 지도
             Card(
                 Modifier

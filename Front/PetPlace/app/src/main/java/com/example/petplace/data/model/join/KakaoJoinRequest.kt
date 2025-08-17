@@ -7,4 +7,5 @@ data class KakaoJoinRequest(
     val tempToken : String ,
     val impUid: String,
     val nickname: String,
-    val regionId: Long)
+    val regionId: Long
+)

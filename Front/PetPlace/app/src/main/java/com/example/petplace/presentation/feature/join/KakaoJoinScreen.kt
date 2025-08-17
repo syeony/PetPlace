@@ -44,6 +44,7 @@ import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import kotlinx.coroutines.launch
 import androidx.activity.compose.BackHandler
+import com.example.petplace.util.CommonUtils
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -130,8 +131,11 @@ fun KakaoJoinScreen(navController: NavController, viewModel: KakaoJoinViewModel 
                         if (!agreeService || !agreePrivacy) {
                             Toast.makeText(context, "필수 약관에 동의하세요", Toast.LENGTH_SHORT).show(); return@launch
                         }
+                        val xy = CommonUtils.getXY(context)
+                        if (xy != null) {
+                            viewModel.fetchRegionByCoord(xy.first,xy.second)
+                        }
                         val result = viewModel.kakaoSignUp() // 🔄 코루틴 안에서 suspend 함수 호출
-
                         if (result) {
                             Toast.makeText(context, "회원가입이 완료되었습니다!", Toast.LENGTH_SHORT).show()
                             navController.navigate("login")

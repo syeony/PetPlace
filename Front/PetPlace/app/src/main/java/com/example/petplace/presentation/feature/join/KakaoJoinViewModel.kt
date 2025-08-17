@@ -19,27 +19,66 @@ import javax.inject.Inject
 @HiltViewModel
 class KakaoJoinViewModel @Inject constructor(
     private val repo: KakaoRepository,
-    private val joinRepo: JoinRepository
+    private val joinRepo: JoinRepository,
 ) : ViewModel() {
 
     var tempToken = mutableStateOf("")
         private set
-//    var socialId = mutableStateOf(0L)
-//        private set
 
     var nickname = mutableStateOf("")
         private set
 
     var impUid = mutableStateOf<String?>(null)
         private set
+
     var nicknameChecked = mutableStateOf(false)
         private set
 
-    fun setTempToken(newTempToken: String){tempToken.value = newTempToken}
-//    fun setSocialId(newSocialId: Long){socialId.value = newSocialId }
+    fun setTempToken(newTempToken: String){ tempToken.value = newTempToken }
     fun onNicknameChange(newName: String) { nickname.value = newName }
     fun saveImpUid(newImpUid: String) { impUid.value = newImpUid }
 
+    // --- 지역 정보 상태 ---
+    private val _regionName = MutableStateFlow<String?>(null)
+    val regionName: StateFlow<String?> = _regionName
+
+    // regionId도 상태로 보관 (서버 스키마가 Long일 가능성 높음)
+    private val _regionId = MutableStateFlow<Long?>(null)
+    val regionId: StateFlow<Long?> = _regionId
+
+
+    fun fetchRegionByCoord(lat: Double, lng: Double) {
+        viewModelScope.launch {
+            try {
+                // 1) 서버에 동네 인증 요청(성공 시 regionId 수신)
+                val response = joinRepo.verifyUserNeighborhood(lat, lng)
+                if (response.isSuccessful) {
+                    response.body()?.data?.let { data ->
+                        // 서버가 주는 값 타입이 Int면 Long으로 승격
+                        _regionId.value = when (val id = data.regionId) {
+                            is Long -> id
+                            is Int -> id.toLong()
+                            is String -> id.toLongOrNull()
+                            else -> null
+                        }
+                        Log.d("JoinViewModel", "동네 인증 성공: regionId=${_regionId.value}")
+                    } ?: run {
+                        Log.e("JoinViewModel", "동네 인증 응답 바디에 data 없음")
+                    }
+                } else {
+                    Log.e(
+                        "JoinViewModel",
+                        "동네 인증 실패: ${response.code()} ${response.message()}"
+                    )
+                }
+
+                // 2) 지역 이름은 별도로 역지오코딩
+                _regionName.value = repo.getRegionByCoord(lat, lng)
+            } catch (e: Exception) {
+                Log.e("JoinViewModel", "fetchRegionByCoord 예외", e)
+            }
+        }
+    }
 
     suspend fun checkNickname(): Boolean {
         return try {
@@ -51,15 +90,7 @@ class KakaoJoinViewModel @Inject constructor(
             false
         }
     }
-    // 동네 이름 상태
-    private val _regionName = MutableStateFlow<String?>(null)
-    val regionName: StateFlow<String?> = _regionName
 
-    fun fetchRegionByCoord(lat: Double, lng: Double) {
-        viewModelScope.launch {
-            _regionName.value = repo.getRegionByCoord(lat, lng)
-        }
-    }
     suspend fun prepareCertification(): CertificationPrepareResponse {
         val resp = withContext(Dispatchers.IO) {
             joinRepo.prepareCertification()
@@ -93,32 +124,31 @@ class KakaoJoinViewModel @Inject constructor(
 
     suspend fun kakaoSignUp(): Boolean {
         return try {
+            val currentRegionId = _regionId.value
+            if (currentRegionId == null) {
+                Log.e("KakaoJoin", "회원가입 실패: regionId가 설정되지 않음. fetchRegionByCoord를 먼저 호출하세요.")
+                return false
+            }
+            val currentImpUid = impUid.value
+            if (currentImpUid.isNullOrBlank()) {
+                Log.e("KakaoJoin", "회원가입 실패: impUid가 없음. 본인인증 먼저 완료하세요.")
+                return false
+            }
 
             val request = KakaoJoinRequest(
                 provider = "KAKAO",
-                tempToken = tempToken.value ,
-                impUid = impUid.value!!,
+                tempToken = tempToken.value,
+                impUid = currentImpUid,
                 nickname = nickname.value,
-                regionId = 4700000000
+                // 하드코딩 제거: 서버 검증으로 얻은 regionId 사용
+                regionId = currentRegionId, // ← KakaoJoinRequest가 Long을 받도록 정의되어 있어야 함
             )
-            Log.d("tempToken", "kakaoSignUp:${tempToken.value} ")
+            Log.d("KakaoJoin", "signUp 요청: tempToken=${tempToken.value}, regionId=$currentRegionId")
             val response = joinRepo.signUpKakao(request)
             response.isSuccessful
-            //&& response.body().accessToken.isNotEmpty()
         } catch (e: Exception) {
             Log.e("KakaoJoin", "회원가입 실패", e)
             false
         }
     }
-
-
-//    suspend fun kakaoSignUp(): Boolean {
-//        return try {
-//            val request = JoinRequest(userId.value,password.value,nickname.value,4700000000,impUid.value!!)
-//            val response = joinRepo.signUp(request)
-//            response.isSuccessful
-//        } catch (e: Exception) {
-//            false
-//        }
-//    }
 }
