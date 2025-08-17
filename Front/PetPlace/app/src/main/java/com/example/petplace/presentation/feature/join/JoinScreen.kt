@@ -44,6 +44,7 @@ import com.kakao.vectormap.camera.CameraUpdateFactory
 import com.kakao.vectormap.label.LabelOptions
 import kotlinx.coroutines.launch
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -253,6 +254,7 @@ fun JoinScreen(navController: NavController, viewModel: JoinViewModel = hiltView
                 },
                 label = { Text("비밀번호") },
                 modifier = Modifier.fillMaxWidth(),
+                visualTransformation = PasswordVisualTransformation(),
                 isError = password.isNotEmpty() && !passwordValid,
                 colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)
             )
@@ -268,6 +270,7 @@ fun JoinScreen(navController: NavController, viewModel: JoinViewModel = hiltView
                 value = passwordConfirm,
                 onValueChange = { passwordConfirm = it },
                 label = { Text("비밀번호 확인") },
+                visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 isError = passwordConfirm.isNotEmpty() && !passwordMatch,
                 colors = TextFieldDefaults.outlinedTextFieldColors(containerColor = BackgroundSoft)

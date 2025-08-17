@@ -529,9 +529,9 @@ class PetProfileViewModel @Inject constructor(
             "골든 햄스터" -> "GOLDEN_HAMSTER"
             "테디베어 햄스터" -> "TEDDY_BEAR_HAMSTER"
             "캠벨 햄스터" -> "CAMPBELL_DWARF"
-            "윈터 화이트 햄스터" -> "WINTER_WHITE_HAMSTER"
-            "펄 윈터 화이트 햄스터" -> "PEARL_WINTER_WHITE_HAMSTER"
-            "로보로브스키 햄스터" -> "ROBOROVSKI_HAMSTER"
+            "윈터 화이트 햄스터" -> "WINTER_WHITE_DWARF"
+            "펄 윈터 화이트 햄스터" -> "PEARL_WINTER_WHITE_DWARF"
+            "로보로브스키 햄스터" -> "ROBOROVSKI_DWARF"
             "차이니즈 햄스터" -> "CHINESE_HAMSTER"
             "기타" -> "OTHER_HAMSTER"
 

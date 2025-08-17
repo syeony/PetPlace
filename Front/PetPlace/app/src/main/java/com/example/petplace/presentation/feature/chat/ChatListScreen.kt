@@ -150,18 +150,18 @@ fun ChatListScreen(
                 windowInsets = WindowInsets(0.dp)
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showCreateChatDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "채팅방 생성",
-                    tint = Color.White
-                )
-            }
-        },
+//        floatingActionButton = {
+//            FloatingActionButton(
+//                onClick = { showCreateChatDialog = true },
+//                containerColor = MaterialTheme.colorScheme.primary
+//            ) {
+//                Icon(
+//                    imageVector = Icons.Default.Add,
+//                    contentDescription = "채팅방 생성",
+//                    tint = Color.White
+//                )
+//            }
+//        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
@@ -169,7 +169,7 @@ fun ChatListScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            val image = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24)
+            val image = painterResource(id = R.drawable.dog_example)
 
             // 상단 배너
             MissingPetCard(
@@ -404,7 +404,7 @@ fun ChatListScreenPreview() {
             .fillMaxSize()
             .background(Color.White)
     ) {
-        val image = painterResource(id = R.drawable.outline_sound_detection_dog_barking_24)
+        val image = painterResource(id = R.drawable.dog_example)
         MissingPetCard(imagePainter = image)
 
         Spacer(modifier = Modifier.height(12.dp))
