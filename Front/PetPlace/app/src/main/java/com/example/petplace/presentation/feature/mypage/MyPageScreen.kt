@@ -59,14 +59,19 @@ import android.net.Uri
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.layout.BeyondBoundsLayout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.LayoutDirection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,7 +133,12 @@ fun MyPageScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(Color.White)
-                .padding(paddingValues),
+                .padding(PaddingValues(
+                    start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
+                    top = paddingValues.calculateTopPadding(),
+                    end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
+                    bottom = 0.dp 
+                )),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
@@ -335,7 +345,8 @@ fun MyPageScreen(
                         modifier = Modifier.padding(20.dp)
                     ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = "펫 용품",
@@ -430,7 +441,7 @@ fun MyPageScreen(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             // MY 메뉴들
                             MyMenuItem(
