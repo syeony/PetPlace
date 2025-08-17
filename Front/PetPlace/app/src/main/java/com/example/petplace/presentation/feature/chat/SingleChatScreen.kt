@@ -8,7 +8,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -131,7 +130,7 @@ fun SingleChatScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
+//            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -593,13 +592,18 @@ fun ChatTopAppBar(
                     )
                 }
             },
-            title = { Text("") }
+            title = { Text("") },
+            modifier = Modifier.height(48.dp),
+            // ✅ status bar 공간 없애기
+            windowInsets = WindowInsets(0)
         )
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp),
+                // ⛔ 기존 top padding 제거
+                //.padding(top = 12.dp),
+                .padding(top = 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AsyncImage(
@@ -610,8 +614,8 @@ fun ChatTopAppBar(
                     .clip(CircleShape)
                     .clickable(onClick = onProfileClick),
                 contentScale = ContentScale.Crop,
-                placeholder = painterResource(id = R.drawable.ic_mypage), // 로딩 중 플레이스홀더
-                error = painterResource(id = R.drawable.ic_mypage) // 에러 시 기본 이미지
+                placeholder = painterResource(id = R.drawable.ic_mypage),
+                error = painterResource(id = R.drawable.ic_mypage)
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
@@ -623,7 +627,6 @@ fun ChatTopAppBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(top = 2.dp)
             ) {
-                // 연결 상태 표시점
                 Box(
                     modifier = Modifier
                         .size(6.dp)
