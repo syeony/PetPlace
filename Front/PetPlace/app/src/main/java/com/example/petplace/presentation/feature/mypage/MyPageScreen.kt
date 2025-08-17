@@ -133,12 +133,14 @@ fun MyPageScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(Color.White)
-                .padding(PaddingValues(
-                    start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
-                    top = paddingValues.calculateTopPadding(),
-                    end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
-                    bottom = 0.dp 
-                )),
+                .padding(
+                    PaddingValues(
+                        start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
+                        top = paddingValues.calculateTopPadding(),
+                        end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
+                        bottom = 0.dp
+                    )
+                ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
@@ -344,33 +346,16 @@ fun MyPageScreen(
                     Column(
                         modifier = Modifier.padding(20.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "펫 용품",
-                                style = AppTypography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            )
-//                        Spacer(modifier = Modifier.weight(1f))
-//                        IconButton(
-//                            onClick = {
-//                                // 클릭 이벤트 처리
-//                            }
-//                        ) {
-//                            Icon(
-//                                imageVector = Icons.Default.Add,
-//                                contentDescription = "추가",
-//                            )
-//                        }
-                        }
-
+                        Text(
+                            text = "펫 용품",
+                            style = AppTypography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             // 목욕 용품
                             PetSupplyItem(
