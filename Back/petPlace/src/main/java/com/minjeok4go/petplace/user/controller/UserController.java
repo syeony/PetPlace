@@ -291,18 +291,24 @@ public class UserController {
         }
 
         try {
-            // 기존 프로젝트 방식: SecurityContext에서 현재 사용자 ID 추출
+            // 🔥 수정: 인증되지 않은 사용자도 접근 가능하도록 변경
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(ApiResponse.failure("로그인이 필요합니다."));
+            
+            // 인증된 사용자인 경우 - 사용자 정보 업데이트
+            if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
+                Long userId = Long.parseLong(authentication.getName());
+                log.info("동네 인증 요청 (인증된 사용자) - 사용자: {}, 좌표: ({}, {})", userId, lat, lon);
+                
+                DongAuthenticationResponse response = userService.authenticateDong(userId, lat, lon);
+                return ResponseEntity.ok(ApiResponse.success("동네 인증이 완료되었습니다.", response));
+            } 
+            // 인증되지 않은 사용자인 경우 - 지역 정보만 반환 (DB 업데이트 없음)
+            else {
+                log.info("동네 인증 요청 (비인증 사용자) - 좌표: ({}, {})", lat, lon);
+                
+                DongAuthenticationResponse response = userService.findRegionByCoordinates(lat, lon);
+                return ResponseEntity.ok(ApiResponse.success("지역 조회가 완료되었습니다. (로그인 후 동네 인증을 완료하세요)", response));
             }
-            
-            Long userId = Long.parseLong(authentication.getName());
-            log.info("동네 인증 요청 - 사용자: {}, 좌표: ({}, {})", userId, lat, lon);
-            
-            DongAuthenticationResponse response = userService.authenticateDong(userId, lat, lon);
-            return ResponseEntity.ok(ApiResponse.success("동네 인증이 완료되었습니다.", response));
 
         } catch (IllegalArgumentException e) {
             log.warn("동네 인증 실패: {}", e.getMessage());
