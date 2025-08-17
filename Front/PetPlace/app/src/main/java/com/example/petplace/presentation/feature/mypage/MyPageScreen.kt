@@ -99,8 +99,7 @@ fun MyPageScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(16.dp),
+            .background(Color.White),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 

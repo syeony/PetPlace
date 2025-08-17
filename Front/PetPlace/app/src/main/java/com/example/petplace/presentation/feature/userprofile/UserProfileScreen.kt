@@ -133,8 +133,7 @@ fun UserProfileScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(Color.White)
-                .padding(paddingValues)
-                .padding(16.dp),
+                .padding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
