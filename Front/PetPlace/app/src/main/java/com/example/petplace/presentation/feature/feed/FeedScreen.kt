@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -81,6 +83,7 @@ import coil.request.ImageRequest
 import com.example.petplace.R
 import com.example.petplace.data.model.feed.FeedRecommendRes
 import com.example.petplace.data.model.feed.TagRes
+import com.example.petplace.presentation.feature.alarm.AlarmViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -89,11 +92,14 @@ import kotlinx.coroutines.flow.collectLatest
 fun FeedScreen(
     navController: NavController,
     modifier:   Modifier = Modifier,
-    viewModel:  BoardViewModel = hiltViewModel()
+    viewModel:  BoardViewModel = hiltViewModel(),
+    alarmViewModel: AlarmViewModel = hiltViewModel()
 ) {
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val searchText       by viewModel.searchText.collectAsState()
     val feeds            by viewModel.filteredFeeds.collectAsState()
+
+    val unreadCount by alarmViewModel.unreadCount.collectAsState()
 
     var isSearchMode          by remember { mutableStateOf(false) }
     var showCommentsForFeedId by remember { mutableStateOf<Long?>(null) }
@@ -168,6 +174,10 @@ fun FeedScreen(
                 return Offset.Zero
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        alarmViewModel.loadAlarms()
     }
 
 
@@ -303,15 +313,35 @@ fun FeedScreen(
                         )
                     }
 
-                    IconButton(onClick = {
-                        navController.navigate("alarm")
-                    }) {
-                        Icon(
-                            painter = painterResource(R.drawable.outline_notifications_24),
-                            contentDescription = "알림",
-                            tint = Color(0xFF1E293B),
-                            modifier = Modifier.size(25.dp)
-                        )
+                    // 알림 아이콘을 Box로 감싸서 뱃지 추가
+                    Box {
+                        IconButton(
+                            onClick = {
+                                navController.navigate("alarm")
+                            }
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.outline_notifications_24),
+                                contentDescription = "알림",
+                                tint = Color(0xFF1E293B),
+                                modifier = Modifier.size(25.dp)
+                            )
+                        }
+
+                        // 읽지 않은 알림이 있을 때만 빨간 점 표시
+                        if (unreadCount > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(
+                                        Color.Red,
+                                        shape = CircleShape
+                                    )
+                                    .align(Alignment.TopEnd)
+                            ) {
+                                // 빈 Box - 단순히 빨간 점 역할
+                            }
+                        }
                     }
                 }
             }
