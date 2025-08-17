@@ -51,6 +51,7 @@ import com.example.petplace.presentation.common.theme.PrimaryColor
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.LayoutDirection
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -67,6 +68,8 @@ fun SingleChatScreen(
     val chatPartnerName by viewModel.chatPartnerName.collectAsState()
     val chatPartnerProfileImage by viewModel.chatPartnerProfileImage.collectAsState()
     val imageUploadStatus by viewModel.imageUploadStatus.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // 이미지 선택 런처
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -127,15 +130,10 @@ fun SingleChatScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-//            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Top App Bar
+
+    Scaffold(
+        containerColor = Color.White,
+        topBar = {
             ChatTopAppBar(
                 chatPartnerName = chatPartnerName ?: "로딩 중...",
                 chatPartnerProfileImage = chatPartnerProfileImage,
@@ -147,6 +145,33 @@ fun SingleChatScreen(
                     navController.navigate("userProfile/${chatPartnerId}")
                 }
             )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    PaddingValues(
+                        start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                        top = innerPadding.calculateTopPadding(),
+                        end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
+                        bottom = 0.dp
+                    )
+                )
+        ) {
+//            // Top App Bar
+//            ChatTopAppBar(
+//                chatPartnerName = chatPartnerName ?: "로딩 중...",
+//                chatPartnerProfileImage = chatPartnerProfileImage,
+//                isConnected = connectionStatus,
+//                onBackClick = {
+//                    navController.popBackStack()
+//                },
+//                onProfileClick = {
+//                    navController.navigate("userProfile/${chatPartnerId}")
+//                }
+//            )
 
             // Messages List
             LazyColumn(
@@ -575,7 +600,10 @@ fun ChatTopAppBar(
     onProfileClick: () -> Unit = {}
 ) {
     Box {
-        SmallTopAppBar(
+        CenterAlignedTopAppBar(
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = Color.White
+            ),
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(
@@ -595,22 +623,20 @@ fun ChatTopAppBar(
             title = { Text("") },
             modifier = Modifier.height(48.dp),
             // ✅ status bar 공간 없애기
-            windowInsets = WindowInsets(0)
         )
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                // ⛔ 기존 top padding 제거
                 //.padding(top = 12.dp),
-                .padding(top = 0.dp),
+                .padding(top = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AsyncImage(
                 model = chatPartnerProfileImage,
                 contentDescription = "프로필 이미지",
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .clickable(onClick = onProfileClick),
                 contentScale = ContentScale.Crop,
