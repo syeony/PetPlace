@@ -286,6 +286,7 @@ fun MyPageScreen(
 
                         Box(
                             modifier = Modifier
+                                .padding(horizontal = 16.dp)
                                 .fillMaxWidth()
                                 .height(120.dp)
                                 .border(
@@ -519,6 +520,7 @@ fun PetInfoCard(
 ) {
     Box(
         modifier = Modifier
+            .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .height(150.dp)
             .border(
