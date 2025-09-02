@@ -17,6 +17,20 @@
 ![image](/uploads/1280ed206d10a05bebf63ea529a462f0/image.png){width=800 height=430}
 ![image](/uploads/906202147e3fe94209a6b66a3fdc3631/image.png){width=800 height=430}
 
+# 피드 페이지
+- TopHeader의 부드러운 숨김처리 구현
+- 피드 5개씩 페이지네이션 구현
+- 글 작성 화면 구현 
+
+![image](docu/webp/_MConverter.eu_feed.webp){height=430}
+![image](docu/webp/_MConverter.eu_KakaoTalk_20250902_153732630.webp){height=430}
+
+# 산책/돌봄 페이지
+- 게시판 리스트 구현 
+- 글 작성 화면 구현
+
+![image](docu/webp/_MConverter.eu_KakaoTalk_20250902_154047838.webp){height=430}
+![image](docu/webp/_MConverter.eu_KakaoTalk_20250902_153738954.webp){height=430}
 
 # 영상포트폴리오
 [![Video Title](https://img.youtube.com/vi/vrb4LYhehxQ/0.jpg){width=800 height=430}](https://www.youtube.com/watch?v=vrb4LYhehxQ)
