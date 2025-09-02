@@ -17,6 +17,9 @@
 ![image](/uploads/1280ed206d10a05bebf63ea529a462f0/image.png){width=800 height=430}
 ![image](/uploads/906202147e3fe94209a6b66a3fdc3631/image.png){width=800 height=430}
 
+# 스플래쉬 화면
+![image](docu/webp/loading.webp){height=430}
+
 # 피드 페이지
 - TopHeader의 부드러운 숨김처리 구현
 - 피드 5개씩 페이지네이션 구현
@@ -46,9 +49,12 @@
 - 실종등록 페이지 구현(목격했어요)
 - 실종매칭 FCM 알람 연동 
 
-![KakaoTalk_20250902_171833606_10](/uploads/d156f1388921a5ae781ed139c6e66491/KakaoTalk_20250902_171833606_10.png){height=430}
+![image](docu/webp/missingregister.webp){height=430}
 ![KakaoTalk_20250902_171833606_15](/uploads/5eae799fe44e33da2b7e62da220aae36/KakaoTalk_20250902_171833606_15.png){height=430}
-![KakaoTalk_20250902_171833606_13](/uploads/0d43a64349e12b2f6bf4b479b024b1f4/KakaoTalk_20250902_171833606_13.png){width=200}
+![image](docu/webp/matching.webp){height=430}
+
+# 채팅페이지
+![image](docu/webp/chat.webp){height=430}
 
 # 마이페이지
 - 꼬순내 로직 구현
@@ -57,8 +63,9 @@
 - 신뢰기반 내 용품 등록 구현
 - 마이피드, 댓글, 찜한피드 조회 구현
 
-![KakaoTalk_20250902_170959511_09](/uploads/7ba6f054e3dc57a92fd235041b9bf859/KakaoTalk_20250902_170959511_09.jpg){height=430}
-![KakaoTalk_20250902_171833606_01](/uploads/c74e5a4757d12f07ec135a5297244efb/KakaoTalk_20250902_171833606_01.png){height=430}
+![image](docu/webp/mypage.webp){height=430}
+![image](docu/webp/petadd.webp){height=430}
+
 
 # 영상포트폴리오
 [![Video Title](https://img.youtube.com/vi/vrb4LYhehxQ/0.jpg){width=800 height=430}](https://www.youtube.com/watch?v=vrb4LYhehxQ)
