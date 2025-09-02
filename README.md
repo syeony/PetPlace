@@ -4,22 +4,22 @@
 ---
 
 # 프로젝트 개요
-![image](/uploads/372b6e6f29f595aa0c584cc9dfc13b58/image.png){width=806 height=435}
-![image](/uploads/200a8106cfda9e5285d983465bddbbc4/image.png){width=809 height=437}
-![image](/uploads/a8573860908fb78e1e563ae183da75d5/image.png){width=809 height=437}
-![image](/uploads/491cace99241778950d8d1dfdbdef33b/image.png){width=812 height=438}
-![image](/uploads/8d153e184a8b8c1bf911970e4455c625/image.png){width=812 height=439}
-![image](/uploads/5f0b2318ec03ff81c98aa1de7d665363/image.png){width=812 height=440}
-![image](/uploads/f79a753620acb8842fade8c51128d415/image.png){width=811 height=437}
-![image](/uploads/ee0dbc8edf80d4fc86f03933c17f5e99/image.png){width=812 height=437}
-![image](/uploads/740e51455cf837a8f6517d0d49583612/image.png){width=810 height=437}
-![image](/uploads/f1bb3e3ccaebdb79c201c0a01b8417e3/image.png){width=811 height=437}
-![image](/uploads/1280ed206d10a05bebf63ea529a462f0/image.png){width=811 height=438}
-![image](/uploads/906202147e3fe94209a6b66a3fdc3631/image.png){width=811 height=437}
+![image](/uploads/372b6e6f29f595aa0c584cc9dfc13b58/image.png){width=800 height=430}
+![image](/uploads/200a8106cfda9e5285d983465bddbbc4/image.png){width=800 height=430}
+![image](/uploads/a8573860908fb78e1e563ae183da75d5/image.png){width=800 height=430}
+![image](/uploads/491cace99241778950d8d1dfdbdef33b/image.png){width=800 height=430}
+![image](/uploads/8d153e184a8b8c1bf911970e4455c625/image.png){width=800 height=430}
+![image](/uploads/5f0b2318ec03ff81c98aa1de7d665363/image.png){width=800 height=430}
+![image](/uploads/f79a753620acb8842fade8c51128d415/image.png){width=800 height=430}
+![image](/uploads/ee0dbc8edf80d4fc86f03933c17f5e99/image.png){width=800 height=430}
+![image](/uploads/740e51455cf837a8f6517d0d49583612/image.png){width=800 height=430}
+![image](/uploads/f1bb3e3ccaebdb79c201c0a01b8417e3/image.png){width=800 height=430}
+![image](/uploads/1280ed206d10a05bebf63ea529a462f0/image.png){width=800 height=430}
+![image](/uploads/906202147e3fe94209a6b66a3fdc3631/image.png){width=800 height=430}
 
 
 # 영상포트폴리오
-[![Video Title](https://img.youtube.com/vi/vrb4LYhehxQ/0.jpg)](https://www.youtube.com/watch?v=vrb4LYhehxQ)
+[![Video Title](https://img.youtube.com/vi/vrb4LYhehxQ/0.jpg){width=800 height=430}](https://www.youtube.com/watch?v=vrb4LYhehxQ)
 
 
 # Role
