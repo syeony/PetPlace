@@ -21,9 +21,18 @@
 - TopHeader의 부드러운 숨김처리 구현
 - 피드 5개씩 페이지네이션 구현
 - 글 작성 화면 구현 
+- 개인 추천 알고리즘 적용  
+- 좋아요, 댓글 FCM 알람 연동 
 
 ![image](docu/webp/_MConverter.eu_feed.webp){height=430}
 ![image](docu/webp/_MConverter.eu_KakaoTalk_20250902_153732630.webp){height=430}
+![KakaoTalk_20250902_171833606_17](/uploads/2047aee94edc74326cf9e393470c6223/KakaoTalk_20250902_171833606_17.png){width=200}
+
+# 우리동네 페이지
+- 바텀시트 구현
+- 카카오맵 API 연동하여 위치 마커 표시
+
+![Screenshot_20250815_144836_PetPlace](/uploads/2b39eb000e9bca5d70baa5c41d660838/Screenshot_20250815_144836_PetPlace.jpg){height=430}
 
 # 산책/돌봄 페이지
 - 게시판 리스트 구현 
@@ -31,6 +40,25 @@
 
 ![image](docu/webp/_MConverter.eu_KakaoTalk_20250902_154047838.webp){height=430}
 ![image](docu/webp/_MConverter.eu_KakaoTalk_20250902_153738954.webp){height=430}
+
+# 실종 신고/등록 페이지 
+- 실종신고 페이지 구현(잃어버렸어요)
+- 실종등록 페이지 구현(목격했어요)
+- 실종매칭 FCM 알람 연동 
+
+![KakaoTalk_20250902_171833606_10](/uploads/d156f1388921a5ae781ed139c6e66491/KakaoTalk_20250902_171833606_10.png){height=430}
+![KakaoTalk_20250902_171833606_15](/uploads/5eae799fe44e33da2b7e62da220aae36/KakaoTalk_20250902_171833606_15.png){height=430}
+![KakaoTalk_20250902_171833606_13](/uploads/0d43a64349e12b2f6bf4b479b024b1f4/KakaoTalk_20250902_171833606_13.png){width=200}
+
+# 마이페이지
+- 꼬순내 로직 구현
+- 마이 프로필 수정 
+- 내 가족(펫) 등록 및 추가 
+- 신뢰기반 내 용품 등록 구현
+- 마이피드, 댓글, 찜한피드 조회 구현
+
+![KakaoTalk_20250902_170959511_09](/uploads/7ba6f054e3dc57a92fd235041b9bf859/KakaoTalk_20250902_170959511_09.jpg){height=430}
+![KakaoTalk_20250902_171833606_01](/uploads/c74e5a4757d12f07ec135a5297244efb/KakaoTalk_20250902_171833606_01.png){height=430}
 
 # 영상포트폴리오
 [![Video Title](https://img.youtube.com/vi/vrb4LYhehxQ/0.jpg){width=800 height=430}](https://www.youtube.com/watch?v=vrb4LYhehxQ)
