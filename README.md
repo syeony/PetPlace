@@ -26,7 +26,7 @@
 |오승연|김민|조경호|
 |---|---|---|
 |모바일|백엔드|인프라, AI|
-|![승연이](/uploads/96a13d572f9e5c689e8fa39f1affb135/승연이.png){width=150 height=150}|![민](/uploads/11c40ffb37c999fe40a139ae2c7686af/민.jpg){width=150 height=150}|![경호](/uploads/9f62ef8e28045eb96a9416ea33a6c05e/경호.png){width=150 height=150}
+|![승연이](/uploads/96a13d572f9e5c689e8fa39f1affb135/승연이.png){width=150 height=150}|[![민](/uploads/11c40ffb37c999fe40a139ae2c7686af/민.jpg){width=150 height=150}](https://github.com/ZeppIine)|![경호](/uploads/9f62ef8e28045eb96a9416ea33a6c05e/경호.png){width=150 height=150}
 
 |이도형|송정현|정유진|
 |---|---|---|
