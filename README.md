@@ -35,6 +35,8 @@
 # 영상포트폴리오
 [![Video Title](https://img.youtube.com/vi/vrb4LYhehxQ/0.jpg){width=800 height=430}](https://www.youtube.com/watch?v=vrb4LYhehxQ)
 
+# 시스템 아키텍처
+![PetPlace__5_](/uploads/5dedbe523d47b1b143a2201ba65bce6a/PetPlace__5_.png)
 
 # Role
 |오승연|김민|조경호|
