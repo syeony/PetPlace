@@ -73,6 +73,9 @@
 # 시스템 아키텍처
 ![PetPlace__5_](/uploads/5dedbe523d47b1b143a2201ba65bce6a/PetPlace__5_.png)
 
+# ERD
+![PetPlace__5_](/uploads/897c8dbc3c2a8e99a5c8609ade7e396b/Untitled.png)
+
 # Role
 |오승연|김민|조경호|
 |:---:|:---:|:---:|
