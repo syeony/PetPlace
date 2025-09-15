@@ -6,12 +6,12 @@ services:
     restart: always
     container_name: my-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: alswjrtkrh
-      MYSQL_DATABASE: petplace_db
-      MYSQL_USER: ssafy
-      MYSQL_PASSWORD: admin
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
 
@@ -19,9 +19,9 @@ services:
     image: redis:7
     container_name: my-redis
     ports:
-      - "6379:6379"
-    # 비밀번호 쓰려면 아래 주석 해제:
-    # command: ["redis-server", "--appendonly", "yes", "--requirepass", "yourStrongPass!"]
+      - "${REDIS_PORT}:6379"
+    # 비밀번호를 쓰려면 아래 주석 해제
+    # command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     restart: always
 
   app:
@@ -33,70 +33,71 @@ services:
       - db
       - redis
     environment:
-      # --- MySQL (compose 네트워크 이름 'db' 사용) ---
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/petplace_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-      SPRING_DATASOURCE_USERNAME: ssafy
-      SPRING_DATASOURCE_PASSWORD: admin
-      LOGGING_LEVEL_ROOT: INFO
-      LOGGING_LEVEL_ORG_HIBERNATE_SQL: OFF
-      LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL: OFF
+      # --- MySQL ---
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
 
-      SPRING_WEB_RESOURCES_STATIC_LOCATIONS: file:/data/images/
+      # --- Logging ---
+      LOGGING_LEVEL_ROOT: ${LOGGING_LEVEL_ROOT}
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: ${LOGGING_LEVEL_ORG_HIBERNATE_SQL}
+      LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL: ${LOGGING_LEVEL_ORG_HIBERNATE_TYPE_DESCRIPTOR_SQL}
+
+      # --- File Upload ---
+      SPRING_WEB_RESOURCES_STATIC_LOCATIONS: ${STATIC_IMAGE_LOCATION}
       SPRING_MVC_STATIC_PATH_PATTERN: /images/**
-      APP_UPLOAD_BASE: /data/images
-      SERVICE_INTERNAL_TOKEN: "8dc532ca613b8557aa910f724a13426068a43486b1510cac00ce28361d4930ac"
+      APP_UPLOAD_BASE: ${APP_UPLOAD_BASE}
 
-      # --- Redis (compose 네트워크 이름 'redis' 사용) ---
+      # --- Internal Service Token ---
+      SERVICE_INTERNAL_TOKEN: ${SERVICE_INTERNAL_TOKEN}
+
+      # --- Redis ---
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      # 비밀번호 쓰면 같이 설정:
-      # SPRING_DATA_REDIS_PASSWORD: yourStrongPass!
+      # SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
 
-      # --- 앱 나머지 시크릿/설정 ---
-      JWT_SECRET_KEY: "MyVeryLongAndSecureJwtSecretKeyForPetPlaceApplicationThatIsAtLeast64BytesLongToEnsureHS512SecurityStandards"
-      PORTONE_API_KEY: "7058178427733754"
-      PORTONE_SECRET_KEY: "EFYssJy7k7R6idJMXlzk0a8gBVli5IlF3YDA4OPRAYc2uvijEVUkutHag3eoxJnuVwSk4rY40oqNLOJP"
-      PORTONE_STORE_ID: "MiliasTest"
-      PORTONE_IMP_CODE: "imp87506456"
-      PORTONE_WEBHOOK_SECRET: "whsec_p0LZwDTmAVXnQP3esVd7a2zW8tEwv6oLf9+SCwBYmTM="
-      PORTONE_V2_API_TOKEN: "1RKZ2Er5gjsTda1TrV2e5iQ0wFYSKlNDoRLp8Pj3j4JMYPkKYjkYhhCEPFLVX7gXYUfqnIOG2X54i6MM"      # (옵션) 카카오 소셜 값도 여기서 주입 가능
-      # KAKAO_CLIENT_ID: ""
-      # KAKAO_CLIENT_SECRET: ""
-      # KAKAO_REDIRECT_URI: ""
+      # --- JWT ---
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
 
+      # --- PortOne ---
+      PORTONE_API_KEY: ${PORTONE_API_KEY}
+      PORTONE_SECRET_KEY: ${PORTONE_SECRET_KEY}
+      PORTONE_STORE_ID: ${PORTONE_STORE_ID}
+      PORTONE_IMP_CODE: ${PORTONE_IMP_CODE}
+      PORTONE_WEBHOOK_SECRET: ${PORTONE_WEBHOOK_SECRET}
+      PORTONE_V2_API_TOKEN: ${PORTONE_V2_API_TOKEN}
+
+      # --- Kakao (옵션) ---
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
+      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI}
 
     volumes:
-      - /home/ubuntu/upload/images:/data/images:rw
+      - ${UPLOAD_PATH_HOST}:${UPLOAD_PATH_CONTAINER}:rw
     ports:
-      - "8081:8081"
+      - "${APP_PORT}:8081"
     restart: always
+
   similarity:
     build:
       context: ./similarity
       dockerfile: Dockerfile
     container_name: similarity
-    command: [ "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8083", "--workers", "1" ]  # ← 추가
+    command: [ "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8083", "--workers", "1" ]
     restart: unless-stopped
     environment:
       - TZ=Asia/Seoul
-      - USE_SERVER_YOLO=0            # 테스트 단계: 서버에서 탐지까지 수행 현재는 끔
-      - EMBED_BACKBONE=ViT-B-32
-      - EMBED_PRETRAIN=openai
-      - W_FACE=0.6
+      - USE_SERVER_YOLO=${USE_SERVER_YOLO}
+      - EMBED_BACKBONE=${EMBED_BACKBONE}
+      - EMBED_PRETRAIN=${EMBED_PRETRAIN}
+      - W_FACE=${W_FACE}
       - INDEX_DIR=/app/index_data
-      - SERVICE_INTERNAL_TOKEN=8dc532ca613b8557aa910f724a13426068a43486b1510cac00ce28361d4930ac
-
+      - SERVICE_INTERNAL_TOKEN=${SERVICE_INTERNAL_TOKEN}
     volumes:
-      - /home/ubuntu/upload/images:/data/images:ro  # FastAPI: 읽기 전용
-
+      - ${UPLOAD_PATH_HOST}:${UPLOAD_PATH_CONTAINER}:ro
       - similarity_index:/app/index_data
-    # 스프링(8080/8081)과 충돌 피하려고 외부포트 8083 사용
-#    ports:
-#      - "8083:8083"
     expose:
-      - "8083" #내부에서만 허용
-
-
+      - "8083"
 
 volumes:
   mysql_data:
