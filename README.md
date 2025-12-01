@@ -18,7 +18,8 @@
 ![image](/uploads/906202147e3fe94209a6b66a3fdc3631/image.png){width=800 height=430}
 
 # 스플래쉬 화면
-![image](docu/webp/loading.webp){height=430}
+<img src="docu/webp/loading.webp" height="430" />
+
 
 # 피드 페이지
 - TopHeader의 부드러운 숨김처리 구현
@@ -27,9 +28,8 @@
 - 개인 추천 알고리즘 적용  
 - 좋아요, 댓글 FCM 알람 연동 
 
-![image](docu/webp/_MConverter.eu_feed.webp){height=430}
-![image](docu/webp/_MConverter.eu_KakaoTalk_20250902_153732630.webp){height=430}
-![KakaoTalk_20250902_171833606_17](/uploads/2047aee94edc74326cf9e393470c6223/KakaoTalk_20250902_171833606_17.png){width=200}
+<img src="docu/webp/_MConverter.eu_feed.webp" height="430" /> <img src="docu/webp/_MConverter.eu_KakaoTalk_20250902_153732630.webp" height="430" /> <img src="/uploads/2047aee94edc74326cf9e393470c6223/KakaoTalk_20250902_171833606_17.png" width="200" />
+
 
 # 우리동네 페이지
 - 바텀시트 구현
@@ -40,21 +40,18 @@
 # 산책/돌봄 페이지
 - 게시판 리스트 구현 
 - 글 작성 화면 구현
-
-![image](docu/webp/_MConverter.eu_KakaoTalk_20250902_154047838.webp){height=430}
-![image](docu/webp/_MConverter.eu_KakaoTalk_20250902_153738954.webp){height=430}
+- 
+<img src="docu/webp/_MConverter.eu_KakaoTalk_20250902_154047838.webp" height="430" /> <img src="docu/webp/_MConverter.eu_KakaoTalk_20250902_153738954.webp" height="430" />
 
 # 실종 신고/등록 페이지 
 - 실종신고 페이지 구현(잃어버렸어요)
 - 실종등록 페이지 구현(목격했어요)
 - 실종매칭 FCM 알람 연동 
 
-![image](docu/webp/missingregister.webp){height=430}
-![KakaoTalk_20250902_171833606_15](/uploads/5eae799fe44e33da2b7e62da220aae36/KakaoTalk_20250902_171833606_15.png){height=430}
-![image](docu/webp/matching.webp){height=430}
+<img src="docu/webp/missingregister.webp" height="430" /> <img src="/uploads/5eae799fe44e33da2b7e62da220aae36/KakaoTalk_20250902_171833606_15.png" height="430" /> <img src="docu/webp/matching.webp" height="430" />
 
 # 채팅페이지
-![image](docu/webp/chat.webp){height=430}
+<img src="docu/webp/chat.webp" height="430" />
 
 # 마이페이지
 - 꼬순내 로직 구현
@@ -63,12 +60,11 @@
 - 신뢰기반 내 용품 등록 구현
 - 마이피드, 댓글, 찜한피드 조회 구현
 
-![image](docu/webp/mypage.webp){height=430}
-![image](docu/webp/petadd.webp){height=430}
+<img src="docu/webp/mypage.webp" height="430" /> <img src="docu/webp/petadd.webp" height="430" />
 
 
 # 영상포트폴리오
-[![Video Title](https://img.youtube.com/vi/vrb4LYhehxQ/0.jpg){width=800 height=430}](https://www.youtube.com/watch?v=vrb4LYhehxQ)
+[![Video Title](https://img.youtube.com/vi/vrb4LYhehxQ/0.jpg)](https://www.youtube.com/watch?v=vrb4LYhehxQ)
 
 # 시스템 아키텍처
 ![PetPlace__5_](/uploads/5dedbe523d47b1b143a2201ba65bce6a/PetPlace__5_.png)
@@ -100,3 +96,4 @@
 - 송정현: 채팅, 마이페이지, 펫 페이지 기능 연결, FCM 딥링크 구현
 
 - 정유진: 디자인, 로그인, JWT, 호텔, 산책/돌봄 기능 구현 및 DB 설계
+
